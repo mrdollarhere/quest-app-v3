@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useMemo } from 'react';
 import { Question, UserResponse, QuizState } from '@/types/quiz';
 import { QuestionRenderer } from '@/components/quiz/QuestionRenderer';
 import { Button } from "@/components/ui/button";
@@ -19,14 +19,13 @@ import {
   Home,
   ListOrdered,
   Check,
-  Clock,
   Timer
 } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { cn } from "@/lib/utils";
-import { DEMO_QUESTIONS } from '@/app/lib/demo-data';
+import { DEMO_QUESTIONS, AVAILABLE_TESTS } from '@/app/lib/demo-data';
 import {
   Sheet,
   SheetContent,
@@ -37,7 +36,13 @@ import {
 
 function QuizContent() {
   const searchParams = useSearchParams();
-  const quizTitle = searchParams.get('title') || 'QuestFlow Assessment';
+  const testId = searchParams.get('id');
+  
+  const testMetadata = useMemo(() => {
+    return AVAILABLE_TESTS.find(t => t.id === testId);
+  }, [testId]);
+
+  const quizTitle = testMetadata?.title || 'QuestFlow Assessment';
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +63,7 @@ function QuizContent() {
 
   useEffect(() => {
     fetchQuestions();
-  }, []);
+  }, [testId]);
 
   // Timer logic
   useEffect(() => {
@@ -82,10 +87,12 @@ function QuizContent() {
     setLoading(true);
     try {
       if (API_URL) {
-        const res = await fetch(API_URL);
+        const res = await fetch(`${API_URL}?id=${testId}`);
         const data = await res.json();
         setQuiz(prev => ({ ...prev, questions: data, startTime: Date.now() }));
       } else {
+        // Simulating different question sets based on ID for demo purposes
+        // In a real app, this would be a filtered set from your data source
         setQuiz(prev => ({ ...prev, questions: DEMO_QUESTIONS, startTime: Date.now() }));
       }
     } catch (err) {
@@ -179,6 +186,7 @@ function QuizContent() {
         await fetch(API_URL, {
           method: 'POST',
           body: JSON.stringify({
+            testId,
             responses: quiz.responses,
             score: finalScore,
             total: quiz.questions.length,
@@ -217,7 +225,7 @@ function QuizContent() {
   if (loading) return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
       <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
-      <p className="text-xl font-medium">Loading QuestFlow...</p>
+      <p className="text-xl font-medium">Loading Assessment...</p>
     </div>
   );
 

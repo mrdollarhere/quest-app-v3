@@ -50,7 +50,7 @@ export default function LandingPage() {
                 Explore Test Library
               </Button>
             </Link>
-            <Link href="/quiz">
+            <Link href="/quiz?id=demo-1">
               <Button size="lg" variant="outline" className="h-14 px-8 text-lg rounded-full hover:bg-muted/50 border-primary text-primary">
                 <Play className="w-5 h-5 mr-2" />
                 Quick Demo
