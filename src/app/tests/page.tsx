@@ -210,7 +210,7 @@ export default function TestsLibrary() {
                       <TableHead className="font-black uppercase text-[10px] tracking-widest px-10 py-6">Assessment Module</TableHead>
                       <TableHead className="font-black uppercase text-[10px] tracking-widest">Classification</TableHead>
                       <TableHead className="font-black uppercase text-[10px] tracking-widest">Efficiency</TableHead>
-                      <TableHead className="font-black uppercase text-[10px] tracking-widest text-right px-10">Access</TableHead>
+                      <TableHead className="font-black uppercase text-[10px] tracking-widest text-right px-10 min-w-[200px]">Access</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -234,11 +234,16 @@ export default function TestsLibrary() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right px-10">
-                          <Link href={`/quiz?id=${test.id}`}>
-                            <Button variant="ghost" size="icon" className="rounded-full h-12 w-12 hover:bg-primary/10 hover:text-primary group-hover:translate-x-1 transition-all">
-                              <ChevronRight className="w-6 h-6" />
-                            </Button>
-                          </Link>
+                          <div className="flex justify-end items-center">
+                            <Link href={`/quiz?id=${test.id}`}>
+                              <Button 
+                                className="rounded-full h-11 px-6 bg-primary text-white font-black text-[10px] uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0 shadow-lg shadow-primary/20"
+                              >
+                                Start Assessment
+                                <Play className="w-3 h-3 ml-2 fill-current" />
+                              </Button>
+                            </Link>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
