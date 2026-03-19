@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, Suspense, useMemo } from 'react';
@@ -19,7 +18,7 @@ import {
   Timer
 } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
-import Link from 'next/navigation';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { cn } from "@/lib/utils";
 import { DEMO_QUESTIONS, AVAILABLE_TESTS } from '@/app/lib/demo-data';
