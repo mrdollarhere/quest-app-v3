@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -59,7 +58,7 @@ export default function AdminTestsPage() {
         onEdit={(item) => { setEditingItem(item); setDialogs({ ...dialogs, test: true }); }}
         onDelete={(id) => handlePost('deleteTest', { id })}
         onManageQuestions={(id) => router.push(`/admin/tests/${id}`)}
-        onAdd={() => { setEditingItem(null); setDialogs({ ...dialogs, test: true }); }}
+        onAdd={() => router.push('/admin/tests/new')}
       />
 
       <AdminDialogs 

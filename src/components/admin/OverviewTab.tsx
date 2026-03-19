@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useMemo } from 'react';
@@ -29,11 +28,12 @@ import {
 } from "recharts";
 import { cn } from "@/lib/utils";
 import { AdminTab } from '@/components/admin/AdminSidebar';
+import { useRouter } from 'next/navigation';
 
 interface OverviewTabProps {
   data: { tests: any[], users: any[], responses: any[] };
   lastSync: Date | null;
-  onNewTest: () => void;
+  onNewTest: () => void; // This remains for backwards compat but we'll prefer router
   onManageContent: () => void;
   onSync: () => void;
   onSeed: () => void;
@@ -41,6 +41,8 @@ interface OverviewTabProps {
 }
 
 export function OverviewTab({ data, lastSync, onNewTest, onManageContent, onSync, onSeed, setActiveTab }: OverviewTabProps) {
+  const router = useRouter();
+
   const chartData = useMemo(() => {
     if (!data.responses.length) return [];
     const counts: Record<string, number> = {};
@@ -157,7 +159,7 @@ export function OverviewTab({ data, lastSync, onNewTest, onManageContent, onSync
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <QuickActionCard title="Create Test" description="Add assessment sheet" icon={Plus} onClick={onNewTest} theme="primary" />
+        <QuickActionCard title="Create Test" description="Add assessment sheet" icon={Plus} onClick={() => router.push('/admin/tests/new')} theme="primary" />
         <QuickActionCard title="Manage Content" description="Edit question banks" icon={Zap} onClick={onManageContent} theme="dark" />
         <QuickActionCard title="Seed Demo" description="Populate example data" icon={Database} onClick={onSeed} theme="accent" />
         <QuickActionCard title="Sync Cloud" description="Fetch latest Sheet data" icon={RefreshCcw} onClick={onSync} theme="light" />
