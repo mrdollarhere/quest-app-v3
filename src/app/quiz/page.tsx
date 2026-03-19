@@ -89,7 +89,6 @@ export default function QuizPage() {
 
   const { toast } = useToast();
 
-  // REPLACE THIS with your deployed Web App URL from Google Apps Script
   const API_URL = ""; 
 
   useEffect(() => {
@@ -104,7 +103,6 @@ export default function QuizPage() {
         const data = await res.json();
         setQuiz(prev => ({ ...prev, questions: data, startTime: Date.now() }));
       } else {
-        // Load demo data
         setQuiz(prev => ({ ...prev, questions: DEMO_QUESTIONS, startTime: Date.now() }));
       }
     } catch (err) {
@@ -132,14 +130,6 @@ export default function QuizPage() {
   const currentResponse = quiz.responses.find(r => r.questionId === currentQuestion?.id)?.answer;
 
   const next = () => {
-    if (currentQuestion.required && !currentResponse) {
-      toast({
-        title: "Required",
-        description: "Please answer this question to proceed.",
-        variant: "destructive"
-      });
-      return;
-    }
     if (quiz.currentQuestionIndex < quiz.questions.length - 1) {
       setQuiz({ ...quiz, currentQuestionIndex: quiz.currentQuestionIndex + 1 });
     }
@@ -179,15 +169,6 @@ export default function QuizPage() {
   };
 
   const submit = async () => {
-    if (currentQuestion.required && !currentResponse) {
-      toast({
-        title: "Required",
-        description: "Please answer the last question to submit.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     const finalScore = calculateScore();
     setQuiz({ ...quiz, isSubmitted: true, score: finalScore, endTime: Date.now() });
 
@@ -335,20 +316,13 @@ export default function QuizPage() {
           <Progress value={progress} className="h-2" />
         </header>
 
-        <Card className="flex-1 shadow-xl border-none">
-          <CardContent className="pt-8 px-6 md:px-10">
-            <QuestionRenderer 
-              question={currentQuestion} 
-              value={currentResponse} 
-              onChange={handleResponseChange} 
-            />
-          </CardContent>
-          <CardFooter className="flex justify-between items-center px-6 md:px-10 pb-8 mt-4">
+        <Card className="flex-1 shadow-xl border-none overflow-hidden">
+          <div className="flex justify-between items-center px-6 md:px-10 py-6 border-b bg-slate-50/50">
             <Button 
               variant="outline" 
               onClick={prev} 
               disabled={quiz.currentQuestionIndex === 0}
-              className="rounded-full px-6"
+              className="rounded-full px-6 bg-white"
             >
               <ChevronLeft className="w-5 h-5 mr-1" />
               Back
@@ -357,7 +331,7 @@ export default function QuizPage() {
             {quiz.currentQuestionIndex === quiz.questions.length - 1 ? (
               <Button 
                 onClick={submit} 
-                className="rounded-full px-8 bg-primary hover:bg-primary/90"
+                className="rounded-full px-8 bg-primary hover:bg-primary/90 shadow-sm"
               >
                 Submit Answers
                 <Send className="w-4 h-4 ml-2" />
@@ -365,13 +339,22 @@ export default function QuizPage() {
             ) : (
               <Button 
                 onClick={next} 
-                className="rounded-full px-8"
+                className="rounded-full px-8 shadow-sm"
               >
                 Next
                 <ChevronRight className="w-5 h-5 ml-1" />
               </Button>
             )}
-          </CardFooter>
+          </div>
+
+          <CardContent className="pt-10 px-6 md:px-10">
+            <QuestionRenderer 
+              question={currentQuestion} 
+              value={currentResponse} 
+              onChange={handleResponseChange} 
+            />
+          </CardContent>
+          <div className="pb-8" />
         </Card>
       </div>
     </div>
