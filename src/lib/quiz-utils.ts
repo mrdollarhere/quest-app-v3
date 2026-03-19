@@ -5,23 +5,25 @@ import { Question } from '@/types/quiz';
  * Calculates whether a user's response is correct for a given question.
  */
 export const calculateScoreForQuestion = (q: Question, response: any): boolean => {
-  if (!q.correct_answer || response === undefined || response === null) return false;
+  if (q.correct_answer === undefined || q.correct_answer === null || response === undefined || response === null) return false;
   
   const questionType = q.question_type;
+  const correctAnswerStr = q.correct_answer.toString();
 
   if (['single_choice', 'true_false', 'short_text', 'dropdown'].includes(questionType)) {
-    return response.toString().toLowerCase().trim() === q.correct_answer.toLowerCase().trim();
+    return response.toString().toLowerCase().trim() === correctAnswerStr.toLowerCase().trim();
   } 
   
   if (questionType === 'multiple_choice') {
-    const resArr = (Array.isArray(response) ? response : []).map((r: string) => r.trim()).sort();
-    const correctArr = q.correct_answer.split(',').map(c => c.trim()).sort();
+    const resArr = (Array.isArray(response) ? response : []).map((r: any) => r.toString().trim().toLowerCase()).sort();
+    const correctArr = correctAnswerStr.split(',').map(c => c.trim().toLowerCase()).sort();
     return JSON.stringify(resArr) === JSON.stringify(correctArr);
   } 
   
   if (questionType === 'ordering') {
-    const correctArr = q.correct_answer.split(',').map(c => c.trim());
-    return JSON.stringify(response) === JSON.stringify(correctArr);
+    const correctArr = correctAnswerStr.split(',').map(c => c.trim());
+    const responseArr = (Array.isArray(response) ? response : []).map((r: any) => r.toString().trim());
+    return JSON.stringify(responseArr) === JSON.stringify(correctArr);
   } 
   
   if (questionType === 'hotspot') {
@@ -36,7 +38,7 @@ export const calculateScoreForQuestion = (q: Question, response: any): boolean =
   } 
   
   if (questionType === 'matching') {
-    const correctPairs = q.correct_answer.split(',').map(p => p.trim());
+    const correctPairs = correctAnswerStr.split(',').map(p => p.trim());
     const userPairs = Object.entries(response as Record<string, string>).map(([k, v]) => `${k}|${v}`);
     if (correctPairs.length !== userPairs.length) return false;
     return correctPairs.every(cp => userPairs.includes(cp));
