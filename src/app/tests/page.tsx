@@ -1,21 +1,22 @@
 
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Play, Clock, BarChart, Layers, Search } from "lucide-react";
+import { ArrowLeft, Play, Clock, BarChart, ListChecks, Search, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const AVAILABLE_TESTS = [
   {
     id: "demo-1",
     title: "QuestFlow Essentials",
-    description: "Learn the basics of our interactive quiz platform and standard question types.",
+    description: "Learn the basics of our interactive quiz platform and master the standard question types.",
     category: "Product Tour",
-    difficulty: "Easy",
+    difficulty: "Beginner",
     questions: 8,
     duration: "5 mins",
     image: "https://picsum.photos/seed/mountain1/800/450"
@@ -23,37 +24,47 @@ const AVAILABLE_TESTS = [
   {
     id: "demo-2",
     title: "Advanced Interactions",
-    description: "A deep dive into hotspots, ordering, and complex logic patterns.",
+    description: "A deep dive into hotspots, ordering, and complex logic patterns for power users.",
     category: "Technical",
-    difficulty: "Hard",
+    difficulty: "Advanced",
     questions: 12,
     duration: "15 mins",
     image: "https://picsum.photos/seed/ui/800/450"
   },
   {
     id: "demo-3",
-    title: "Data Visualization Quiz",
-    description: "Test your knowledge on interpreting charts and complex data sets.",
+    title: "Data Insights Challenge",
+    description: "Test your knowledge on interpreting complex charts, graphs, and data sets.",
     category: "Analytics",
-    difficulty: "Medium",
+    difficulty: "Intermediate",
     questions: 10,
     duration: "10 mins",
     image: "https://picsum.photos/seed/data/800/450"
   },
   {
     id: "demo-4",
-    title: "Eco-Systems & Biology",
-    description: "An educational survey regarding global ecosystems and climate data.",
+    title: "Ecosystems & Environment",
+    description: "An educational survey regarding global ecosystems, climate data, and sustainability.",
     category: "Education",
-    difficulty: "Easy",
+    difficulty: "Beginner",
     questions: 6,
     duration: "4 mins",
     image: "https://picsum.photos/seed/nature/800/450"
+  },
+  {
+    id: "demo-5",
+    title: "Web Tech Quiz",
+    description: "Evaluate your understanding of modern web technologies, from CSS to Server Components.",
+    category: "Development",
+    difficulty: "Intermediate",
+    questions: 15,
+    duration: "12 mins",
+    image: "https://picsum.photos/seed/code/800/450"
   }
 ];
 
 export default function TestsLibrary() {
-  const [search, setSearch] = React.useState("");
+  const [search, setSearch] = useState("");
 
   const filteredTests = AVAILABLE_TESTS.filter(t => 
     t.title.toLowerCase().includes(search.toLowerCase()) || 
@@ -61,75 +72,95 @@ export default function TestsLibrary() {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="py-8 px-4 border-b bg-white/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex items-center gap-4">
-            <Link href="/">
-              <Button variant="ghost" size="icon" className="rounded-full">
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">Test Library</h1>
-              <p className="text-sm text-muted-foreground">Browse all available assessments and surveys</p>
+    <div className="min-h-screen bg-slate-50/50 flex flex-col">
+      <header className="bg-white border-b sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <Link href="/">
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <ArrowLeft className="w-5 h-5" />
+                </Button>
+              </Link>
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Test Library</h1>
+                <p className="text-sm text-muted-foreground hidden sm:block">Select an assessment to begin your journey</p>
+              </div>
             </div>
-          </div>
-          
-          <div className="relative w-full md:w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search quizzes..." 
-              className="pl-10 rounded-full"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+            
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <div className="relative flex-1 md:w-80">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Search by name or category..." 
+                  className="pl-10 rounded-full bg-slate-50 border-slate-200"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+              <Button variant="outline" size="icon" className="rounded-full md:hidden">
+                <Filter className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTests.map((test) => (
-            <Card key={test.id} className="group overflow-hidden border-none shadow-md hover:shadow-xl transition-all flex flex-col">
+            <Card key={test.id} className="group flex flex-col overflow-hidden border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
               <div className="relative aspect-video overflow-hidden">
                 <img 
                   src={test.image} 
                   alt={test.title}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                 />
-                <div className="absolute top-3 left-3 flex gap-2">
-                  <Badge className="bg-white/90 text-primary hover:bg-white">{test.category}</Badge>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute top-3 left-3">
+                  <Badge className="bg-white/95 text-primary hover:bg-white shadow-sm border-none backdrop-blur-sm">
+                    {test.category}
+                  </Badge>
                 </div>
               </div>
-              <CardHeader className="flex-1">
-                <div className="flex justify-between items-start mb-2">
-                  <CardTitle className="text-xl group-hover:text-primary transition-colors">{test.title}</CardTitle>
+
+              <CardHeader className="flex-1 pb-2">
+                <div className="flex justify-between items-start">
+                  <CardTitle className="text-xl font-bold group-hover:text-primary transition-colors line-clamp-1">
+                    {test.title}
+                  </CardTitle>
                 </div>
-                <CardDescription className="line-clamp-2">
+                <CardDescription className="line-clamp-2 mt-2 text-slate-600">
                   {test.description}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center">
-                    <Layers className="w-4 h-4 mr-1" />
-                    {test.questions} Qs
+
+              <CardContent className="pb-4">
+                <div className="flex flex-wrap items-center gap-y-3 gap-x-6 text-sm text-slate-500 font-medium">
+                  <div className="flex items-center gap-1.5">
+                    <ListChecks className="w-4 h-4 text-primary" />
+                    <span>{test.questions} Questions</span>
                   </div>
-                  <div className="flex items-center">
-                    <Clock className="w-4 h-4 mr-1" />
-                    {test.duration}
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-primary" />
+                    <span>{test.duration}</span>
                   </div>
-                  <div className="flex items-center">
-                    <BarChart className="w-4 h-4 mr-1" />
-                    {test.difficulty}
+                  <div className="flex items-center gap-1.5">
+                    <BarChart className="w-4 h-4 text-primary" />
+                    <span className={
+                      test.difficulty === 'Beginner' ? 'text-green-600' :
+                      test.difficulty === 'Intermediate' ? 'text-orange-600' : 'text-red-600'
+                    }>
+                      {test.difficulty}
+                    </span>
                   </div>
                 </div>
               </CardContent>
-              <CardFooter className="pt-0">
-                <Link href="/quiz" className="w-full">
-                  <Button className="w-full rounded-full group-hover:bg-primary/90">
-                    <Play className="w-4 h-4 mr-2" />
+
+              <CardFooter className="pt-0 border-t border-slate-50 bg-slate-50/30">
+                <Link href="/quiz" className="w-full pt-4">
+                  <Button className="w-full rounded-full font-semibold shadow-sm group-hover:shadow-md transition-all">
+                    <Play className="w-4 h-4 mr-2 fill-current" />
                     Start Assessment
                   </Button>
                 </Link>
@@ -139,16 +170,26 @@ export default function TestsLibrary() {
         </div>
 
         {filteredTests.length === 0 && (
-          <div className="text-center py-20">
-            <div className="bg-muted w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Search className="w-8 h-8 text-muted-foreground" />
+          <div className="text-center py-24 bg-white rounded-2xl border border-dashed border-slate-300">
+            <div className="bg-slate-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Search className="w-10 h-10 text-slate-400" />
             </div>
-            <h3 className="text-xl font-semibold">No tests found</h3>
-            <p className="text-muted-foreground">Try adjusting your search or category filters.</p>
-            <Button variant="link" onClick={() => setSearch("")}>Clear all filters</Button>
+            <h3 className="text-2xl font-bold text-slate-900">No quizzes found</h3>
+            <p className="text-slate-500 mt-2 max-w-xs mx-auto">We couldn't find any results for "{search}". Try checking your spelling or using different keywords.</p>
+            <Button variant="link" onClick={() => setSearch("")} className="mt-4 text-primary font-semibold">
+              Clear all filters
+            </Button>
           </div>
         )}
       </main>
+
+      <footer className="bg-white border-t py-8">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <p className="text-sm text-slate-500">
+            QuestFlow • {new Date().getFullYear()} • Dynamic Learning Platform
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
