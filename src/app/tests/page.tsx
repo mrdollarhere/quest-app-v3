@@ -10,6 +10,7 @@ import { ArrowLeft, Play, Clock, BarChart, ListChecks, Search, Filter, Loader2 }
 import { Input } from "@/components/ui/input";
 import { API_URL } from '@/lib/api-config';
 import { AVAILABLE_TESTS as DEMO_TESTS } from '@/app/lib/demo-data';
+import { cn } from "@/lib/utils";
 
 export default function TestsLibrary() {
   const [search, setSearch] = useState("");
