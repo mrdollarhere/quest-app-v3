@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Star, ArrowUp, ArrowDown, CheckCircle2, Link2, XCircle, GripVertical } from "lucide-react";
+import { Star, ArrowUp, ArrowDown, CheckCircle2, Link2, XCircle, GripVertical, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -135,30 +135,30 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
     [question.order_group]);
 
     const leftItems = useMemo(() => pairs.map(p => p.left), [pairs]);
+    const rightItemsPool = useMemo(() => pairs.map(p => p.right).sort(() => 0.5 - Math.random()), [pairs]);
     
-    // Stable shuffle on client to avoid hydration mismatch
-    const [shuffledRightItems, setShuffledRightItems] = useState<string[]>([]);
-    useEffect(() => {
-      const right = pairs.map(p => p.right);
-      setShuffledRightItems([...right].sort(() => Math.random() - 0.5));
-    }, [pairs]);
-
-    const [selectedLeft, setSelectedLeft] = useState<string | null>(null);
     const matches = (value as Record<string, string>) || {};
+    const [draggedItem, setDraggedItem] = useState<string | null>(null);
+    const [selectedPoolItem, setSelectedPoolItem] = useState<string | null>(null);
 
-    const handleMatch = (right: string) => {
-      if (reviewMode || !selectedLeft) return;
-      const newMatches = { ...matches, [selectedLeft]: right };
-      onChange(newMatches);
-      setSelectedLeft(null);
-    };
-
-    const clearMatch = (left: string) => {
+    const handleDrop = (prompt: string, answer: string) => {
       if (reviewMode) return;
       const newMatches = { ...matches };
-      delete newMatches[left];
+      // If prompt already had an answer, it automatically returns to pool because we track by presence in pool vs matches
+      newMatches[prompt] = answer;
+      onChange(newMatches);
+      setDraggedItem(null);
+      setSelectedPoolItem(null);
+    };
+
+    const clearMatch = (prompt: string) => {
+      if (reviewMode) return;
+      const newMatches = { ...matches };
+      delete newMatches[prompt];
       onChange(newMatches);
     };
+
+    const isUsedInPool = (answer: string) => Object.values(matches).includes(answer);
 
     const correctPairs = useMemo(() => 
       question.correct_answer?.split(',').map(p => {
@@ -168,75 +168,128 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
     [question.correct_answer]);
 
     return (
-      <div className="grid grid-cols-2 gap-4 md:gap-12 relative py-4">
-        <div className="space-y-4">
-          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">Column A</Label>
-          {leftItems.map((left, idx) => (
-            <div 
-              key={idx}
-              className={cn(
-                "p-4 border-2 rounded-xl cursor-pointer transition-all flex items-center justify-between group shadow-sm",
-                selectedLeft === left ? "border-primary bg-primary/5 ring-4 ring-primary/10" : "bg-card hover:border-primary/50",
-                matches[left] && "border-green-200 bg-green-50/50",
-                reviewMode && "cursor-default"
-              )}
-              onClick={() => !reviewMode && setSelectedLeft(left)}
-            >
-              <div className="flex items-center gap-3">
-                <GripVertical className="w-4 h-4 text-muted-foreground/40" />
-                <span className="font-semibold text-sm md:text-base">{left}</span>
-              </div>
-              {matches[left] && (
-                <div className="flex items-center gap-2">
-                  <div className="hidden md:block h-px w-8 bg-green-200" />
-                  <Button 
-                    size="icon" 
-                    variant="ghost" 
-                    className="h-8 w-8 rounded-full text-destructive hover:bg-destructive/10"
-                    onClick={(e) => { e.stopPropagation(); clearMatch(left); }}
-                    disabled={reviewMode}
-                  >
-                    <XCircle className="w-5 h-5" />
-                  </Button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        <div className="space-y-4">
-          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">Column B</Label>
-          {shuffledRightItems.map((right, idx) => {
-            const matchedLeft = Object.keys(matches).find(k => matches[k] === right);
-            const isCorrect = reviewMode && matchedLeft && correctPairs.find(cp => cp.l === matchedLeft)?.r === right;
-            
-            return (
-              <div 
-                key={idx}
-                className={cn(
-                  "p-4 border-2 rounded-xl cursor-pointer transition-all flex items-center gap-3 shadow-sm",
-                  matchedLeft ? "border-green-500 bg-green-50 text-green-900 font-medium" : "bg-card hover:border-primary/50",
-                  !matchedLeft && selectedLeft && "border-dashed border-primary/60 animate-pulse bg-primary/5",
-                  reviewMode && isCorrect && "border-green-600 bg-green-100",
-                  reviewMode && matchedLeft && !isCorrect && "border-destructive bg-destructive/5",
-                  reviewMode && "cursor-default"
-                )}
-                onClick={() => handleMatch(right)}
-              >
-                <Link2 className={cn("w-5 h-5 shrink-0", matchedLeft ? "text-green-600" : "text-muted-foreground/50")} />
-                <span className="text-sm md:text-base">{right}</span>
-              </div>
-            );
-          })}
-        </div>
-        
-        {selectedLeft && !reviewMode && (
-          <div className="col-span-2 text-center mt-4 animate-in fade-in slide-in-from-top-2">
-            <p className="text-sm font-medium text-primary bg-primary/10 inline-block px-4 py-1.5 rounded-full">
-              Connecting <strong>{selectedLeft}</strong>... Select a match from Column B
-            </p>
+      <div className="space-y-8">
+        {!reviewMode && (
+          <div className="flex items-center gap-2 p-3 bg-primary/5 rounded-xl border border-primary/10 text-xs font-medium text-primary mb-4">
+            <Info className="w-4 h-4" />
+            <span>Drag answers to center zones or tap to select and place.</span>
           </div>
         )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Prompts & Drop Zones */}
+          <div className="lg:col-span-8 space-y-4">
+            {leftItems.map((prompt, idx) => {
+              const currentMatch = matches[prompt];
+              const isCorrect = reviewMode && currentMatch && correctPairs.find(cp => cp.l === prompt)?.r === currentMatch;
+
+              return (
+                <div key={idx} className="flex flex-col sm:flex-row items-center gap-4 group">
+                  {/* Prompt */}
+                  <div className="w-full sm:w-1/2 p-4 bg-slate-50 border rounded-xl font-semibold text-slate-700 shadow-sm min-h-[60px] flex items-center">
+                    {prompt}
+                  </div>
+
+                  {/* Drop Zone (Center) */}
+                  <div 
+                    className={cn(
+                      "w-full sm:w-1/2 min-h-[60px] rounded-xl border-2 transition-all flex items-center justify-center p-2 relative overflow-hidden",
+                      !currentMatch && !reviewMode && "border-dashed border-slate-300 bg-slate-50/50 hover:border-primary/50 hover:bg-primary/5",
+                      !currentMatch && selectedPoolItem && !reviewMode && "border-primary border-solid animate-pulse bg-primary/10",
+                      currentMatch && "border-solid border-slate-200 bg-white shadow-sm",
+                      reviewMode && isCorrect && "border-green-500 bg-green-50",
+                      reviewMode && currentMatch && !isCorrect && "border-destructive bg-destructive/5"
+                    )}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      if (!reviewMode) e.currentTarget.classList.add('bg-primary/10', 'border-primary');
+                    }}
+                    onDragLeave={(e) => {
+                      if (!reviewMode) e.currentTarget.classList.remove('bg-primary/10', 'border-primary');
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const answer = e.dataTransfer.getData("text/plain");
+                      handleDrop(prompt, answer);
+                    }}
+                    onClick={() => {
+                      if (selectedPoolItem) handleDrop(prompt, selectedPoolItem);
+                    }}
+                  >
+                    {currentMatch ? (
+                      <div className="flex items-center justify-between w-full px-2">
+                        <span className="font-medium text-primary">{currentMatch}</span>
+                        {!reviewMode && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 rounded-full text-destructive hover:bg-destructive/10"
+                            onClick={(e) => { e.stopPropagation(); clearMatch(prompt); }}
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </Button>
+                        )}
+                        {reviewMode && isCorrect && <CheckCircle2 className="w-5 h-5 text-green-600 ml-2" />}
+                        {reviewMode && !isCorrect && <XCircle className="w-5 h-5 text-destructive ml-2" />}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">
+                        {reviewMode ? "Unmatched" : (selectedPoolItem ? "Tap to place" : "Drop answer here")}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Answer Pool (Right) */}
+          <div className="lg:col-span-4 bg-slate-50/50 p-6 rounded-2xl border border-dashed border-slate-200 sticky top-24">
+            <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 mb-4 px-1">Answer Pool</h3>
+            <div className="flex flex-wrap lg:flex-col gap-3">
+              {rightItemsPool.map((answer, idx) => {
+                const used = isUsedInPool(answer);
+                const isSelected = selectedPoolItem === answer;
+
+                return (
+                  <div
+                    key={idx}
+                    draggable={!used && !reviewMode}
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData("text/plain", answer);
+                      setDraggedItem(answer);
+                    }}
+                    onClick={() => {
+                      if (!used && !reviewMode) {
+                        setSelectedPoolItem(isSelected ? null : answer);
+                      }
+                    }}
+                    className={cn(
+                      "p-3 rounded-lg border-2 font-medium text-sm transition-all cursor-grab active:cursor-grabbing shadow-sm",
+                      used ? "opacity-30 bg-slate-100 border-transparent cursor-not-allowed" : "bg-white border-slate-200 hover:border-primary/50 hover:shadow-md",
+                      isSelected && "border-primary bg-primary/5 ring-4 ring-primary/10",
+                      reviewMode && "cursor-default pointer-events-none"
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <GripVertical className="w-3 h-3 text-slate-300" />
+                      {answer}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {!reviewMode && (
+              <Button 
+                variant="ghost" 
+                className="w-full mt-6 text-xs font-bold text-muted-foreground hover:text-destructive"
+                onClick={() => onChange({})}
+              >
+                Clear All Matches
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
     );
   };
