@@ -155,7 +155,7 @@ function QuizContent() {
           mode: 'no-cors',
           body: JSON.stringify({
             action: 'submitResponse',
-            testId,
+            testId: testId || 'Unknown',
             userName: finalName,
             userEmail: finalEmail,
             score: finalScore,

@@ -1,7 +1,7 @@
 
 export const GAS_CODE = `
 /**
- * QUESTFLOW BACKEND v15.0 - SUBMISSION SYNC FIX
+ * QUESTFLOW BACKEND v16.0 - SUBMISSION SYNC FIX
  * 
  * ACTIONS SUPPORTED:
  * - GET: login, getTests, getUsers, getResponses, getQuestions
@@ -71,6 +71,7 @@ function doPost(e) {
     if (action === 'submitResponse') {
       let sheet = ss.getSheetByName('Responses') || ss.insertSheet('Responses');
       const headers = ['Timestamp', 'User Name', 'User Email', 'Test ID', 'Score', 'Total', 'Duration (ms)', 'Raw Responses'];
+      
       if (sheet.getLastRow() === 0) {
         sheet.appendRow(headers);
       }
