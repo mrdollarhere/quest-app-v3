@@ -1,10 +1,11 @@
+
 "use client";
 
 import React from 'react';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { Play, Settings, Database, Smartphone, CheckCircle } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Play, Settings, Database, Smartphone, CheckCircle, LayoutGrid } from "lucide-react";
 
 export default function LandingPage() {
   return (
@@ -17,12 +18,20 @@ export default function LandingPage() {
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-primary">QuestFlow</h1>
           </div>
-          <Link href="/setup-guide">
-            <Button variant="ghost" size="sm" className="hidden sm:flex">
-              <Settings className="w-4 h-4 mr-2" />
-              Developer Setup
-            </Button>
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link href="/tests" className="hidden sm:block">
+              <Button variant="ghost" size="sm">
+                <LayoutGrid className="w-4 h-4 mr-2" />
+                Browse Library
+              </Button>
+            </Link>
+            <Link href="/setup-guide">
+              <Button variant="outline" size="sm">
+                <Settings className="w-4 h-4 mr-2" />
+                Developer Setup
+              </Button>
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -35,15 +44,16 @@ export default function LandingPage() {
             Build, manage, and deploy responsive surveys and assessments without a dedicated backend server. Fast, flexible, and completely serverless.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
-            <Link href="/quiz">
-              <Button size="lg" className="h-14 px-8 text-lg rounded-full shadow-lg hover:scale-105 transition-transform">
-                <Play className="w-5 h-5 mr-2" />
-                Launch Demo Quiz
+            <Link href="/tests">
+              <Button size="lg" className="h-14 px-8 text-lg rounded-full shadow-lg hover:scale-105 transition-transform bg-primary">
+                <LayoutGrid className="w-5 h-5 mr-2" />
+                Explore Test Library
               </Button>
             </Link>
-            <Link href="/setup-guide">
-              <Button size="lg" variant="outline" className="h-14 px-8 text-lg rounded-full hover:bg-muted/50">
-                Connect Your Sheet
+            <Link href="/quiz">
+              <Button size="lg" variant="outline" className="h-14 px-8 text-lg rounded-full hover:bg-muted/50 border-primary text-primary">
+                <Play className="w-5 h-5 mr-2" />
+                Quick Demo
               </Button>
             </Link>
           </div>
@@ -80,7 +90,7 @@ export default function LandingPage() {
         </div>
       </main>
 
-      <footer className="py-8 text-center text-muted-foreground border-t">
+      <footer className="py-8 text-center text-muted-foreground border-t bg-white/30">
         <p>© {new Date().getFullYear()} QuestFlow. Built with Next.js & Google Apps Script.</p>
       </footer>
     </div>
