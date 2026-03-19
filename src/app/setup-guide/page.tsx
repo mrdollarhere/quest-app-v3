@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from 'react';
@@ -20,8 +19,6 @@ export default function SetupGuide() {
       description: "Code copied to clipboard.",
     });
   };
-
-  const API_URL = "https://script.google.com/macros/s/AKfycbxD0P_i2bmNpGH3QPJEsq7cGRac-EFtzo25glrQ10GPoARAyg_Vf4DmAqe0WBf6hw1VjQ/exec";
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-12">
@@ -98,9 +95,9 @@ export default function SetupGuide() {
           </div>
           <Card>
             <CardContent className="pt-6">
-              <p className="mb-4">In the <code className="bg-muted px-1">src/app/quiz/page.tsx</code> file, update the <code className="bg-muted px-1">API_URL</code> constant with your Web App URL.</p>
+              <p className="mb-4">In the <code className="bg-muted px-1">src/lib/api-config.ts</code> file, update the <code className="bg-muted px-1">API_URL</code> constant with your Web App URL.</p>
               <div className="bg-muted p-4 rounded-md font-mono text-sm break-all">
-                const API_URL = "{API_URL}";
+                const API_URL = "YOUR_DEPLOYED_WEB_APP_URL_HERE";
               </div>
             </CardContent>
           </Card>

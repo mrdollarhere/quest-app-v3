@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, Suspense, useMemo } from 'react';
@@ -26,6 +25,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { cn } from "@/lib/utils";
 import { DEMO_QUESTIONS, AVAILABLE_TESTS } from '@/app/lib/demo-data';
+import { API_URL } from '@/lib/api-config';
 import {
   Sheet,
   SheetContent,
@@ -59,8 +59,6 @@ function QuizContent() {
 
   const { toast } = useToast();
 
-  const API_URL = "https://script.google.com/macros/s/AKfycbxD0P_i2bmNpGH3QPJEsq7cGRac-EFtzo25glrQ10GPoARAyg_Vf4DmAqe0WBf6hw1VjQ/exec"; 
-
   useEffect(() => {
     fetchQuestions();
   }, [testId]);
@@ -89,7 +87,6 @@ function QuizContent() {
       if (API_URL) {
         const res = await fetch(`${API_URL}?id=${testId}`);
         const data = await res.json();
-        // If API returns no data for this ID, we can fallback to demo for testing
         if (data && Array.isArray(data) && data.length > 0) {
           setQuiz(prev => ({ ...prev, questions: data, startTime: Date.now() }));
         } else {
@@ -101,8 +98,6 @@ function QuizContent() {
       }
     } catch (err) {
       console.error(err);
-      setError("Failed to load questions. Check your API configuration and ensure your script allows CORS.");
-      // Even on error, we might want to allow demo data for easier testing of the UI
       setQuiz(prev => ({ ...prev, questions: DEMO_QUESTIONS, startTime: Date.now() }));
       setError(null);
     } finally {
@@ -192,7 +187,7 @@ function QuizContent() {
       try {
         await fetch(API_URL, {
           method: 'POST',
-          mode: 'no-cors', // Apps Script requires no-cors for direct POST or careful header handling
+          mode: 'no-cors',
           body: JSON.stringify({
             testId,
             responses: quiz.responses,
@@ -336,7 +331,7 @@ function QuizContent() {
               </Button>
             </Link>
             <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight text-center flex-1 mx-4">{quizTitle}</h1>
-            <div className="w-[80px]" /> {/* Spacer for balance */}
+            <div className="w-[80px]" /> 
           </div>
 
           <div className="space-y-2">
