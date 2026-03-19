@@ -8,10 +8,8 @@ import {
   LayoutGrid, 
   Settings, 
   RefreshCcw, 
-  ChevronLeft,
   Users as UsersIcon,
   BarChart3,
-  ExternalLink,
   Search,
   ShieldAlert,
   Loader2,
@@ -21,12 +19,19 @@ import {
   Home,
   LogOut,
   ChevronRight,
-  ClipboardList
+  ClipboardList,
+  Plus,
+  Trash2,
+  Edit,
+  Save,
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Table, 
   TableBody, 
@@ -35,6 +40,15 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogTrigger
+} from "@/components/ui/dialog";
 import { 
   Sidebar, 
   SidebarContent, 
@@ -68,19 +82,21 @@ export default function AdminDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
 
+  // CRUD States
+  const [isTestDialogOpen, setIsTestDialogOpen] = useState(false);
+  const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
+  const [isQuestionDialogOpen, setIsQuestionDialogOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [questionJson, setQuestionJson] = useState("");
+
   const fetchData = async () => {
     if (!API_URL) return;
     setLoading(true);
     try {
-      // Fetch Tests
       const testsRes = await fetch(`${API_URL}?action=getTests`);
       const testsData = await testsRes.json();
-      
-      // Fetch Users (using new action)
       const usersRes = await fetch(`${API_URL}?action=getUsers`);
       const usersData = await usersRes.json();
-
-      // Fetch Responses (using new action)
       const responsesRes = await fetch(`${API_URL}?action=getResponses`);
       const responsesData = await responsesRes.json();
 
@@ -90,17 +106,9 @@ export default function AdminDashboard() {
         responses: Array.isArray(responsesData) ? responsesData : []
       });
 
-      toast({
-        title: "Sync Successful",
-        description: "Dashboard data updated from Google Sheets.",
-      });
+      toast({ title: "Sync Successful", description: "Dashboard data updated." });
     } catch (err) {
-      console.error(err);
-      toast({
-        variant: "destructive",
-        title: "Sync Error",
-        description: "Could not fetch data from the spreadsheet. Check your Apps Script deployment.",
-      });
+      toast({ variant: "destructive", title: "Sync Error", description: "Could not fetch data." });
     } finally {
       setLoading(false);
     }
@@ -110,11 +118,84 @@ export default function AdminDashboard() {
     if (user?.role === 'admin') fetchData();
   }, [user]);
 
+  const handlePost = async (action: string, payload: any) => {
+    if (!API_URL) return;
+    setLoading(true);
+    try {
+      await fetch(API_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: JSON.stringify({ action, ...payload })
+      });
+      toast({ title: "Operation Successful", description: "Changes queued for Google Sheets." });
+      // Optimistic update for UI if needed, or just refetch
+      setTimeout(fetchData, 1500); // Wait for GAS to process
+    } catch (err) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to save changes." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- CRUD HANDLERS ---
+  const saveTest = (e: React.FormEvent) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget as HTMLFormElement);
+    const testData = Object.fromEntries(formData.entries());
+    handlePost('saveTest', { data: testData });
+    setIsTestDialogOpen(false);
+  };
+
+  const deleteTest = (id: string) => {
+    if (confirm(`Delete test "${id}" and all its questions?`)) {
+      handlePost('deleteTest', { id });
+    }
+  };
+
+  const saveUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget as HTMLFormElement);
+    const userData = Object.fromEntries(formData.entries());
+    handlePost('saveUser', { data: userData });
+    setIsUserDialogOpen(false);
+  };
+
+  const deleteUser = (email: string) => {
+    if (confirm(`Delete user "${email}"?`)) {
+      handlePost('deleteUser', { email });
+    }
+  };
+
+  const openQuestionEditor = async (testId: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}?action=getQuestions&id=${testId}`);
+      const questions = await res.json();
+      setQuestionJson(JSON.stringify(questions, null, 2));
+      setEditingItem(testId);
+      setIsQuestionDialogOpen(true);
+    } catch (err) {
+      toast({ variant: "destructive", title: "Error", description: "Could not fetch questions." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveQuestions = () => {
+    try {
+      const questions = JSON.parse(questionJson);
+      handlePost('saveQuestions', { testId: editingItem, questions });
+      setIsQuestionDialogOpen(false);
+    } catch (e) {
+      toast({ variant: "destructive", title: "Invalid JSON", description: "Please check your question format." });
+    }
+  };
+
   if (authLoading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
   if (!user || user.role !== 'admin') {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
         <ShieldAlert className="w-20 h-20 text-red-500 mb-4" />
         <h1 className="text-2xl font-black">Access Denied</h1>
         <p className="text-muted-foreground mt-2">Only administrators can access this control panel.</p>
@@ -126,89 +207,10 @@ export default function AdminDashboard() {
   const renderOverview = () => (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="border-none shadow-sm hover:shadow-md transition-all">
-          <CardContent className="pt-6 flex items-center gap-4">
-            <div className="p-3 bg-blue-50 rounded-2xl text-blue-600"><LayoutGrid className="w-6 h-6" /></div>
-            <div>
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Live Tests</p>
-              <p className="text-3xl font-black">{data.tests.length}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-none shadow-sm hover:shadow-md transition-all">
-          <CardContent className="pt-6 flex items-center gap-4">
-            <div className="p-3 bg-green-50 rounded-2xl text-green-600"><UsersIcon className="w-6 h-6" /></div>
-            <div>
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Registered Users</p>
-              <p className="text-3xl font-black">{data.users.length}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-none shadow-sm hover:shadow-md transition-all">
-          <CardContent className="pt-6 flex items-center gap-4">
-            <div className="p-3 bg-purple-50 rounded-2xl text-purple-600"><ClipboardList className="w-6 h-6" /></div>
-            <div>
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Submissions</p>
-              <p className="text-3xl font-black">{data.responses.length}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-none shadow-sm hover:shadow-md transition-all">
-          <CardContent className="pt-6 flex items-center gap-4">
-            <div className="p-3 bg-orange-50 rounded-2xl text-orange-600"><Database className="w-6 h-6" /></div>
-            <div>
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Cloud Sync</p>
-              <p className="text-sm font-black text-orange-600">CONNECTED</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-xl">Quick Start</CardTitle>
-            <CardDescription>Manage your platform from Google Sheets</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {[
-              { label: "Update Test Library", desc: "Modify rows in the 'Tests' tab", icon: TableIcon },
-              { label: "Add Questions", desc: "Create a new tab named exactly as the Test ID", icon: FileText },
-              { label: "User Access", desc: "Add or remove email/passwords in 'Users'", icon: UsersIcon }
-            ].map((step, i) => (
-              <div key={i} className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl">
-                <div className="bg-white p-2 rounded-lg shadow-sm"><step.icon className="w-4 h-4 text-primary" /></div>
-                <div>
-                  <p className="text-sm font-bold">{step.label}</p>
-                  <p className="text-xs text-muted-foreground">{step.desc}</p>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-xl">System Status</CardTitle>
-            <CardDescription>Real-time connectivity report</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Google Apps Script</span>
-                <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none">Active</Badge>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Sheets API Access</span>
-                <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none">Authorized</Badge>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Last Data Sync</span>
-                <span className="text-xs text-muted-foreground">{new Date().toLocaleTimeString()}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <Card className="border-none shadow-sm"><CardContent className="pt-6 flex items-center gap-4"><div className="p-3 bg-blue-50 rounded-2xl text-blue-600"><LayoutGrid className="w-6 h-6" /></div><div><p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Live Tests</p><p className="text-3xl font-black">{data.tests.length}</p></div></CardContent></Card>
+        <Card className="border-none shadow-sm"><CardContent className="pt-6 flex items-center gap-4"><div className="p-3 bg-green-50 rounded-2xl text-green-600"><UsersIcon className="w-6 h-6" /></div><div><p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Users</p><p className="text-3xl font-black">{data.users.length}</p></div></CardContent></Card>
+        <Card className="border-none shadow-sm"><CardContent className="pt-6 flex items-center gap-4"><div className="p-3 bg-purple-50 rounded-2xl text-purple-600"><ClipboardList className="w-6 h-6" /></div><div><p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Results</p><p className="text-3xl font-black">{data.responses.length}</p></div></CardContent></Card>
+        <Card className="border-none shadow-sm"><CardContent className="pt-6 flex items-center gap-4"><div className="p-3 bg-orange-50 rounded-2xl text-orange-600"><Database className="w-6 h-6" /></div><div><p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Status</p><p className="text-sm font-black text-orange-600">CONNECTED</p></div></CardContent></Card>
       </div>
     </div>
   );
@@ -216,141 +218,77 @@ export default function AdminDashboard() {
   const renderTests = () => (
     <Card className="border-none shadow-sm animate-in slide-in-from-bottom-4 duration-500">
       <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Assessment Registry</CardTitle>
-          <CardDescription>Manage all active test definitions</CardDescription>
-        </div>
-        <div className="relative w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input 
-            placeholder="Filter tests..." 
-            className="pl-10 rounded-full"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        <div><CardTitle>Assessments</CardTitle><CardDescription>Manage test registry and questions</CardDescription></div>
+        <div className="flex gap-4">
+          <Input placeholder="Filter tests..." className="w-64 rounded-full" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+          <Button onClick={() => { setEditingItem(null); setIsTestDialogOpen(true); }} className="rounded-full gap-2"><Plus className="w-4 h-4" /> Add Test</Button>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="rounded-xl border overflow-hidden">
-          <Table>
-            <TableHeader className="bg-slate-50">
-              <TableRow>
-                <TableHead>Test ID</TableHead>
-                <TableHead>Title</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Difficulty</TableHead>
-                <TableHead className="text-right">Preview</TableHead>
+        <Table>
+          <TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Title</TableHead><TableHead>Category</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+          <TableBody>
+            {data.tests.filter(t => t.title?.toLowerCase().includes(searchTerm.toLowerCase())).map((t, i) => (
+              <TableRow key={i}>
+                <TableCell><Badge variant="outline">{t.id}</Badge></TableCell>
+                <TableCell className="font-bold">{t.title}</TableCell>
+                <TableCell>{t.category}</TableCell>
+                <TableCell className="text-right flex justify-end gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => openQuestionEditor(t.id)} className="rounded-full text-blue-600"><FileText className="w-4 h-4 mr-1" /> Questions</Button>
+                  <Button variant="ghost" size="sm" onClick={() => { setEditingItem(t); setIsTestDialogOpen(true); }} className="rounded-full"><Edit className="w-4 h-4" /></Button>
+                  <Button variant="ghost" size="sm" onClick={() => deleteTest(t.id)} className="rounded-full text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.tests.filter(t => t.title?.toLowerCase().includes(searchTerm.toLowerCase())).map((t, i) => (
-                <TableRow key={i}>
-                  <TableCell><Badge variant="outline" className="font-mono bg-white">{t.id}</Badge></TableCell>
-                  <TableCell className="font-bold">{t.title}</TableCell>
-                  <TableCell><Badge variant="secondary" className="rounded-lg">{t.category}</Badge></TableCell>
-                  <TableCell>
-                    <span className={cn(
-                      "text-xs font-bold px-2 py-1 rounded-full",
-                      t.difficulty === 'Beginner' ? 'bg-green-50 text-green-600' :
-                      t.difficulty === 'Intermediate' ? 'bg-orange-50 text-orange-600' : 'bg-red-50 text-red-600'
-                    )}>
-                      {t.difficulty}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Link href={`/quiz?id=${t.id}`} target="_blank">
-                      <Button variant="ghost" size="sm" className="rounded-full">
-                        <ExternalLink className="w-4 h-4 mr-2" />
-                        Open
-                      </Button>
-                    </Link>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+            ))}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );
 
   const renderUsers = () => (
     <Card className="border-none shadow-sm animate-in slide-in-from-bottom-4 duration-500">
-      <CardHeader>
-        <CardTitle>Platform Users</CardTitle>
-        <CardDescription>Listing all accounts defined in your 'Users' sheet</CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div><CardTitle>Users</CardTitle><CardDescription>Manage platform access</CardDescription></div>
+        <Button onClick={() => { setEditingItem(null); setIsUserDialogOpen(true); }} className="rounded-full gap-2"><Plus className="w-4 h-4" /> Add User</Button>
       </CardHeader>
       <CardContent>
-        <div className="rounded-xl border overflow-hidden">
-          <Table>
-            <TableHeader className="bg-slate-50">
-              <TableRow>
-                <TableHead>UID</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
+        <Table>
+          <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Email</TableHead><TableHead>Role</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+          <TableBody>
+            {data.users.map((u, i) => (
+              <TableRow key={i}>
+                <TableCell className="font-bold">{u.name}</TableCell>
+                <TableCell>{u.email}</TableCell>
+                <TableCell><Badge variant={u.role === 'admin' ? 'default' : 'secondary'}>{u.role}</Badge></TableCell>
+                <TableCell className="text-right flex justify-end gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => { setEditingItem(u); setIsUserDialogOpen(true); }} className="rounded-full"><Edit className="w-4 h-4" /></Button>
+                  <Button variant="ghost" size="sm" onClick={() => deleteUser(u.email)} className="rounded-full text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.users.map((u, i) => (
-                <TableRow key={i}>
-                  <TableCell className="font-mono text-xs">{u.id || `U-${i+100}`}</TableCell>
-                  <TableCell className="font-bold">{u.name}</TableCell>
-                  <TableCell>{u.email}</TableCell>
-                  <TableCell>
-                    <Badge className={u.role === 'admin' ? "bg-primary" : "bg-slate-200 text-slate-700 hover:bg-slate-200"}>
-                      {u.role?.toUpperCase()}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+            ))}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );
 
   const renderResponses = () => (
     <Card className="border-none shadow-sm animate-in slide-in-from-bottom-4 duration-500">
-      <CardHeader>
-        <CardTitle>Recent Submissions</CardTitle>
-        <CardDescription>Viewing the last 50 responses captured</CardDescription>
-      </CardHeader>
+      <CardHeader><CardTitle>Results</CardTitle><CardDescription>Recent test submissions</CardDescription></CardHeader>
       <CardContent>
-        <div className="rounded-xl border overflow-hidden">
-          <Table>
-            <TableHeader className="bg-slate-50">
-              <TableRow>
-                <TableHead>Timestamp</TableHead>
-                <TableHead>Test ID</TableHead>
-                <TableHead>Score</TableHead>
-                <TableHead>Duration</TableHead>
+        <Table>
+          <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Test</TableHead><TableHead>Score</TableHead></TableRow></TableHeader>
+          <TableBody>
+            {data.responses.map((r, i) => (
+              <TableRow key={i}>
+                <TableCell className="text-xs">{new Date(r.Timestamp).toLocaleString()}</TableCell>
+                <TableCell>{r['Test ID']}</TableCell>
+                <TableCell className="font-bold">{r.Score} / {r.Total}</TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.responses.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center py-12 text-muted-foreground">No submissions found.</TableCell>
-                </TableRow>
-              ) : (
-                data.responses.map((r, i) => (
-                  <TableRow key={i}>
-                    <TableCell className="text-xs">{new Date(r.Timestamp).toLocaleString()}</TableCell>
-                    <TableCell><Badge variant="outline">{r['Test ID']}</Badge></TableCell>
-                    <TableCell className="font-bold">
-                      {r.Score} / {r.Total}
-                      <span className="ml-2 text-xs text-muted-foreground">({Math.round((r.Score / r.Total) * 100)}%)</span>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {Math.round(r['Duration (ms)'] / 1000)}s
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+            ))}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );
@@ -360,15 +298,7 @@ export default function AdminDashboard() {
       <div className="flex min-h-screen bg-slate-50/50 w-full">
         <Sidebar className="border-r shadow-sm">
           <SidebarHeader className="p-6">
-            <div className="flex items-center gap-3">
-              <div className="bg-primary p-2 rounded-xl shadow-lg">
-                <Settings className="text-white w-5 h-5" />
-              </div>
-              <div>
-                <h1 className="text-lg font-black tracking-tight">Admin</h1>
-                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest leading-none mt-1">QuestFlow Panel</p>
-              </div>
-            </div>
+            <div className="flex items-center gap-3"><div className="bg-primary p-2 rounded-xl shadow-lg"><Settings className="text-white w-5 h-5" /></div><div><h1 className="text-lg font-black tracking-tight">Admin</h1><p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest leading-none mt-1">QuestFlow Panel</p></div></div>
           </SidebarHeader>
           <SidebarContent className="px-3">
             <SidebarGroup>
@@ -382,85 +312,27 @@ export default function AdminDashboard() {
                     { id: 'responses', label: 'Results & Logs', icon: MessageSquare }
                   ].map((item) => (
                     <SidebarMenuItem key={item.id}>
-                      <SidebarMenuButton 
-                        isActive={activeTab === item.id} 
-                        onClick={() => setActiveTab(item.id as AdminTab)}
-                        className={cn(
-                          "h-12 px-4 rounded-xl font-bold transition-all",
-                          activeTab === item.id ? "bg-primary text-white shadow-md hover:bg-primary" : "text-slate-500 hover:bg-slate-100"
-                        )}
-                      >
-                        <item.icon className="w-5 h-5 mr-3" />
-                        {item.label}
-                        {activeTab === item.id && <ChevronRight className="ml-auto w-4 h-4 opacity-50" />}
+                      <SidebarMenuButton isActive={activeTab === item.id} onClick={() => setActiveTab(item.id as AdminTab)} className={cn("h-12 px-4 rounded-xl font-bold transition-all", activeTab === item.id ? "bg-primary text-white shadow-md hover:bg-primary" : "text-slate-500 hover:bg-slate-100")}>
+                        <item.icon className="w-5 h-5 mr-3" /> {item.label}
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   ))}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
-
-            <SidebarGroup className="mt-8">
-              <SidebarGroupLabel className="px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">External Links</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <Link href="/setup-guide" className="w-full">
-                      <SidebarMenuButton className="h-12 px-4 rounded-xl font-bold text-slate-500 hover:bg-slate-100 w-full">
-                        <FileText className="w-5 h-5 mr-3" />
-                        Setup Guide
-                      </SidebarMenuButton>
-                    </Link>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <Link href="/" className="w-full">
-                      <SidebarMenuButton className="h-12 px-4 rounded-xl font-bold text-slate-500 hover:bg-slate-100 w-full">
-                        <Home className="w-5 h-5 mr-3" />
-                        Back Home
-                      </SidebarMenuButton>
-                    </Link>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
           </SidebarContent>
           <SidebarFooter className="p-4 border-t bg-slate-50/50">
             <div className="p-4 bg-white rounded-2xl border flex items-center justify-between">
-              <div className="flex flex-col">
-                <span className="text-xs font-black">{user.displayName || 'Admin'}</span>
-                <span className="text-[10px] text-muted-foreground font-medium truncate w-24">{user.email}</span>
-              </div>
-              <Button variant="ghost" size="icon" onClick={logout} className="rounded-full text-destructive hover:bg-destructive/10">
-                <LogOut className="w-4 h-4" />
-              </Button>
+              <div className="flex flex-col"><span className="text-xs font-black">{user.displayName || 'Admin'}</span><span className="text-[10px] text-muted-foreground font-medium truncate w-24">{user.email}</span></div>
+              <Button variant="ghost" size="icon" onClick={logout} className="rounded-full text-destructive hover:bg-destructive/10"><LogOut className="w-4 h-4" /></Button>
             </div>
           </SidebarFooter>
         </Sidebar>
 
         <main className="flex-1">
           <header className="h-20 border-b bg-white flex items-center justify-between px-8 sticky top-0 z-10">
-            <div className="flex items-center gap-4">
-              <SidebarTrigger className="lg:hidden" />
-              <div>
-                <h2 className="text-xl font-black capitalize tracking-tight">{activeTab} Control</h2>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Live Cloud Sync Active</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <Button 
-                onClick={fetchData} 
-                disabled={loading} 
-                variant="outline"
-                className="rounded-full border-2 font-bold px-6"
-              >
-                <RefreshCcw className={cn("w-4 h-4 mr-2", loading && "animate-spin")} />
-                Sync Data
-              </Button>
-            </div>
+            <div className="flex items-center gap-4"><SidebarTrigger className="lg:hidden" /><div><h2 className="text-xl font-black capitalize tracking-tight">{activeTab} Control</h2><span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Live Cloud Sync Active</span></div></div>
+            <Button onClick={fetchData} disabled={loading} variant="outline" className="rounded-full border-2 font-bold px-6"><RefreshCcw className={cn("w-4 h-4 mr-2", loading && "animate-spin")} /> Sync</Button>
           </header>
 
           <div className="p-8 max-w-7xl mx-auto">
@@ -471,6 +343,58 @@ export default function AdminDashboard() {
           </div>
         </main>
       </div>
+
+      {/* --- CRUD DIALOGS --- */}
+
+      {/* Test Dialog */}
+      <Dialog open={isTestDialogOpen} onOpenChange={setIsTestDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-[2rem]">
+          <DialogHeader><DialogTitle>{editingItem ? 'Edit Test' : 'Add New Test'}</DialogTitle></DialogHeader>
+          <form onSubmit={saveTest} className="space-y-4 pt-4">
+            <div className="space-y-2"><Label>Test ID (Must be unique)</Label><Input name="id" defaultValue={editingItem?.id} required disabled={!!editingItem} /></div>
+            <div className="space-y-2"><Label>Title</Label><Input name="title" defaultValue={editingItem?.title} required /></div>
+            <div className="space-y-2"><Label>Description</Label><Textarea name="description" defaultValue={editingItem?.description} /></div>
+            <div className="space-y-2"><Label>Category</Label><Input name="category" defaultValue={editingItem?.category} /></div>
+            <div className="space-y-2"><Label>Difficulty</Label><Input name="difficulty" defaultValue={editingItem?.difficulty} /></div>
+            <div className="space-y-2"><Label>Duration</Label><Input name="duration" defaultValue={editingItem?.duration} placeholder="e.g. 15 mins" /></div>
+            <div className="space-y-2"><Label>Image URL</Label><Input name="image_url" defaultValue={editingItem?.image_url} /></div>
+            <DialogFooter><Button type="submit" className="rounded-full w-full">Save Assessment</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* User Dialog */}
+      <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-[2rem]">
+          <DialogHeader><DialogTitle>{editingItem ? 'Edit User' : 'Add New User'}</DialogTitle></DialogHeader>
+          <form onSubmit={saveUser} className="space-y-4 pt-4">
+            <div className="space-y-2"><Label>Email</Label><Input name="email" type="email" defaultValue={editingItem?.email} required disabled={!!editingItem} /></div>
+            <div className="space-y-2"><Label>Name</Label><Input name="name" defaultValue={editingItem?.name} required /></div>
+            <div className="space-y-2"><Label>Password</Label><Input name="password" type="password" placeholder="Leave empty if unchanged" required={!editingItem} /></div>
+            <div className="space-y-2"><Label>Role</Label>
+              <select name="role" defaultValue={editingItem?.role || 'user'} className="w-full h-10 px-3 rounded-md border bg-background">
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <DialogFooter><Button type="submit" className="rounded-full w-full">Save User Account</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Question JSON Editor */}
+      <Dialog open={isQuestionDialogOpen} onOpenChange={setIsQuestionDialogOpen}>
+        <DialogContent className="sm:max-w-[700px] h-[80vh] flex flex-col rounded-[2rem]">
+          <DialogHeader><DialogTitle>Edit Questions for: {editingItem}</DialogTitle><DialogDescription>Directly modify the question array in JSON format.</DialogDescription></DialogHeader>
+          <div className="flex-1 overflow-hidden py-4">
+            <Textarea className="h-full font-mono text-xs p-4 bg-slate-900 text-green-400 rounded-xl" value={questionJson} onChange={(e) => setQuestionJson(e.target.value)} />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setIsQuestionDialogOpen(false)} className="rounded-full">Cancel</Button>
+            <Button onClick={saveQuestions} className="rounded-full"><Save className="w-4 h-4 mr-2" /> Save Questions</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 }

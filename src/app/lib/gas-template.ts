@@ -1,136 +1,174 @@
 
 export const GAS_CODE = `
 /**
- * QUESTFLOW BACKEND v9.0 - MULTI-VIEW ADMIN ARCHITECTURE
+ * QUESTFLOW BACKEND v10.0 - FULL CRUD ARCHITECTURE
  * 
- * SETUP INSTRUCTIONS:
- * 1. Open your Google Sheet.
- * 2. Create these core tabs: "Tests", "Users", "Responses".
- * 3. Create a NEW tab for EACH test you want to run (e.g., "demo-1").
- * 
- * 4. Deploy as Web App (Execute as: Me, Access: Anyone).
+ * ACTIONS SUPPORTED:
+ * - GET: login, getTests, getUsers, getResponses, getQuestions
+ * - POST: submitResponse, saveTest, deleteTest, saveUser, deleteUser, saveQuestions
  */
 
 function doGet(e) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const action = e.parameter.action;
 
-  // --- ACTION: login ---
-  if (action === 'login') {
-    const email = e.parameter.email;
-    const password = e.parameter.password;
-    if (!email) return createResponse({ error: 'Email required' }, 400);
-
-    const usersSheet = ss.getSheetByName('Users');
-    if (!usersSheet) return createResponse({ error: 'Users tab not found' }, 404);
-    
-    const data = usersSheet.getDataRange().getValues();
-    const headers = data.shift();
-    const emailIdx = headers.indexOf('email');
-    const roleIdx = headers.indexOf('role');
-    const nameIdx = headers.indexOf('name');
-    const passIdx = headers.indexOf('password');
-    const idIdx = headers.indexOf('id');
-    
-    const userRow = data.find(row => String(row[emailIdx]).toLowerCase() === email.toLowerCase());
-    
-    if (userRow) {
-      if (passIdx !== -1 && String(userRow[passIdx]) !== String(password)) {
-        return createResponse({ error: 'Invalid password' }, 401);
+  try {
+    if (action === 'login') {
+      const email = e.parameter.email;
+      const password = e.parameter.password;
+      const sheet = ss.getSheetByName('Users');
+      if (!sheet) return createResponse({ error: 'Users tab not found' }, 404);
+      const data = sheet.getDataRange().getValues();
+      const headers = data.shift();
+      const emailIdx = headers.indexOf('email');
+      const passIdx = headers.indexOf('password');
+      const userRow = data.find(row => String(row[emailIdx]).toLowerCase() === String(email).toLowerCase());
+      if (userRow && String(userRow[passIdx]) === String(password)) {
+        const obj = {};
+        headers.forEach((h, i) => { if (h !== 'password') obj[h] = userRow[i]; });
+        return createResponse(obj);
       }
-      return createResponse({ 
-        id: idIdx !== -1 ? userRow[idIdx] : null,
-        email: userRow[emailIdx], 
-        role: userRow[roleIdx] || 'user',
-        name: nameIdx !== -1 ? userRow[nameIdx] : email.split('@')[0]
-      });
+      return createResponse({ error: 'Invalid credentials' }, 401);
     }
-    return createResponse({ error: 'User not found' }, 403);
+
+    if (action === 'getTests') {
+      const sheet = ss.getSheetByName('Tests');
+      if (!sheet) return createResponse([]);
+      return createResponse(getRowsAsObjects(sheet));
+    }
+
+    if (action === 'getUsers') {
+      const sheet = ss.getSheetByName('Users');
+      if (!sheet) return createResponse([]);
+      return createResponse(getRowsAsObjects(sheet, ['password']));
+    }
+
+    if (action === 'getResponses') {
+      const sheet = ss.getSheetByName('Responses');
+      if (!sheet) return createResponse([]);
+      return createResponse(getRowsAsObjects(sheet).reverse().slice(0, 100));
+    }
+
+    if (action === 'getQuestions') {
+      const testId = e.parameter.id;
+      const sheet = ss.getSheetByName(testId);
+      if (!sheet) return createResponse({ error: 'Test sheet not found' }, 404);
+      return createResponse(getRowsAsObjects(sheet));
+    }
+
+    return createResponse({ error: 'Unknown action' }, 400);
+  } catch (err) {
+    return createResponse({ error: err.toString() }, 500);
   }
-
-  // --- ACTION: getUsers (Admin Only) ---
-  if (action === 'getUsers') {
-    const sheet = ss.getSheetByName('Users');
-    if (!sheet) return createResponse([]);
-    const data = sheet.getDataRange().getValues();
-    const headers = data.shift();
-    const users = data.map(row => {
-      const obj = {};
-      headers.forEach((h, i) => {
-        if (h !== 'password') obj[h] = row[i]; // Don't send passwords back to UI
-      });
-      return obj;
-    });
-    return createResponse(users);
-  }
-
-  // --- ACTION: getResponses (Admin Only) ---
-  if (action === 'getResponses') {
-    const sheet = ss.getSheetByName('Responses');
-    if (!sheet) return createResponse([]);
-    const data = sheet.getDataRange().getValues();
-    const headers = data.shift();
-    const responses = data.map(row => {
-      const obj = {};
-      headers.forEach((h, i) => obj[h] = row[i]);
-      return obj;
-    }).reverse(); // Latest first
-    return createResponse(responses.slice(0, 100)); // Limit to last 100
-  }
-
-  // --- ACTION: getTests ---
-  if (action === 'getTests') {
-    const sheet = ss.getSheetByName('Tests');
-    if (!sheet) return createResponse([]);
-    
-    const data = sheet.getDataRange().getValues();
-    const headers = data.shift();
-    const tests = data.map(row => {
-      const obj = {};
-      headers.forEach((h, i) => obj[h] = row[i]);
-      return obj;
-    });
-    return createResponse(tests);
-  }
-
-  // --- DEFAULT ACTION: Get Questions for a specific Sheet (Test ID) ---
-  const testId = e.parameter.id;
-  if (!testId) return createResponse({ error: 'No test ID provided' }, 400);
-
-  const sheet = ss.getSheetByName(testId);
-  if (!sheet) return createResponse({ error: 'Question sheet "' + testId + '" not found' }, 404);
-
-  const data = sheet.getDataRange().getValues();
-  const headers = data.shift();
-  const questions = data.map(row => {
-    const obj = {};
-    headers.forEach((h, i) => obj[h] = row[i]);
-    return obj;
-  });
-  
-  return createResponse(questions);
 }
 
 function doPost(e) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    let responsesSheet = ss.getSheetByName('Responses');
-    if (!responsesSheet) {
-      responsesSheet = ss.insertSheet('Responses');
-      responsesSheet.appendRow(['Timestamp', 'Test ID', 'Score', 'Total', 'Duration (ms)', 'Raw Responses']);
-    }
     const payload = JSON.parse(e.postData.contents);
-    responsesSheet.appendRow([
-      new Date(),
-      payload.testId || 'N/A',
-      payload.score || 0,
-      payload.total || 0,
-      payload.duration || 0,
-      JSON.stringify(payload.responses)
-    ]);
-    return createResponse({ status: 'success' });
+    const action = payload.action;
+
+    if (action === 'submitResponse') {
+      let sheet = ss.getSheetByName('Responses') || ss.insertSheet('Responses');
+      if (sheet.getLastRow() === 0) sheet.appendRow(['Timestamp', 'Test ID', 'Score', 'Total', 'Duration (ms)', 'Raw Responses']);
+      sheet.appendRow([new Date(), payload.testId, payload.score, payload.total, payload.duration, JSON.stringify(payload.responses)]);
+      return createResponse({ status: 'success' });
+    }
+
+    if (action === 'saveTest') {
+      const sheet = ss.getSheetByName('Tests') || ss.insertSheet('Tests');
+      const data = payload.data;
+      upsertRow(sheet, 'id', data.id, data);
+      // Create questions sheet if it doesn't exist
+      if (!ss.getSheetByName(data.id)) {
+        const qSheet = ss.insertSheet(data.id);
+        qSheet.appendRow(['id', 'question_text', 'question_type', 'options', 'correct_answer', 'order_group', 'image_url', 'metadata', 'required']);
+      }
+      return createResponse({ status: 'success' });
+    }
+
+    if (action === 'deleteTest') {
+      const sheet = ss.getSheetByName('Tests');
+      if (sheet) deleteRow(sheet, 'id', payload.id);
+      const qSheet = ss.getSheetByName(payload.id);
+      if (qSheet) ss.deleteSheet(qSheet);
+      return createResponse({ status: 'success' });
+    }
+
+    if (action === 'saveUser') {
+      const sheet = ss.getSheetByName('Users') || ss.insertSheet('Users');
+      if (sheet.getLastRow() === 0) sheet.appendRow(['id', 'name', 'email', 'role', 'password']);
+      upsertRow(sheet, 'email', payload.data.email, payload.data);
+      return createResponse({ status: 'success' });
+    }
+
+    if (action === 'deleteUser') {
+      const sheet = ss.getSheetByName('Users');
+      if (sheet) deleteRow(sheet, 'email', payload.email);
+      return createResponse({ status: 'success' });
+    }
+
+    if (action === 'saveQuestions') {
+      const sheet = ss.getSheetByName(payload.testId);
+      if (!sheet) return createResponse({ error: 'Sheet not found' }, 404);
+      sheet.clear();
+      const questions = payload.questions;
+      if (questions.length > 0) {
+        const headers = Object.keys(questions[0]);
+        sheet.appendRow(headers);
+        questions.forEach(q => {
+          const row = headers.map(h => q[h]);
+          sheet.appendRow(row);
+        });
+      }
+      return createResponse({ status: 'success' });
+    }
+
+    return createResponse({ error: 'Unknown POST action' }, 400);
   } catch (err) {
     return createResponse({ error: err.toString() }, 500);
+  }
+}
+
+// --- HELPER FUNCTIONS ---
+
+function getRowsAsObjects(sheet, excludeKeys = []) {
+  const data = sheet.getDataRange().getValues();
+  const headers = data.shift();
+  return data.map(row => {
+    const obj = {};
+    headers.forEach((h, i) => { if (!excludeKeys.includes(h)) obj[h] = row[i]; });
+    return obj;
+  });
+}
+
+function upsertRow(sheet, idKey, idValue, data) {
+  const values = sheet.getDataRange().getValues();
+  const headers = values[0];
+  const idIdx = headers.indexOf(idKey);
+  let rowIndex = -1;
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][idIdx]) === String(idValue)) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+  const rowData = headers.map(h => data[h] !== undefined ? data[h] : "");
+  if (rowIndex > -1) {
+    sheet.getRange(rowIndex, 1, 1, headers.length).setValues([rowData]);
+  } else {
+    sheet.appendRow(rowData);
+  }
+}
+
+function deleteRow(sheet, idKey, idValue) {
+  const values = sheet.getDataRange().getValues();
+  const headers = values[0];
+  const idIdx = headers.indexOf(idKey);
+  for (let i = values.length - 1; i >= 1; i--) {
+    if (String(values[i][idIdx]) === String(idValue)) {
+      sheet.deleteRow(i + 1);
+    }
   }
 }
 
