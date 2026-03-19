@@ -1,7 +1,7 @@
 
 export const GAS_CODE = `
 /**
- * QUESTFLOW BACKEND v12.0 - ATOMIC CRUD ARCHITECTURE
+ * QUESTFLOW BACKEND v13.0 - ATOMIC CRUD ARCHITECTURE
  * 
  * ACTIONS SUPPORTED:
  * - GET: login, getTests, getUsers, getResponses, getQuestions
@@ -70,8 +70,18 @@ function doPost(e) {
 
     if (action === 'submitResponse') {
       let sheet = ss.getSheetByName('Responses') || ss.insertSheet('Responses');
-      if (sheet.getLastRow() === 0) sheet.appendRow(['Timestamp', 'Test ID', 'Score', 'Total', 'Duration (ms)', 'Raw Responses']);
-      sheet.appendRow([new Date(), payload.testId, payload.score, payload.total, payload.duration, JSON.stringify(payload.responses)]);
+      if (sheet.getLastRow() === 0) {
+        sheet.appendRow(['Timestamp', 'User Email', 'Test ID', 'Score', 'Total', 'Duration (ms)', 'Raw Responses']);
+      }
+      sheet.appendRow([
+        new Date(), 
+        payload.userEmail || 'Anonymous', 
+        payload.testId, 
+        payload.score, 
+        payload.total, 
+        payload.duration, 
+        JSON.stringify(payload.responses)
+      ]);
       return createResponse({ status: 'success' });
     }
 
@@ -151,10 +161,7 @@ function getRowsAsObjects(sheet, excludeKeys = []) {
 
 function upsertRow(sheet, idKey, idValue, data) {
   const values = sheet.getDataRange().getValues();
-  if (values.length === 0) {
-    // Should not happen as we check getLastRow above, but for safety:
-    return;
-  }
+  if (values.length === 0) return;
   const headers = values[0];
   const idIdx = headers.indexOf(idKey);
   if (idIdx === -1) return;

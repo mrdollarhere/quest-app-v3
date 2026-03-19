@@ -26,6 +26,7 @@ import { useSearchParams } from 'next/navigation';
 import { cn } from "@/lib/utils";
 import { DEMO_QUESTIONS, AVAILABLE_TESTS } from '@/app/lib/demo-data';
 import { API_URL } from '@/lib/api-config';
+import { useAuth } from '@/context/auth-context';
 import {
   Sheet,
   SheetContent,
@@ -37,6 +38,7 @@ import {
 function QuizContent() {
   const searchParams = useSearchParams();
   const testId = searchParams.get('id');
+  const { user } = useAuth();
   
   const testMetadata = useMemo(() => {
     return AVAILABLE_TESTS.find(t => t.id === testId);
@@ -85,12 +87,12 @@ function QuizContent() {
     setLoading(true);
     try {
       if (API_URL) {
-        const res = await fetch(`${API_URL}?id=${testId}`);
+        const res = await fetch(`${API_URL}?action=getQuestions&id=${testId}`);
         const data = await res.json();
         if (data && Array.isArray(data) && data.length > 0) {
           setQuiz(prev => ({ ...prev, questions: data, startTime: Date.now() }));
         } else {
-          console.warn("API returned no questions for this ID, falling back to demo data.");
+          console.warn("API returned no questions, falling back to demo.");
           setQuiz(prev => ({ ...prev, questions: DEMO_QUESTIONS, startTime: Date.now() }));
         }
       } else {
@@ -99,7 +101,6 @@ function QuizContent() {
     } catch (err) {
       console.error(err);
       setQuiz(prev => ({ ...prev, questions: DEMO_QUESTIONS, startTime: Date.now() }));
-      setError(null);
     } finally {
       setLoading(false);
     }
@@ -154,7 +155,7 @@ function QuizContent() {
   const calculateScoreForQuestion = (q: Question, response: any): boolean => {
     if (!q.correct_answer || response === undefined || response === null) return false;
     
-    if (q.question_type === 'single_choice' || q.question_type === 'true_false' || q.question_type === 'short_text' || q.question_type === 'dropdown') {
+    if (['single_choice', 'true_false', 'short_text', 'dropdown'].includes(q.question_type)) {
       return response.toString().toLowerCase().trim() === q.correct_answer.toLowerCase().trim();
     } else if (q.question_type === 'multiple_choice') {
       const resArr = (response as string[]).map(r => r.trim()).sort();
@@ -164,12 +165,14 @@ function QuizContent() {
       const correctArr = q.correct_answer.split(',').map(c => c.trim());
       return JSON.stringify(response) === JSON.stringify(correctArr);
     } else if (q.question_type === 'hotspot') {
-      const zones = JSON.parse(q.metadata || "[]");
-      const hit = zones.find((z: any) => {
-        const dist = Math.sqrt(Math.pow(response.x - z.x, 2) + Math.pow(response.y - z.y, 2));
-        return dist <= z.radius;
-      });
-      return !!hit;
+      try {
+        const zones = JSON.parse(q.metadata || "[]");
+        const hit = zones.find((z: any) => {
+          const dist = Math.sqrt(Math.pow(response.x - z.x, 2) + Math.pow(response.y - z.y, 2));
+          return dist <= z.radius;
+        });
+        return !!hit;
+      } catch (e) { return false; }
     } else if (q.question_type === 'matching') {
       const correctPairs = q.correct_answer.split(',').map(p => p.trim());
       const userPairs = Object.entries(response as Record<string, string>).map(([k, v]) => `${k}|${v}`);
@@ -189,15 +192,18 @@ function QuizContent() {
           method: 'POST',
           mode: 'no-cors',
           body: JSON.stringify({
+            action: 'submitResponse',
             testId,
-            responses: quiz.responses,
+            userEmail: user?.email || 'Guest',
             score: finalScore,
             total: quiz.questions.length,
-            duration: Date.now() - quiz.startTime
+            duration: Date.now() - quiz.startTime,
+            responses: quiz.responses
           })
         });
+        toast({ title: "Results Synced", description: "Your performance has been logged." });
       } catch (e) {
-        console.error("Submission to sheet failed", e);
+        console.error("Submission failed", e);
       }
     }
   };
@@ -232,16 +238,6 @@ function QuizContent() {
     </div>
   );
 
-  if (error) return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4">
-      <AlertCircle className="w-12 h-12 text-destructive mb-4" />
-      <p className="text-xl font-medium mb-4">{error}</p>
-      <Link href="/setup-guide">
-        <Button>Check Setup Guide</Button>
-      </Link>
-    </div>
-  );
-
   if (quiz.isSubmitted) {
     const hasCorrectAnswers = quiz.questions.some(q => q.correct_answer);
     return (
@@ -262,17 +258,15 @@ function QuizContent() {
                   <p className="text-muted-foreground font-semibold uppercase tracking-widest text-xs mt-3">Final Score</p>
                 </div>
               )}
-              <p className="text-lg text-muted-foreground">Great job finishing the assessment. You can review your detailed results below.</p>
+              <p className="text-lg text-muted-foreground">Review your performance details below.</p>
             </CardContent>
             <CardFooter className="justify-center gap-4 pt-4">
               <Button onClick={restart} variant="outline" className="rounded-full px-8 h-12 font-bold">
-                <RotateCcw className="w-5 h-5 mr-2" />
-                Retake
+                <RotateCcw className="w-5 h-5 mr-2" /> Retake
               </Button>
               <Link href="/">
                 <Button className="rounded-full px-8 h-12 font-bold shadow-lg">
-                  <Home className="w-5 h-5 mr-2" />
-                  Home
+                  <Home className="w-5 h-5 mr-2" /> Home
                 </Button>
               </Link>
             </CardFooter>
@@ -280,7 +274,7 @@ function QuizContent() {
 
           <div className="pt-12 pb-6">
             <h3 className="text-3xl font-black tracking-tight mb-2">Detailed Review</h3>
-            <p className="text-muted-foreground">Analyze your performance question by question.</p>
+            <p className="text-muted-foreground">Analyze your results by question.</p>
           </div>
           
           <div className="space-y-6 pb-20">
@@ -326,11 +320,10 @@ function QuizContent() {
           <div className="flex items-center justify-between">
             <Link href="/tests">
               <Button variant="ghost" size="sm">
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                Exit
+                <ChevronLeft className="w-4 h-4 mr-1" /> Exit
               </Button>
             </Link>
-            <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight text-center flex-1 mx-4">{quizTitle}</h1>
+            <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight text-center flex-1 mx-4 line-clamp-1">{quizTitle}</h1>
             <div className="w-[80px]" /> 
           </div>
 
@@ -350,7 +343,7 @@ function QuizContent() {
                 variant="outline" 
                 onClick={prev} 
                 disabled={quiz.currentQuestionIndex === 0}
-                className="rounded-full px-4 md:px-6 h-12 bg-white border-2 font-bold hover:bg-slate-50 shrink-0"
+                className="rounded-full px-4 md:px-6 h-12 bg-white border-2 font-bold shrink-0"
               >
                 <ChevronLeft className="w-5 h-5 md:mr-1.5" />
                 <span className="hidden md:inline">Back</span>
@@ -392,7 +385,7 @@ function QuizContent() {
 
             <SheetContent side="right" className="w-[300px] sm:w-[400px]">
               <SheetHeader className="mb-6">
-                <SheetTitle className="text-2xl font-bold">Quiz Progress</SheetTitle>
+                <SheetTitle className="text-2xl font-bold">Assessment Progress</SheetTitle>
               </SheetHeader>
               <div className="grid grid-cols-4 gap-3">
                 {quiz.questions.map((q, idx) => {
