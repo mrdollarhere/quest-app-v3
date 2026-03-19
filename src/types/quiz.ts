@@ -9,6 +9,8 @@ export type QuestionType =
   | 'matching'
   | 'hotspot';
 
+export type QuizMode = 'training' | 'test' | 'race';
+
 export interface Question {
   id: string;
   question_text: string;
@@ -32,6 +34,7 @@ export interface HotspotZone {
 export interface UserResponse {
   questionId: string;
   answer: any;
+  isCorrect?: boolean;
 }
 
 export interface QuizState {
@@ -42,4 +45,6 @@ export interface QuizState {
   score: number;
   startTime: number;
   endTime?: number;
+  mode: QuizMode;
+  highestStepReached: number;
 }

@@ -1,7 +1,8 @@
+
 "use client";
 
 import React, { useState, useEffect, Suspense, useMemo } from 'react';
-import { QuizState } from '@/types/quiz';
+import { QuizState, QuizMode } from '@/types/quiz';
 import { QuestionRenderer } from '@/components/quiz/QuestionRenderer';
 import { QuizStart } from '@/components/quiz/QuizStart';
 import { QuizResults } from '@/components/quiz/QuizResults';
@@ -16,7 +17,9 @@ import {
   ListOrdered,
   Check,
   Timer,
-  Zap
+  Zap,
+  AlertCircle,
+  RotateCcw
 } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
@@ -25,7 +28,7 @@ import { cn } from "@/lib/utils";
 import { DEMO_QUESTIONS, AVAILABLE_TESTS } from '@/app/lib/demo-data';
 import { API_URL } from '@/lib/api-config';
 import { useAuth } from '@/context/auth-context';
-import { calculateTotalScore } from '@/lib/quiz-utils';
+import { calculateTotalScore, calculateScoreForQuestion } from '@/lib/quiz-utils';
 import {
   Sheet,
   SheetContent,
@@ -50,13 +53,17 @@ function QuizContent() {
   const [guestName, setGuestName] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [timeLeft, setTimeLeft] = useState(900); // 15 minutes default
+  const [isWrongInRace, setIsWrongInRace] = useState(false);
+  
   const [quiz, setQuiz] = useState<QuizState>({
     questions: [],
     currentQuestionIndex: 0,
     responses: [],
     isSubmitted: false,
     score: 0,
-    startTime: Date.now()
+    startTime: Date.now(),
+    mode: 'test',
+    highestStepReached: 0
   });
 
   const { toast } = useToast();
@@ -66,7 +73,7 @@ function QuizContent() {
   }, [testId]);
 
   useEffect(() => {
-    if (quiz.isSubmitted || loading || !isStarted) return;
+    if (quiz.isSubmitted || loading || !isStarted || quiz.mode === 'training') return;
     
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
@@ -80,7 +87,7 @@ function QuizContent() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [quiz.isSubmitted, loading, isStarted]);
+  }, [quiz.isSubmitted, loading, isStarted, quiz.mode]);
 
   const fetchQuestions = async () => {
     setLoading(true);
@@ -109,10 +116,15 @@ function QuizContent() {
   const handleResponseChange = (val: any) => {
     const updatedResponses = [...quiz.responses];
     const index = updatedResponses.findIndex(r => r.questionId === currentQuestion.id);
+    
+    // In Race mode, we evaluate immediately
+    const isCorrect = calculateScoreForQuestion(currentQuestion, val);
+    
     if (index > -1) {
       updatedResponses[index].answer = val;
+      updatedResponses[index].isCorrect = isCorrect;
     } else {
-      updatedResponses.push({ questionId: currentQuestion.id, answer: val });
+      updatedResponses.push({ questionId: currentQuestion.id, answer: val, isCorrect });
     }
     setQuiz({ ...quiz, responses: updatedResponses });
   };
@@ -129,18 +141,58 @@ function QuizContent() {
   };
 
   const next = () => {
+    if (quiz.mode === 'race') {
+      const resp = quiz.responses.find(r => r.questionId === currentQuestion.id);
+      if (!resp || !resp.isCorrect) {
+        setIsWrongInRace(true);
+        toast({ 
+          variant: "destructive", 
+          title: "Protocol Violation", 
+          description: "Incorrect response. Sequence terminated. Resetting to Step 1." 
+        });
+        setTimeout(() => {
+          setQuiz(prev => ({ 
+            ...prev, 
+            currentQuestionIndex: 0, 
+            responses: [],
+            highestStepReached: Math.max(prev.highestStepReached, prev.currentQuestionIndex + 1)
+          }));
+          setIsWrongInRace(false);
+        }, 1500);
+        return;
+      }
+    }
+
     if (quiz.currentQuestionIndex < quiz.questions.length - 1) {
-      setQuiz({ ...quiz, currentQuestionIndex: quiz.currentQuestionIndex + 1 });
+      setQuiz({ 
+        ...quiz, 
+        currentQuestionIndex: quiz.currentQuestionIndex + 1,
+        highestStepReached: Math.max(quiz.highestStepReached, quiz.currentQuestionIndex + 1)
+      });
     }
   };
 
   const prev = () => {
+    if (quiz.mode === 'race') return; // No back navigation in Race mode
     if (quiz.currentQuestionIndex > 0) {
       setQuiz({ ...quiz, currentQuestionIndex: quiz.currentQuestionIndex - 1 });
     }
   };
 
   const submit = async () => {
+    // In Race mode, verify final answer
+    if (quiz.mode === 'race') {
+      const resp = quiz.responses.find(r => r.questionId === currentQuestion.id);
+      if (!resp || !resp.isCorrect) {
+        setIsWrongInRace(true);
+        setTimeout(() => {
+          setQuiz(prev => ({ ...prev, currentQuestionIndex: 0, responses: [] }));
+          setIsWrongInRace(false);
+        }, 1500);
+        return;
+      }
+    }
+
     const finalScore = calculateTotalScore(quiz.questions, quiz.responses);
     const finalName = (user?.displayName || guestName?.trim() || 'Guest User');
     const finalEmail = (user?.email || 'Anonymous');
@@ -160,7 +212,8 @@ function QuizContent() {
             score: finalScore,
             total: quiz.questions.length,
             duration: Date.now() - quiz.startTime,
-            responses: quiz.responses
+            responses: quiz.responses,
+            mode: quiz.mode
           })
         });
         toast({ title: "Intelligence Synced", description: "Assessment results have been committed." });
@@ -183,6 +236,7 @@ function QuizContent() {
   };
 
   const jumpToQuestion = (index: number) => {
+    if (quiz.mode === 'race') return; // No jumping in Race mode
     setQuiz(prev => ({ ...prev, currentQuestionIndex: index }));
     setIsSidebarOpen(false);
   };
@@ -193,13 +247,13 @@ function QuizContent() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleStart = () => {
-    if (!user && !guestName.trim()) {
-      toast({ variant: "destructive", title: "Identity Required", description: "Please provide a name to initialize." });
-      return;
-    }
+  const handleStart = (mode: QuizMode) => {
     setIsStarted(true);
-    setQuiz(prev => ({ ...prev, startTime: Date.now() }));
+    setQuiz(prev => ({ 
+      ...prev, 
+      startTime: Date.now(),
+      mode: mode 
+    }));
   };
 
   if (loading) return (
@@ -247,9 +301,18 @@ function QuizContent() {
                 <ChevronLeft className="w-4 h-4 mr-1" /> Terminate
               </Button>
             </Link>
-            <div className="flex items-center gap-3">
-              <Zap className="w-6 h-6 text-primary fill-current" />
-              <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tighter uppercase line-clamp-1">{quizTitle}</h1>
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-3">
+                <Zap className="w-6 h-6 text-primary fill-current" />
+                <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tighter uppercase line-clamp-1">{quizTitle}</h1>
+              </div>
+              <Badge variant="outline" className={cn(
+                "mt-1 rounded-full font-black text-[9px] uppercase tracking-widest px-3 py-0.5 border-none",
+                quiz.mode === 'training' ? "bg-blue-100 text-blue-600" :
+                quiz.mode === 'race' ? "bg-orange-100 text-orange-600 animate-pulse" : "bg-primary/10 text-primary"
+              )}>
+                {quiz.mode} protocol
+              </Badge>
             </div>
             <div className="w-[100px]" /> 
           </div>
@@ -260,19 +323,30 @@ function QuizContent() {
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Progress Monitor</span>
                 <span className="text-sm font-bold text-slate-900">Step {quiz.currentQuestionIndex + 1} of {quiz.questions.length}</span>
               </div>
-              <span className="text-xs font-black text-primary bg-primary/10 px-3 py-1 rounded-full">{Math.round(progress)}%</span>
+              <div className="flex items-center gap-4">
+                {quiz.mode === 'race' && (
+                  <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-900 rounded-full text-white">
+                    <Zap className="w-3 h-3 text-primary fill-current" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Streak: {quiz.currentQuestionIndex}</span>
+                  </div>
+                )}
+                <span className="text-xs font-black text-primary bg-primary/10 px-3 py-1 rounded-full">{Math.round(progress)}%</span>
+              </div>
             </div>
             <Progress value={progress} className="h-2 rounded-full bg-slate-200" />
           </div>
         </header>
 
-        <Card className="flex-1 shadow-2xl border-none overflow-hidden rounded-[3rem] bg-white flex flex-col">
+        <Card className={cn(
+          "flex-1 shadow-2xl border-none overflow-hidden rounded-[3rem] bg-white flex flex-col transition-all duration-500",
+          isWrongInRace && "shake-horizontal ring-4 ring-destructive"
+        )}>
           <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
             <div className="flex justify-between items-center px-6 md:px-12 py-8 border-b bg-white/50 backdrop-blur-sm sticky top-0 z-10">
               <Button 
                 variant="outline" 
                 onClick={prev} 
-                disabled={quiz.currentQuestionIndex === 0}
+                disabled={quiz.currentQuestionIndex === 0 || quiz.mode === 'race'}
                 className="rounded-full px-6 h-14 bg-white border-2 font-black shrink-0 hover:bg-slate-50 transition-all"
               >
                 <ChevronLeft className="w-5 h-5 md:mr-2" />
@@ -280,15 +354,20 @@ function QuizContent() {
               </Button>
               
               <div className="flex items-center gap-3">
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full h-14 w-14 shrink-0 hover:bg-primary/10 transition-colors">
-                    <ListOrdered className="w-6 h-6 text-primary" />
-                  </Button>
-                </SheetTrigger>
+                {quiz.mode !== 'race' && (
+                  <SheetTrigger asChild>
+                    <Button variant="ghost" size="icon" className="rounded-full h-14 w-14 shrink-0 hover:bg-primary/10 transition-colors">
+                      <ListOrdered className="w-6 h-6 text-primary" />
+                    </Button>
+                  </SheetTrigger>
+                )}
 
-                <div className="flex items-center gap-3 px-6 py-3 bg-slate-100 rounded-full font-black text-sm text-slate-900 shrink-0 ring-4 ring-white shadow-inner">
-                  <Timer className={cn("w-5 h-5", timeLeft < 60 ? "text-destructive animate-pulse" : "text-primary")} />
-                  {formatTime(timeLeft)}
+                <div className={cn(
+                  "flex items-center gap-3 px-6 py-3 rounded-full font-black text-sm shrink-0 ring-4 ring-white shadow-inner",
+                  quiz.mode === 'training' ? "bg-slate-50 text-slate-400" : "bg-slate-100 text-slate-900"
+                )}>
+                  <Timer className={cn("w-5 h-5", timeLeft < 60 && quiz.mode !== 'training' ? "text-destructive animate-pulse" : "text-primary")} />
+                  {quiz.mode === 'training' ? '∞:∞' : formatTime(timeLeft)}
                 </div>
               </div>
 
@@ -296,6 +375,7 @@ function QuizContent() {
                 {quiz.currentQuestionIndex === quiz.questions.length - 1 ? (
                   <Button 
                     onClick={submit} 
+                    disabled={isWrongInRace || !isAnswered(currentQuestion.id)}
                     className="rounded-full px-12 h-14 bg-primary hover:bg-primary/90 shadow-2xl font-black transition-all hover:scale-105"
                   >
                     <span className="hidden md:inline uppercase text-xs tracking-widest">Commit</span>
@@ -304,6 +384,7 @@ function QuizContent() {
                 ) : (
                   <Button 
                     onClick={next} 
+                    disabled={isWrongInRace || !isAnswered(currentQuestion.id)}
                     className="rounded-full px-12 h-14 bg-slate-900 text-white shadow-2xl font-black transition-all hover:scale-105"
                   >
                     <span className="hidden md:inline uppercase text-xs tracking-widest">Forward</span>
@@ -325,6 +406,7 @@ function QuizContent() {
                     <Button
                       key={q.id}
                       variant={isCurrent ? "default" : "outline"}
+                      disabled={quiz.mode === 'race'}
                       className={cn(
                         "h-16 w-full rounded-[1.5rem] font-black transition-all border-2 relative text-lg",
                         !isCurrent && answered && "bg-slate-50 border-primary/20 text-primary",
@@ -343,12 +425,35 @@ function QuizContent() {
             </SheetContent>
           </Sheet>
 
-          <CardContent className="pt-16 px-6 md:px-24 pb-24 flex-1 overflow-y-auto">
+          <CardContent className="pt-16 px-6 md:px-24 pb-24 flex-1 overflow-y-auto relative">
+            {quiz.mode === 'training' && (
+              <div className="max-w-4xl mx-auto mb-10 p-6 bg-blue-50 rounded-[2rem] border-2 border-blue-100 flex items-center gap-6">
+                <div className="p-4 bg-white rounded-2xl shadow-sm">
+                  <Gamepad2 className="w-8 h-8 text-blue-500" />
+                </div>
+                <div>
+                  <h4 className="text-xl font-black text-blue-900 uppercase tracking-tighter">Practice Engine Active</h4>
+                  <p className="text-sm font-medium text-blue-600">You are in Training mode. Detailed feedback is enabled for every response.</p>
+                </div>
+              </div>
+            )}
+
+            {isWrongInRace && (
+              <div className="absolute inset-0 z-50 bg-destructive/10 backdrop-blur-[2px] flex items-center justify-center animate-in fade-in duration-200">
+                <div className="bg-white p-12 rounded-[3rem] shadow-2xl border-4 border-destructive flex flex-col items-center gap-6 scale-up-center">
+                  <RotateCcw className="w-20 h-20 text-destructive animate-spin-slow" />
+                  <h3 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">Chain Broken</h3>
+                  <p className="text-xl font-bold text-slate-500 uppercase tracking-widest">Restarting Protocol...</p>
+                </div>
+              </div>
+            )}
+
             <div className="max-w-4xl mx-auto">
               <QuestionRenderer 
                 question={currentQuestion} 
                 value={currentResponse} 
-                onChange={handleResponseChange} 
+                onChange={handleResponseChange}
+                reviewMode={quiz.mode === 'training' && isAnswered(currentQuestion.id)}
               />
             </div>
           </CardContent>
