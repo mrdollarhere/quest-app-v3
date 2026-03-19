@@ -8,7 +8,6 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Play, Clock, BarChart, ListChecks, Search, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const AVAILABLE_TESTS = [
   {
@@ -158,7 +157,7 @@ export default function TestsLibrary() {
               </CardContent>
 
               <CardFooter className="pt-0 border-t border-slate-50 bg-slate-50/30">
-                <Link href="/quiz" className="w-full pt-4">
+                <Link href={`/quiz?title=${encodeURIComponent(test.title)}`} className="w-full pt-4">
                   <Button className="w-full rounded-full font-semibold shadow-sm group-hover:shadow-md transition-all">
                     <Play className="w-4 h-4 mr-2 fill-current" />
                     Start Assessment

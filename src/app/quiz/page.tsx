@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Question, UserResponse, QuizState } from '@/types/quiz';
 import { QuestionRenderer } from '@/components/quiz/QuestionRenderer';
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { ChevronRight, ChevronLeft, Send, RotateCcw, CheckCircle2, XCircle, AlertCircle, Loader2 } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { PlaceHolderImages } from '@/app/lib/placeholder-images';
+import { useSearchParams } from 'next/navigation';
 
 const DEMO_QUESTIONS: Question[] = [
   {
@@ -75,7 +75,10 @@ const DEMO_QUESTIONS: Question[] = [
   }
 ];
 
-export default function QuizPage() {
+function QuizContent() {
+  const searchParams = useSearchParams();
+  const quizTitle = searchParams.get('title') || 'QuestFlow Assessment';
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [quiz, setQuiz] = useState<QuizState>({
@@ -228,6 +231,7 @@ export default function QuizPage() {
                 <CheckCircle2 className="w-12 h-12 text-green-600" />
               </div>
               <CardTitle className="text-3xl">Quiz Complete!</CardTitle>
+              <p className="text-xl font-semibold text-primary">{quizTitle}</p>
             </CardHeader>
             <CardContent>
               {hasCorrectAnswers && (
@@ -308,7 +312,8 @@ export default function QuizPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center p-4 md:p-8">
       <div className="w-full max-w-2xl flex-1 flex flex-col gap-6">
-        <header className="space-y-4 mb-4">
+        <header className="space-y-4 mb-4 text-center">
+          <h1 className="text-3xl font-extrabold text-primary tracking-tight">{quizTitle}</h1>
           <div className="flex justify-between items-center text-sm font-semibold text-muted-foreground uppercase tracking-widest">
             <span>Question {quiz.currentQuestionIndex + 1} of {quiz.questions.length}</span>
             <span>{Math.round(progress)}% Complete</span>
@@ -358,5 +363,18 @@ export default function QuizPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function QuizPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex flex-col items-center justify-center p-4">
+        <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
+        <p className="text-xl font-medium">Preparing Assessment...</p>
+      </div>
+    }>
+      <QuizContent />
+    </Suspense>
   );
 }
