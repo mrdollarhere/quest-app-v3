@@ -1,6 +1,6 @@
 
 /**
- * QUESTFLOW BACKEND v16.0 - SUBMISSION SYNC FIX
+ * QUESTFLOW BACKEND v17.0 - FINAL SUBMISSION SYNC
  * 
  * ACTIONS SUPPORTED:
  * - GET: login, getTests, getUsers, getResponses, getQuestions
@@ -75,10 +75,14 @@ function doPost(e) {
         sheet.appendRow(headers);
       }
       
+      // Robust name extraction
+      const userName = (payload.userName || payload.name || '').trim() || 'Guest User';
+      const userEmail = (payload.userEmail || payload.email || '').trim() || 'Anonymous';
+      
       const rowData = [
         new Date(), 
-        payload.userName || 'Guest',
-        payload.userEmail || 'Anonymous', 
+        userName,
+        userEmail, 
         payload.testId || 'Unknown', 
         payload.score || 0, 
         payload.total || 0, 
@@ -96,7 +100,6 @@ function doPost(e) {
       if (sheet.getLastRow() === 0) sheet.appendRow(['id', 'title', 'description', 'category', 'difficulty', 'duration', 'image_url']);
       upsertRow(sheet, 'id', data.id, data);
       
-      // Ensure questions sheet exists
       if (!ss.getSheetByName(data.id)) {
         const qSheet = ss.insertSheet(data.id);
         qSheet.appendRow(['id', 'question_text', 'question_type', 'options', 'correct_answer', 'order_group', 'image_url', 'metadata', 'required']);
@@ -150,8 +153,6 @@ function doPost(e) {
     return createResponse({ error: err.toString() }, 500);
   }
 }
-
-// --- HELPER FUNCTIONS ---
 
 function getRowsAsObjects(sheet, excludeKeys = []) {
   const data = sheet.getDataRange().getValues();

@@ -19,7 +19,7 @@ import {
   Timer
 } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
-import Link from 'next/link';
+import Link from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
 import { cn } from "@/lib/utils";
 import { DEMO_QUESTIONS, AVAILABLE_TESTS } from '@/app/lib/demo-data';
@@ -65,7 +65,6 @@ function QuizContent() {
     fetchQuestions();
   }, [testId]);
 
-  // Timer logic
   useEffect(() => {
     if (quiz.isSubmitted || loading || !isStarted) return;
     
@@ -73,7 +72,7 @@ function QuizContent() {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
-          submit(); // Auto-submit when time runs out
+          submit();
           return 0;
         }
         return prev - 1;
@@ -143,8 +142,8 @@ function QuizContent() {
 
   const submit = async () => {
     const finalScore = calculateTotalScore(quiz.questions, quiz.responses);
-    const finalName = user?.displayName || guestName?.trim() || 'Guest User';
-    const finalEmail = user?.email || 'Anonymous';
+    const finalName = (user?.displayName || guestName?.trim() || 'Guest User');
+    const finalEmail = (user?.email || 'Anonymous');
     
     setQuiz({ ...quiz, isSubmitted: true, score: finalScore, endTime: Date.now() });
 
