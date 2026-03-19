@@ -283,97 +283,97 @@ function QuizContent() {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center p-4 md:p-8">
       <div className="w-full max-w-4xl flex-1 flex flex-col gap-6">
-        <header className="space-y-6 mb-4 text-center">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Link href="/tests">
-                <Button variant="ghost" size="sm">
-                  <ChevronLeft className="w-4 h-4 mr-1" />
-                  Exit
-                </Button>
-              </Link>
-              <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight">{quizTitle}</h1>
-              
-              <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
-                <SheetTrigger asChild>
-                  <Button variant="outline" size="sm" className="rounded-full shadow-sm">
-                    <ListOrdered className="w-4 h-4 mr-2" />
-                    Question Index
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-                  <SheetHeader className="mb-6">
-                    <SheetTitle className="text-2xl font-bold">Quiz Progress</SheetTitle>
-                  </SheetHeader>
-                  <div className="grid grid-cols-4 gap-3">
-                    {quiz.questions.map((q, idx) => {
-                      const isCurrent = quiz.currentQuestionIndex === idx;
-                      const answered = isAnswered(q.id);
-                      return (
-                        <Button
-                          key={q.id}
-                          variant={isCurrent ? "default" : "outline"}
-                          className={cn(
-                            "h-12 w-full rounded-xl font-bold transition-all border-2 relative",
-                            !isCurrent && answered && "bg-green-50 border-green-200 text-green-600",
-                            isCurrent && "border-primary shadow-md",
-                          )}
-                          onClick={() => jumpToQuestion(idx)}
-                        >
-                          {idx + 1}
-                          {answered && !isCurrent && (
-                            <Check className="w-3 h-3 absolute -top-1 -right-1 bg-green-500 text-white rounded-full p-0.5" />
-                          )}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                </SheetContent>
-              </Sheet>
-            </div>
+        <header className="space-y-4 mb-4">
+          <div className="flex items-center justify-between">
+            <Link href="/tests">
+              <Button variant="ghost" size="sm">
+                <ChevronLeft className="w-4 h-4 mr-1" />
+                Exit
+              </Button>
+            </Link>
+            <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight text-center flex-1 mx-4">{quizTitle}</h1>
+            <div className="w-[80px]" /> {/* Spacer for balance */}
+          </div>
 
-            <div className="space-y-2">
-              <div className="flex justify-between items-center text-xs font-black text-muted-foreground uppercase tracking-[0.2em] px-2">
-                <span>Progress: {quiz.currentQuestionIndex + 1} / {quiz.questions.length}</span>
-                <span>{Math.round(progress)}% Complete</span>
-              </div>
-              <Progress value={progress} className="h-2 rounded-full bg-slate-100" />
+          <div className="space-y-2">
+            <div className="flex justify-between items-center text-xs font-black text-muted-foreground uppercase tracking-[0.2em] px-2">
+              <span>Question {quiz.currentQuestionIndex + 1} of {quiz.questions.length}</span>
+              <span>{Math.round(progress)}% Complete</span>
             </div>
+            <Progress value={progress} className="h-2 rounded-full bg-slate-100" />
           </div>
         </header>
 
         <Card className="flex-1 shadow-2xl border-none overflow-hidden rounded-[2rem] bg-white flex flex-col">
-          <div className="flex justify-between items-center px-6 md:px-12 py-6 border-b bg-slate-50/50 backdrop-blur-sm sticky top-0 z-10">
-            <Button 
-              variant="outline" 
-              onClick={prev} 
-              disabled={quiz.currentQuestionIndex === 0}
-              className="rounded-full px-6 h-12 bg-white border-2 font-bold hover:bg-slate-50"
-            >
-              <ChevronLeft className="w-5 h-5 mr-1.5" />
-              Back
-            </Button>
-            
-            <div className="flex gap-3">
-              {quiz.currentQuestionIndex === quiz.questions.length - 1 ? (
-                <Button 
-                  onClick={submit} 
-                  className="rounded-full px-10 h-12 bg-primary hover:bg-primary/90 shadow-xl font-bold transition-all hover:scale-105"
-                >
-                  Submit
-                  <Send className="w-4 h-4 ml-2.5" />
+          <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
+            <div className="flex justify-between items-center px-4 md:px-8 py-6 border-b bg-slate-50/50 backdrop-blur-sm sticky top-0 z-10">
+              <Button 
+                variant="outline" 
+                onClick={prev} 
+                disabled={quiz.currentQuestionIndex === 0}
+                className="rounded-full px-4 md:px-6 h-12 bg-white border-2 font-bold hover:bg-slate-50 shrink-0"
+              >
+                <ChevronLeft className="w-5 h-5 md:mr-1.5" />
+                <span className="hidden md:inline">Back</span>
+              </Button>
+              
+              <SheetTrigger asChild>
+                <Button variant="ghost" className="rounded-full h-12 font-bold flex flex-col gap-0.5 md:flex-row md:gap-2 items-center">
+                  <ListOrdered className="w-5 h-5 text-primary" />
+                  <span className="text-[10px] md:text-sm uppercase tracking-tighter md:tracking-normal">Index</span>
                 </Button>
-              ) : (
-                <Button 
-                  onClick={next} 
-                  className="rounded-full px-10 h-12 shadow-lg font-bold transition-all hover:scale-105"
-                >
-                  Next
-                  <ChevronRight className="w-5 h-5 ml-1.5" />
-                </Button>
-              )}
+              </SheetTrigger>
+
+              <div className="flex gap-3 shrink-0">
+                {quiz.currentQuestionIndex === quiz.questions.length - 1 ? (
+                  <Button 
+                    onClick={submit} 
+                    className="rounded-full px-6 md:px-10 h-12 bg-primary hover:bg-primary/90 shadow-xl font-bold transition-all hover:scale-105"
+                  >
+                    <span className="hidden md:inline">Submit</span>
+                    <Send className="w-4 h-4 md:ml-2.5" />
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={next} 
+                    className="rounded-full px-6 md:px-10 h-12 shadow-lg font-bold transition-all hover:scale-105"
+                  >
+                    <span className="hidden md:inline">Next</span>
+                    <ChevronRight className="w-5 h-5 md:ml-1.5" />
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
+
+            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+              <SheetHeader className="mb-6">
+                <SheetTitle className="text-2xl font-bold">Quiz Progress</SheetTitle>
+              </SheetHeader>
+              <div className="grid grid-cols-4 gap-3">
+                {quiz.questions.map((q, idx) => {
+                  const isCurrent = quiz.currentQuestionIndex === idx;
+                  const answered = isAnswered(q.id);
+                  return (
+                    <Button
+                      key={q.id}
+                      variant={isCurrent ? "default" : "outline"}
+                      className={cn(
+                        "h-12 w-full rounded-xl font-bold transition-all border-2 relative",
+                        !isCurrent && answered && "bg-green-50 border-green-200 text-green-600",
+                        isCurrent && "border-primary shadow-md",
+                      )}
+                      onClick={() => jumpToQuestion(idx)}
+                    >
+                      {idx + 1}
+                      {answered && !isCurrent && (
+                        <Check className="w-3 h-3 absolute -top-1 -right-1 bg-green-500 text-white rounded-full p-0.5" />
+                      )}
+                    </Button>
+                  );
+                })}
+              </div>
+            </SheetContent>
+          </Sheet>
 
           <CardContent className="pt-12 px-6 md:px-20 pb-20 flex-1 overflow-y-auto">
             <div className="max-w-3xl mx-auto">
