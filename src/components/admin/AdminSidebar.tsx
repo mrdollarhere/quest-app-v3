@@ -6,10 +6,9 @@ import {
   BarChart3, 
   Users as UsersIcon, 
   ClipboardList, 
-  HelpCircle, 
-  MessageSquare, 
   Settings, 
-  LogOut 
+  LogOut,
+  MessageSquare
 } from "lucide-react";
 import { 
   Sidebar, 
@@ -25,22 +24,25 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { AdminTab } from '@/app/admin/page';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+
+export type AdminTab = 'overview' | 'tests' | 'users' | 'responses';
 
 interface AdminSidebarProps {
   activeTab: AdminTab;
-  setActiveTab: (tab: AdminTab) => void;
   user: any;
   logout: () => void;
 }
 
-export function AdminSidebar({ activeTab, setActiveTab, user, logout }: AdminSidebarProps) {
+export function AdminSidebar({ activeTab, user, logout }: AdminSidebarProps) {
+  const router = useRouter();
+
   const menuItems = [
-    { id: 'overview', label: 'Dashboard', icon: BarChart3 },
-    { id: 'tests', label: 'Assessments', icon: ClipboardList },
-    { id: 'questions', label: 'Questions', icon: HelpCircle },
-    { id: 'users', label: 'User Table', icon: UsersIcon },
-    { id: 'responses', label: 'Results & Logs', icon: MessageSquare }
+    { id: 'overview', label: 'Dashboard', icon: BarChart3, href: '/admin' },
+    { id: 'tests', label: 'Assessments', icon: ClipboardList, href: '/admin/tests' },
+    { id: 'users', label: 'User Table', icon: UsersIcon, href: '/admin/users' },
+    { id: 'responses', label: 'Results & Logs', icon: MessageSquare, href: '/admin/responses' }
   ];
 
   return (
@@ -52,7 +54,7 @@ export function AdminSidebar({ activeTab, setActiveTab, user, logout }: AdminSid
           </div>
           <div>
             <h1 className="text-xl font-black tracking-tight text-slate-900">QuestFlow</h1>
-            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest leading-none mt-1">Console v11.0</p>
+            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest leading-none mt-1">Console v12.0</p>
           </div>
         </div>
       </SidebarHeader>
@@ -63,18 +65,19 @@ export function AdminSidebar({ activeTab, setActiveTab, user, logout }: AdminSid
             <SidebarMenu>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.id}>
-                  <SidebarMenuButton 
-                    isActive={activeTab === item.id} 
-                    onClick={() => setActiveTab(item.id as AdminTab)} 
-                    className={cn(
-                      "h-12 px-4 rounded-xl font-bold transition-all border-2 border-transparent mb-1", 
-                      activeTab === item.id 
-                        ? "bg-primary text-white shadow-xl shadow-primary/20 hover:bg-primary" 
-                        : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
-                    )}
-                  >
-                    <item.icon className="w-5 h-5 mr-3" /> {item.label}
-                  </SidebarMenuButton>
+                  <Link href={item.href}>
+                    <SidebarMenuButton 
+                      isActive={activeTab === item.id} 
+                      className={cn(
+                        "h-12 px-4 rounded-xl font-bold transition-all border-2 border-transparent mb-1", 
+                        activeTab === item.id 
+                          ? "bg-primary text-white shadow-xl shadow-primary/20 hover:bg-primary" 
+                          : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                      )}
+                    >
+                      <item.icon className="w-5 h-5 mr-3" /> {item.label}
+                    </SidebarMenuButton>
+                  </Link>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
@@ -84,7 +87,7 @@ export function AdminSidebar({ activeTab, setActiveTab, user, logout }: AdminSid
       <SidebarFooter className="p-4 border-t bg-slate-50/50">
         <div className="p-4 bg-white rounded-[1.5rem] border shadow-sm flex items-center justify-between">
           <div className="flex flex-col">
-            <span className="text-xs font-black text-slate-900">{user?.displayName || 'Admin'}</span>
+            <span className="text-xs font-black text-slate-900 truncate w-24">{user?.displayName || 'Admin'}</span>
             <span className="text-[10px] text-muted-foreground font-medium truncate w-24">{user?.email}</span>
           </div>
           <Button variant="ghost" size="icon" onClick={logout} className="rounded-full text-destructive hover:bg-destructive/10">
