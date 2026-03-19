@@ -4,9 +4,10 @@ import React from 'react';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Copy, Check, FileSpreadsheet, Code2, Rocket } from "lucide-react";
+import { ArrowLeft, Copy, Check, FileSpreadsheet, Code2, Rocket, Info } from "lucide-react";
 import { GAS_CODE } from '@/app/lib/gas-template';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function SetupGuide() {
   const { toast } = useToast();
@@ -32,6 +33,14 @@ export default function SetupGuide() {
           <h1 className="text-3xl font-bold">QuestFlow Setup Guide</h1>
         </div>
 
+        <Alert className="bg-primary/5 border-primary/20">
+          <Info className="h-4 w-4 text-primary" />
+          <AlertTitle className="text-primary font-bold">Important Step</AlertTitle>
+          <AlertDescription>
+            You must add the <code className="font-bold">test_id</code> column to your sheet to match the quiz ID in the URL.
+          </AlertDescription>
+        </Alert>
+
         <section className="space-y-6">
           <div className="flex items-center space-x-4">
             <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold">1</div>
@@ -41,10 +50,13 @@ export default function SetupGuide() {
             <CardContent className="pt-6 space-y-4">
               <p>Create a new Google Sheet and name your first tab <code className="font-bold">Questions</code>.</p>
               <p>Add these exact headers in row 1:</p>
-              <div className="bg-muted p-4 rounded-md overflow-x-auto font-mono text-sm">
-                id, question_text, question_type, options, correct_answer, order_group, image_url, metadata, required
+              <div className="bg-muted p-4 rounded-md overflow-x-auto font-mono text-xs md:text-sm whitespace-nowrap">
+                test_id, id, question_text, question_type, options, correct_answer, order_group, image_url, metadata, required
               </div>
-              <p className="text-sm text-muted-foreground">Tip: Make sure the sheet is shared so the script can access it.</p>
+              <div className="text-sm space-y-2">
+                <p><strong>test_id:</strong> Matches the ID in the library (e.g., <code className="bg-muted px-1">demo-1</code>)</p>
+                <p><strong>question_type:</strong> single_choice, multiple_choice, matching, ordering, hotspot, rating, etc.</p>
+              </div>
             </CardContent>
           </Card>
         </section>
@@ -84,7 +96,7 @@ export default function SetupGuide() {
           <Card>
             <CardContent className="pt-6">
               <p className="mb-4">In the <code className="bg-muted px-1">src/app/quiz/page.tsx</code> file, update the <code className="bg-muted px-1">API_URL</code> constant with your Web App URL.</p>
-              <div className="bg-muted p-4 rounded-md font-mono text-sm">
+              <div className="bg-muted p-4 rounded-md font-mono text-sm break-all">
                 const API_URL = "https://script.google.com/macros/s/.../exec";
               </div>
             </CardContent>
