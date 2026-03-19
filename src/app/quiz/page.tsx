@@ -5,7 +5,9 @@ import { Question, UserResponse, QuizState } from '@/types/quiz';
 import { QuestionRenderer } from '@/components/quiz/QuestionRenderer';
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { 
   ChevronRight, 
   ChevronLeft, 
@@ -18,7 +20,9 @@ import {
   Home,
   ListOrdered,
   Check,
-  Timer
+  Timer,
+  User as UserIcon,
+  Play
 } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
@@ -47,7 +51,8 @@ function QuizContent() {
   const quizTitle = testMetadata?.title || 'QuestFlow Assessment';
 
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isStarted, setIsStarted] = useState(false);
+  const [guestName, setGuestName] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [timeLeft, setTimeLeft] = useState(900); // 15 minutes in seconds
   const [quiz, setQuiz] = useState<QuizState>({
@@ -67,7 +72,7 @@ function QuizContent() {
 
   // Timer logic
   useEffect(() => {
-    if (quiz.isSubmitted || loading) return;
+    if (quiz.isSubmitted || loading || !isStarted) return;
     
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
@@ -81,7 +86,7 @@ function QuizContent() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [quiz.isSubmitted, loading]);
+  }, [quiz.isSubmitted, loading, isStarted]);
 
   const fetchQuestions = async () => {
     setLoading(true);
@@ -92,14 +97,12 @@ function QuizContent() {
         if (data && Array.isArray(data) && data.length > 0) {
           setQuiz(prev => ({ ...prev, questions: data, startTime: Date.now() }));
         } else {
-          console.warn("API returned no questions, falling back to demo.");
           setQuiz(prev => ({ ...prev, questions: DEMO_QUESTIONS, startTime: Date.now() }));
         }
       } else {
         setQuiz(prev => ({ ...prev, questions: DEMO_QUESTIONS, startTime: Date.now() }));
       }
     } catch (err) {
-      console.error(err);
       setQuiz(prev => ({ ...prev, questions: DEMO_QUESTIONS, startTime: Date.now() }));
     } finally {
       setLoading(false);
@@ -194,7 +197,8 @@ function QuizContent() {
           body: JSON.stringify({
             action: 'submitResponse',
             testId,
-            userEmail: user?.email || 'Guest',
+            userName: user?.displayName || guestName || 'Guest User',
+            userEmail: user?.email || 'Anonymous',
             score: finalScore,
             total: quiz.questions.length,
             duration: Date.now() - quiz.startTime,
@@ -231,12 +235,90 @@ function QuizContent() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const handleStart = () => {
+    if (!user && !guestName.trim()) {
+      toast({ variant: "destructive", title: "Identity Required", description: "Please enter your name to start the test." });
+      return;
+    }
+    setIsStarted(true);
+    setQuiz(prev => ({ ...prev, startTime: Date.now() }));
+  };
+
   if (loading) return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
       <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
       <p className="text-xl font-medium">Loading Assessment...</p>
     </div>
   );
+
+  if (!isStarted) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+        <Card className="w-full max-w-md border-none shadow-2xl rounded-[2.5rem] overflow-hidden">
+          <div className="h-2 bg-primary" />
+          <CardHeader className="text-center pt-10">
+            <div className="mx-auto w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mb-6">
+              <Play className="w-10 h-10 text-primary" />
+            </div>
+            <CardTitle className="text-3xl font-black tracking-tight">{quizTitle}</CardTitle>
+            <CardDescription className="text-base font-medium mt-2">
+              {testMetadata?.description || 'Ready to test your knowledge?'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-8 pb-8 space-y-6">
+            <div className="flex items-center justify-center gap-6 py-4">
+              <div className="text-center">
+                <p className="text-2xl font-black text-slate-900">{quiz.questions.length}</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Items</p>
+              </div>
+              <div className="w-px h-10 bg-slate-200" />
+              <div className="text-center">
+                <p className="text-2xl font-black text-slate-900">{testMetadata?.duration || '15m'}</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Time</p>
+              </div>
+            </div>
+
+            {!user && (
+              <div className="space-y-3 p-6 bg-slate-50 rounded-2xl border-2 border-slate-100">
+                <Label htmlFor="guestName" className="font-bold flex items-center gap-2 text-slate-700">
+                  <UserIcon className="w-4 h-4 text-primary" />
+                  Your Full Name
+                </Label>
+                <Input 
+                  id="guestName"
+                  placeholder="Enter your name to begin..."
+                  value={guestName}
+                  onChange={(e) => setGuestName(e.target.value)}
+                  className="h-12 rounded-xl bg-white border-slate-200 focus:ring-primary/20"
+                />
+                <p className="text-[10px] text-muted-foreground font-medium italic">This will be used to record your score in our database.</p>
+              </div>
+            )}
+
+            {user && (
+              <div className="p-4 bg-green-50 rounded-2xl border-2 border-green-100 flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center font-black text-green-700 text-sm">
+                  {user.displayName?.charAt(0) || user.email.charAt(0)}
+                </div>
+                <div>
+                  <p className="text-sm font-black text-green-900">Signed in as {user.displayName || 'Student'}</p>
+                  <p className="text-[10px] font-bold text-green-600 uppercase tracking-widest">Active Session</p>
+                </div>
+              </div>
+            )}
+
+            <Button 
+              onClick={handleStart}
+              className="w-full h-14 rounded-full text-lg font-black shadow-xl transition-all hover:scale-[1.02] bg-primary"
+            >
+              Start Assessment
+              <ChevronRight className="w-5 h-5 ml-2" />
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (quiz.isSubmitted) {
     const hasCorrectAnswers = quiz.questions.some(q => q.correct_answer);

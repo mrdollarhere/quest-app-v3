@@ -1,7 +1,7 @@
 
 export const GAS_CODE = `
 /**
- * QUESTFLOW BACKEND v13.0 - ATOMIC CRUD ARCHITECTURE
+ * QUESTFLOW BACKEND v14.0 - IDENTITY & LOGGING UPDATE
  * 
  * ACTIONS SUPPORTED:
  * - GET: login, getTests, getUsers, getResponses, getQuestions
@@ -71,10 +71,11 @@ function doPost(e) {
     if (action === 'submitResponse') {
       let sheet = ss.getSheetByName('Responses') || ss.insertSheet('Responses');
       if (sheet.getLastRow() === 0) {
-        sheet.appendRow(['Timestamp', 'User Email', 'Test ID', 'Score', 'Total', 'Duration (ms)', 'Raw Responses']);
+        sheet.appendRow(['Timestamp', 'User Name', 'User Email', 'Test ID', 'Score', 'Total', 'Duration (ms)', 'Raw Responses']);
       }
       sheet.appendRow([
         new Date(), 
+        payload.userName || 'Guest',
         payload.userEmail || 'Anonymous', 
         payload.testId, 
         payload.score, 

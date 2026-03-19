@@ -29,7 +29,8 @@ export function ResponsesTab({ responses }: ResponsesTabProps) {
           <TableHeader>
             <TableRow className="bg-slate-50/50">
               <TableHead>Timestamp</TableHead>
-              <TableHead>Student</TableHead>
+              <TableHead>Student Name</TableHead>
+              <TableHead>Email/ID</TableHead>
               <TableHead>Assessment</TableHead>
               <TableHead>Score</TableHead>
               <TableHead>Grade</TableHead>
@@ -43,7 +44,8 @@ export function ResponsesTab({ responses }: ResponsesTabProps) {
               return (
                 <TableRow key={i}>
                   <TableCell className="text-[10px] font-medium text-slate-500">{new Date(r.Timestamp).toLocaleString()}</TableCell>
-                  <TableCell className="font-bold text-slate-900 truncate max-w-[150px]">{r['User Email'] || 'Guest'}</TableCell>
+                  <TableCell className="font-black text-slate-900 truncate max-w-[150px]">{r['User Name'] || 'Guest'}</TableCell>
+                  <TableCell className="font-medium text-slate-500 truncate max-w-[150px]">{r['User Email'] || 'Anonymous'}</TableCell>
                   <TableCell className="font-black text-slate-700">{r['Test ID']}</TableCell>
                   <TableCell className="font-bold text-slate-700">{score} / {total}</TableCell>
                   <TableCell>
@@ -59,7 +61,7 @@ export function ResponsesTab({ responses }: ResponsesTabProps) {
             })}
             {responses.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-20 text-muted-foreground italic">
+                <TableCell colSpan={6} className="text-center py-20 text-muted-foreground italic">
                   No submissions recorded yet.
                 </TableCell>
               </TableRow>
