@@ -20,8 +20,70 @@ interface Props {
 }
 
 export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, reviewMode }) => {
-  const options = useMemo(() => question.options ? question.options.split(',').map(o => o.trim()) : [], [question.options]);
+  // --- TOP LEVEL HOOKS (Must always be called in the same order) ---
+  
+  // 1. General Options
+  const options = useMemo(() => 
+    question.options ? question.options.split(',').map(o => o.trim()) : [], 
+    [question.options]
+  );
 
+  // 2. Matching logic setup
+  const matchingPairs = useMemo(() => {
+    if (question.question_type !== 'matching') return [];
+    return question.order_group?.split(',').map(p => {
+      const [left, right] = p.split('|');
+      return { left: (left || "").trim(), right: (right || "").trim() };
+    }) || [];
+  }, [question.order_group, question.question_type]);
+
+  const leftItems = useMemo(() => matchingPairs.map(p => p.left), [matchingPairs]);
+  
+  // 3. Randomization state (to avoid hydration mismatch)
+  const [shuffledRightItems, setShuffledRightItems] = useState<string[]>([]);
+  useEffect(() => {
+    if (question.question_type === 'matching') {
+      const pool = matchingPairs.map(p => p.right).sort(() => 0.5 - Math.random());
+      setShuffledRightItems(pool);
+    }
+  }, [matchingPairs, question.question_type]);
+
+  // 4. Interactive states
+  const [draggedItem, setDraggedItem] = useState<string | null>(null);
+  const [selectedPoolItem, setSelectedPoolItem] = useState<string | null>(null);
+
+  // 5. Correct answers for matching
+  const correctMatchingPairs = useMemo(() => {
+    if (question.question_type !== 'matching') return [];
+    return question.correct_answer?.split(',').map(p => {
+      const [l, r] = p.split('|');
+      return { l: (l || "").trim(), r: (r || "").trim() };
+    }) || [];
+  }, [question.correct_answer, question.question_type]);
+
+  // --- DERIVED DATA ---
+  const matches = (value as Record<string, string>) || {};
+
+  // --- INTERACTION HANDLERS ---
+  const handleMatchingDrop = (prompt: string, answer: string) => {
+    if (reviewMode) return;
+    const newMatches = { ...matches };
+    newMatches[prompt] = answer;
+    onChange(newMatches);
+    setDraggedItem(null);
+    setSelectedPoolItem(null);
+  };
+
+  const clearMatchingMatch = (prompt: string) => {
+    if (reviewMode) return;
+    const newMatches = { ...matches };
+    delete newMatches[prompt];
+    onChange(newMatches);
+  };
+
+  const isMatchingAnswerUsed = (answer: string) => Object.values(matches).includes(answer);
+
+  // --- RENDER FUNCTIONS ---
   const renderSingleChoice = () => (
     <RadioGroup 
       value={value || ""} 
@@ -127,46 +189,6 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
   };
 
   const renderMatching = () => {
-    const pairs = useMemo(() => 
-      question.order_group?.split(',').map(p => {
-        const [left, right] = p.split('|');
-        return { left: (left || "").trim(), right: (right || "").trim() };
-      }) || [], 
-    [question.order_group]);
-
-    const leftItems = useMemo(() => pairs.map(p => p.left), [pairs]);
-    const rightItemsPool = useMemo(() => pairs.map(p => p.right).sort(() => 0.5 - Math.random()), [pairs]);
-    
-    const matches = (value as Record<string, string>) || {};
-    const [draggedItem, setDraggedItem] = useState<string | null>(null);
-    const [selectedPoolItem, setSelectedPoolItem] = useState<string | null>(null);
-
-    const handleDrop = (prompt: string, answer: string) => {
-      if (reviewMode) return;
-      const newMatches = { ...matches };
-      // If prompt already had an answer, it automatically returns to pool because we track by presence in pool vs matches
-      newMatches[prompt] = answer;
-      onChange(newMatches);
-      setDraggedItem(null);
-      setSelectedPoolItem(null);
-    };
-
-    const clearMatch = (prompt: string) => {
-      if (reviewMode) return;
-      const newMatches = { ...matches };
-      delete newMatches[prompt];
-      onChange(newMatches);
-    };
-
-    const isUsedInPool = (answer: string) => Object.values(matches).includes(answer);
-
-    const correctPairs = useMemo(() => 
-      question.correct_answer?.split(',').map(p => {
-        const [l, r] = p.split('|');
-        return { l: (l || "").trim(), r: (r || "").trim() };
-      }) || [], 
-    [question.correct_answer]);
-
     return (
       <div className="space-y-8">
         {!reviewMode && (
@@ -177,20 +199,17 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Prompts & Drop Zones */}
           <div className="lg:col-span-8 space-y-4">
             {leftItems.map((prompt, idx) => {
               const currentMatch = matches[prompt];
-              const isCorrect = reviewMode && currentMatch && correctPairs.find(cp => cp.l === prompt)?.r === currentMatch;
+              const isCorrect = reviewMode && currentMatch && correctMatchingPairs.find(cp => cp.l === prompt)?.r === currentMatch;
 
               return (
                 <div key={idx} className="flex flex-col sm:flex-row items-center gap-4 group">
-                  {/* Prompt */}
                   <div className="w-full sm:w-1/2 p-4 bg-slate-50 border rounded-xl font-semibold text-slate-700 shadow-sm min-h-[60px] flex items-center">
                     {prompt}
                   </div>
 
-                  {/* Drop Zone (Center) */}
                   <div 
                     className={cn(
                       "w-full sm:w-1/2 min-h-[60px] rounded-xl border-2 transition-all flex items-center justify-center p-2 relative overflow-hidden",
@@ -210,10 +229,10 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
                     onDrop={(e) => {
                       e.preventDefault();
                       const answer = e.dataTransfer.getData("text/plain");
-                      handleDrop(prompt, answer);
+                      handleMatchingDrop(prompt, answer);
                     }}
                     onClick={() => {
-                      if (selectedPoolItem) handleDrop(prompt, selectedPoolItem);
+                      if (selectedPoolItem) handleMatchingDrop(prompt, selectedPoolItem);
                     }}
                   >
                     {currentMatch ? (
@@ -224,7 +243,7 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
                             variant="ghost" 
                             size="icon" 
                             className="h-8 w-8 rounded-full text-destructive hover:bg-destructive/10"
-                            onClick={(e) => { e.stopPropagation(); clearMatch(prompt); }}
+                            onClick={(e) => { e.stopPropagation(); clearMatchingMatch(prompt); }}
                           >
                             <XCircle className="w-4 h-4" />
                           </Button>
@@ -243,12 +262,11 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
             })}
           </div>
 
-          {/* Answer Pool (Right) */}
           <div className="lg:col-span-4 bg-slate-50/50 p-6 rounded-2xl border border-dashed border-slate-200 sticky top-24">
             <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 mb-4 px-1">Answer Pool</h3>
             <div className="flex flex-wrap lg:flex-col gap-3">
-              {rightItemsPool.map((answer, idx) => {
-                const used = isUsedInPool(answer);
+              {shuffledRightItems.map((answer, idx) => {
+                const used = isMatchingAnswerUsed(answer);
                 const isSelected = selectedPoolItem === answer;
 
                 return (
