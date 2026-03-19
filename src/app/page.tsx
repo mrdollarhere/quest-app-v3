@@ -5,7 +5,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Play, Settings, Database, Smartphone, CheckCircle, LayoutGrid } from "lucide-react";
+import { Play, Settings, Database, Smartphone, CheckCircle, LayoutGrid, ShieldCheck } from "lucide-react";
 
 export default function LandingPage() {
   return (
@@ -90,8 +90,20 @@ export default function LandingPage() {
         </div>
       </main>
 
-      <footer className="py-8 text-center text-muted-foreground border-t bg-white/30">
-        <p>© {new Date().getFullYear()} QuestFlow. Built with Next.js & Google Apps Script.</p>
+      <footer className="py-12 text-center text-muted-foreground border-t bg-white/30">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col items-center gap-6">
+          <div className="flex items-center gap-8">
+            <Link href="/admin" className="text-sm font-semibold hover:text-primary flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4" />
+              Admin Dashboard
+            </Link>
+            <Link href="/setup-guide" className="text-sm font-semibold hover:text-primary flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              Developer Guide
+            </Link>
+          </div>
+          <p>© {new Date().getFullYear()} QuestFlow. Built with Next.js & Google Apps Script.</p>
+        </div>
       </footer>
     </div>
   );
