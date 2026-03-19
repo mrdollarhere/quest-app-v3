@@ -11,6 +11,7 @@ import { ChevronRight, ChevronLeft, Send, RotateCcw, CheckCircle2, XCircle, Aler
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { cn } from "@/lib/utils";
 
 const DEMO_QUESTIONS: Question[] = [
   {
