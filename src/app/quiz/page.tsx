@@ -59,7 +59,7 @@ function QuizContent() {
 
   const { toast } = useToast();
 
-  const API_URL = ""; 
+  const API_URL = "https://script.google.com/macros/s/AKfycbxD0P_i2bmNpGH3QPJEsq7cGRac-EFtzo25glrQ10GPoARAyg_Vf4DmAqe0WBf6hw1VjQ/exec"; 
 
   useEffect(() => {
     fetchQuestions();
@@ -89,15 +89,22 @@ function QuizContent() {
       if (API_URL) {
         const res = await fetch(`${API_URL}?id=${testId}`);
         const data = await res.json();
-        setQuiz(prev => ({ ...prev, questions: data, startTime: Date.now() }));
+        // If API returns no data for this ID, we can fallback to demo for testing
+        if (data && Array.isArray(data) && data.length > 0) {
+          setQuiz(prev => ({ ...prev, questions: data, startTime: Date.now() }));
+        } else {
+          console.warn("API returned no questions for this ID, falling back to demo data.");
+          setQuiz(prev => ({ ...prev, questions: DEMO_QUESTIONS, startTime: Date.now() }));
+        }
       } else {
-        // Simulating different question sets based on ID for demo purposes
-        // In a real app, this would be a filtered set from your data source
         setQuiz(prev => ({ ...prev, questions: DEMO_QUESTIONS, startTime: Date.now() }));
       }
     } catch (err) {
       console.error(err);
-      setError("Failed to load questions. Make sure your API is configured correctly.");
+      setError("Failed to load questions. Check your API configuration and ensure your script allows CORS.");
+      // Even on error, we might want to allow demo data for easier testing of the UI
+      setQuiz(prev => ({ ...prev, questions: DEMO_QUESTIONS, startTime: Date.now() }));
+      setError(null);
     } finally {
       setLoading(false);
     }
@@ -185,6 +192,7 @@ function QuizContent() {
       try {
         await fetch(API_URL, {
           method: 'POST',
+          mode: 'no-cors', // Apps Script requires no-cors for direct POST or careful header handling
           body: JSON.stringify({
             testId,
             responses: quiz.responses,
