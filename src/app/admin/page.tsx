@@ -16,7 +16,6 @@ import {
   Table as TableIcon,
   FileText,
   MessageSquare,
-  Home,
   LogOut,
   ChevronRight,
   ClipboardList,
@@ -24,7 +23,9 @@ import {
   Trash2,
   Edit,
   Save,
-  X
+  X,
+  CheckCircle2,
+  HelpCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -47,7 +48,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogTrigger
 } from "@/components/ui/dialog";
 import { 
   Sidebar, 
@@ -63,12 +63,20 @@ import {
   SidebarGroupLabel,
   SidebarGroupContent
 } from "@/components/ui/sidebar";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { API_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/auth-context';
 import { cn } from "@/lib/utils";
+import { Question, QuestionType } from '@/types/quiz';
 
-type AdminTab = 'overview' | 'tests' | 'users' | 'responses';
+type AdminTab = 'overview' | 'tests' | 'questions' | 'users' | 'responses';
 
 export default function AdminDashboard() {
   const { user, loading: authLoading, logout } = useAuth();
@@ -79,6 +87,8 @@ export default function AdminDashboard() {
     users: [],
     responses: []
   });
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [selectedTestId, setSelectedTestId] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
 
@@ -86,6 +96,7 @@ export default function AdminDashboard() {
   const [isTestDialogOpen, setIsTestDialogOpen] = useState(false);
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
   const [isQuestionDialogOpen, setIsQuestionDialogOpen] = useState(false);
+  const [isBulkJsonOpen, setIsBulkJsonOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [questionJson, setQuestionJson] = useState("");
 
@@ -100,11 +111,16 @@ export default function AdminDashboard() {
       const responsesRes = await fetch(`${API_URL}?action=getResponses`);
       const responsesData = await responsesRes.json();
 
+      const validTests = Array.isArray(testsData) ? testsData : [];
       setData({
-        tests: Array.isArray(testsData) ? testsData : [],
+        tests: validTests,
         users: Array.isArray(usersData) ? usersData : [],
         responses: Array.isArray(responsesData) ? responsesData : []
       });
+
+      if (validTests.length > 0 && !selectedTestId) {
+        setSelectedTestId(validTests[0].id);
+      }
 
       toast({ title: "Sync Successful", description: "Dashboard data updated." });
     } catch (err) {
@@ -114,9 +130,29 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchQuestions = async (testId: string) => {
+    if (!API_URL || !testId) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}?action=getQuestions&id=${testId}`);
+      const data = await res.json();
+      setQuestions(Array.isArray(data) ? data : []);
+    } catch (err) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to load questions." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (user?.role === 'admin') fetchData();
   }, [user]);
+
+  useEffect(() => {
+    if (activeTab === 'questions' && selectedTestId) {
+      fetchQuestions(selectedTestId);
+    }
+  }, [activeTab, selectedTestId]);
 
   const handlePost = async (action: string, payload: any) => {
     if (!API_URL) return;
@@ -128,8 +164,7 @@ export default function AdminDashboard() {
         body: JSON.stringify({ action, ...payload })
       });
       toast({ title: "Operation Successful", description: "Changes queued for Google Sheets." });
-      // Optimistic update for UI if needed, or just refetch
-      setTimeout(fetchData, 1500); // Wait for GAS to process
+      setTimeout(fetchData, 1500); 
     } catch (err) {
       toast({ variant: "destructive", title: "Error", description: "Failed to save changes." });
     } finally {
@@ -166,28 +201,41 @@ export default function AdminDashboard() {
     }
   };
 
-  const openQuestionEditor = async (testId: string) => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_URL}?action=getQuestions&id=${testId}`);
-      const questions = await res.json();
-      setQuestionJson(JSON.stringify(questions, null, 2));
-      setEditingItem(testId);
-      setIsQuestionDialogOpen(true);
-    } catch (err) {
-      toast({ variant: "destructive", title: "Error", description: "Could not fetch questions." });
-    } finally {
-      setLoading(false);
+  const saveQuestion = (e: React.FormEvent) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget as HTMLFormElement);
+    const qData = Object.fromEntries(formData.entries());
+    
+    let updatedQuestions = [...questions];
+    if (editingItem) {
+      updatedQuestions = updatedQuestions.map(q => q.id === editingItem.id ? { ...q, ...qData } : q);
+    } else {
+      updatedQuestions.push({ ...qData } as any);
+    }
+    
+    handlePost('saveQuestions', { testId: selectedTestId, questions: updatedQuestions });
+    setIsQuestionDialogOpen(false);
+  };
+
+  const deleteQuestion = (qId: string) => {
+    if (confirm("Delete this question?")) {
+      const updatedQuestions = questions.filter(q => q.id !== qId);
+      handlePost('saveQuestions', { testId: selectedTestId, questions: updatedQuestions });
     }
   };
 
-  const saveQuestions = () => {
+  const openBulkEditor = () => {
+    setQuestionJson(JSON.stringify(questions, null, 2));
+    setIsBulkJsonOpen(true);
+  };
+
+  const saveBulkQuestions = () => {
     try {
-      const questions = JSON.parse(questionJson);
-      handlePost('saveQuestions', { testId: editingItem, questions });
-      setIsQuestionDialogOpen(false);
+      const parsed = JSON.parse(questionJson);
+      handlePost('saveQuestions', { testId: selectedTestId, questions: parsed });
+      setIsBulkJsonOpen(false);
     } catch (e) {
-      toast({ variant: "destructive", title: "Invalid JSON", description: "Please check your question format." });
+      toast({ variant: "destructive", title: "Invalid JSON", description: "Please check your format." });
     }
   };
 
@@ -218,7 +266,7 @@ export default function AdminDashboard() {
   const renderTests = () => (
     <Card className="border-none shadow-sm animate-in slide-in-from-bottom-4 duration-500">
       <CardHeader className="flex flex-row items-center justify-between">
-        <div><CardTitle>Assessments</CardTitle><CardDescription>Manage test registry and questions</CardDescription></div>
+        <div><CardTitle>Assessments</CardTitle><CardDescription>Manage test registry</CardDescription></div>
         <div className="flex gap-4">
           <Input placeholder="Filter tests..." className="w-64 rounded-full" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           <Button onClick={() => { setEditingItem(null); setIsTestDialogOpen(true); }} className="rounded-full gap-2"><Plus className="w-4 h-4" /> Add Test</Button>
@@ -228,13 +276,13 @@ export default function AdminDashboard() {
         <Table>
           <TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Title</TableHead><TableHead>Category</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
           <TableBody>
-            {data.tests.filter(t => t.title?.toLowerCase().includes(searchTerm.toLowerCase())).map((t, i) => (
+            {data.tests.filter(t => (t.title || "").toLowerCase().includes(searchTerm.toLowerCase())).map((t, i) => (
               <TableRow key={i}>
                 <TableCell><Badge variant="outline">{t.id}</Badge></TableCell>
                 <TableCell className="font-bold">{t.title}</TableCell>
                 <TableCell>{t.category}</TableCell>
                 <TableCell className="text-right flex justify-end gap-2">
-                  <Button variant="ghost" size="sm" onClick={() => openQuestionEditor(t.id)} className="rounded-full text-blue-600"><FileText className="w-4 h-4 mr-1" /> Questions</Button>
+                  <Button variant="ghost" size="sm" onClick={() => { setSelectedTestId(t.id); setActiveTab('questions'); }} className="rounded-full text-blue-600"><FileText className="w-4 h-4 mr-1" /> Questions</Button>
                   <Button variant="ghost" size="sm" onClick={() => { setEditingItem(t); setIsTestDialogOpen(true); }} className="rounded-full"><Edit className="w-4 h-4" /></Button>
                   <Button variant="ghost" size="sm" onClick={() => deleteTest(t.id)} className="rounded-full text-destructive"><Trash2 className="w-4 h-4" /></Button>
                 </TableCell>
@@ -244,6 +292,61 @@ export default function AdminDashboard() {
         </Table>
       </CardContent>
     </Card>
+  );
+
+  const renderQuestions = () => (
+    <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+      <Card className="border-none shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-primary/10 rounded-xl text-primary"><HelpCircle className="w-6 h-6" /></div>
+            <div>
+              <CardTitle>Question Bank</CardTitle>
+              <CardDescription>Manage content for individual assessments</CardDescription>
+            </div>
+          </div>
+          <div className="flex gap-3">
+             <Select value={selectedTestId} onValueChange={setSelectedTestId}>
+              <SelectTrigger className="w-[200px] rounded-full">
+                <SelectValue placeholder="Select a test" />
+              </SelectTrigger>
+              <SelectContent>
+                {data.tests.map(t => (
+                  <SelectItem key={t.id} value={t.id}>{t.title || t.id}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button variant="outline" onClick={openBulkEditor} className="rounded-full"><FileText className="w-4 h-4 mr-2" /> Bulk JSON</Button>
+            <Button onClick={() => { setEditingItem(null); setIsQuestionDialogOpen(true); }} className="rounded-full"><Plus className="w-4 h-4 mr-2" /> Add Question</Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Type</TableHead><TableHead>Question Text</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+            <TableBody>
+              {questions.map((q, i) => (
+                <TableRow key={i}>
+                  <TableCell className="text-xs font-mono">{q.id}</TableCell>
+                  <TableCell><Badge variant="secondary" className="capitalize">{q.question_type.replace('_', ' ')}</Badge></TableCell>
+                  <TableCell className="max-w-md truncate font-medium">{q.question_text}</TableCell>
+                  <TableCell className="text-right flex justify-end gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => { setEditingItem(q); setIsQuestionDialogOpen(true); }} className="rounded-full"><Edit className="w-4 h-4" /></Button>
+                    <Button variant="ghost" size="sm" onClick={() => deleteQuestion(q.id)} className="rounded-full text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {questions.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
+                    No questions found for this test.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
   );
 
   const renderUsers = () => (
@@ -308,6 +411,7 @@ export default function AdminDashboard() {
                   {[
                     { id: 'overview', label: 'Dashboard', icon: BarChart3 },
                     { id: 'tests', label: 'Assessments', icon: ClipboardList },
+                    { id: 'questions', label: 'Questions', icon: HelpCircle },
                     { id: 'users', label: 'User Table', icon: UsersIcon },
                     { id: 'responses', label: 'Results & Logs', icon: MessageSquare }
                   ].map((item) => (
@@ -338,6 +442,7 @@ export default function AdminDashboard() {
           <div className="p-8 max-w-7xl mx-auto">
             {activeTab === 'overview' && renderOverview()}
             {activeTab === 'tests' && renderTests()}
+            {activeTab === 'questions' && renderQuestions()}
             {activeTab === 'users' && renderUsers()}
             {activeTab === 'responses' && renderResponses()}
           </div>
@@ -363,6 +468,42 @@ export default function AdminDashboard() {
         </DialogContent>
       </Dialog>
 
+      {/* Question Dialog */}
+      <Dialog open={isQuestionDialogOpen} onOpenChange={setIsQuestionDialogOpen}>
+        <DialogContent className="sm:max-w-[550px] rounded-[2rem] max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>{editingItem ? 'Edit Question' : 'Add Question'}</DialogTitle></DialogHeader>
+          <form onSubmit={saveQuestion} className="space-y-4 pt-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>Question ID</Label><Input name="id" defaultValue={editingItem?.id} required /></div>
+              <div className="space-y-2"><Label>Type</Label>
+                <select name="question_type" defaultValue={editingItem?.question_type || 'single_choice'} className="w-full h-10 px-3 rounded-md border bg-background text-sm">
+                  <option value="single_choice">Single Choice</option>
+                  <option value="multiple_choice">Multiple Choice</option>
+                  <option value="true_false">True/False</option>
+                  <option value="short_text">Short Text</option>
+                  <option value="ordering">Ordering</option>
+                  <option value="matching">Matching</option>
+                  <option value="hotspot">Hotspot</option>
+                  <option value="rating">Rating</option>
+                  <option value="dropdown">Dropdown</option>
+                </select>
+              </div>
+            </div>
+            <div className="space-y-2"><Label>Question Text</Label><Textarea name="question_text" defaultValue={editingItem?.question_text} required /></div>
+            <div className="space-y-2"><Label>Options (Comma separated)</Label><Input name="options" defaultValue={editingItem?.options} placeholder="Option A, Option B, Option C" /></div>
+            <div className="space-y-2"><Label>Correct Answer</Label><Input name="correct_answer" defaultValue={editingItem?.correct_answer} /></div>
+            <div className="space-y-2"><Label>Order Group / Matching Pairs</Label><Input name="order_group" defaultValue={editingItem?.order_group} placeholder="Item1,Item2 OR Prompt|Answer" /></div>
+            <div className="space-y-2"><Label>Image URL</Label><Input name="image_url" defaultValue={editingItem?.image_url} /></div>
+            <div className="space-y-2"><Label>Metadata (Hotspot JSON)</Label><Textarea name="metadata" defaultValue={editingItem?.metadata} placeholder='[{"id":"z1","label":"Zone","x":50,"y":50,"radius":10}]' /></div>
+            <div className="flex items-center space-x-2 py-2">
+               <input type="checkbox" name="required" id="q_required" defaultChecked={editingItem?.required === "TRUE" || editingItem?.required === true} />
+               <Label htmlFor="q_required">Required Question</Label>
+            </div>
+            <DialogFooter><Button type="submit" className="rounded-full w-full">Save Question</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* User Dialog */}
       <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
         <DialogContent className="sm:max-w-[425px] rounded-[2rem]">
@@ -372,7 +513,7 @@ export default function AdminDashboard() {
             <div className="space-y-2"><Label>Name</Label><Input name="name" defaultValue={editingItem?.name} required /></div>
             <div className="space-y-2"><Label>Password</Label><Input name="password" type="password" placeholder="Leave empty if unchanged" required={!editingItem} /></div>
             <div className="space-y-2"><Label>Role</Label>
-              <select name="role" defaultValue={editingItem?.role || 'user'} className="w-full h-10 px-3 rounded-md border bg-background">
+              <select name="role" defaultValue={editingItem?.role || 'user'} className="w-full h-10 px-3 rounded-md border bg-background text-sm">
                 <option value="user">User</option>
                 <option value="admin">Admin</option>
               </select>
@@ -382,16 +523,16 @@ export default function AdminDashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Question JSON Editor */}
-      <Dialog open={isQuestionDialogOpen} onOpenChange={setIsQuestionDialogOpen}>
+      {/* Bulk JSON Editor */}
+      <Dialog open={isBulkJsonOpen} onOpenChange={setIsBulkJsonOpen}>
         <DialogContent className="sm:max-w-[700px] h-[80vh] flex flex-col rounded-[2rem]">
-          <DialogHeader><DialogTitle>Edit Questions for: {editingItem}</DialogTitle><DialogDescription>Directly modify the question array in JSON format.</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>Bulk Question Editor: {selectedTestId}</DialogTitle></DialogHeader>
           <div className="flex-1 overflow-hidden py-4">
             <Textarea className="h-full font-mono text-xs p-4 bg-slate-900 text-green-400 rounded-xl" value={questionJson} onChange={(e) => setQuestionJson(e.target.value)} />
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setIsQuestionDialogOpen(false)} className="rounded-full">Cancel</Button>
-            <Button onClick={saveQuestions} className="rounded-full"><Save className="w-4 h-4 mr-2" /> Save Questions</Button>
+            <Button variant="outline" onClick={() => setIsBulkJsonOpen(false)} className="rounded-full">Cancel</Button>
+            <Button onClick={saveBulkQuestions} className="rounded-full"><Save className="w-4 h-4 mr-2" /> Save Bulk Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
