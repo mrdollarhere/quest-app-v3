@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
   Database, 
   LayoutGrid, 
@@ -16,7 +17,9 @@ import {
   BarChart3,
   ExternalLink,
   Search,
-  AlertCircle
+  AlertCircle,
+  ShieldAlert,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -27,8 +30,11 @@ import { API_URL } from '@/lib/api-config';
 import { Question } from '@/types/quiz';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from '@/hooks/use-toast';
+import { useUserRole } from '@/hooks/use-user-role';
 
 export default function AdminDashboard() {
+  const { role, loading: roleLoading, user } = useUserRole();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -65,8 +71,38 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    fetchAllData();
-  }, []);
+    if (role === 'admin') {
+      fetchAllData();
+    }
+  }, [role]);
+
+  if (roleLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
+        <p className="text-xl font-bold">Verifying Permissions...</p>
+      </div>
+    );
+  }
+
+  if (role !== 'admin') {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+        <Card className="max-w-md w-full border-none shadow-2xl rounded-[2rem] text-center p-8">
+          <div className="mx-auto w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-6">
+            <ShieldAlert className="w-10 h-10 text-red-600" />
+          </div>
+          <CardTitle className="text-2xl font-black mb-4">Access Denied</CardTitle>
+          <p className="text-muted-foreground mb-8">
+            You do not have administrative privileges. Please ensure your email (<strong>{user?.email}</strong>) is listed as an 'admin' in the Google Sheet's <strong>Users</strong> tab.
+          </p>
+          <Link href="/">
+            <Button className="rounded-full w-full h-12 font-bold shadow-lg">Return to Library</Button>
+          </Link>
+        </Card>
+      </div>
+    );
+  }
 
   const tests = Array.from(new Set(questions.map(q => (q as any).test_id))).filter(Boolean);
   
@@ -90,7 +126,7 @@ export default function AdminDashboard() {
                 <Settings className="w-5 h-5 text-primary" />
                 QuestFlow Admin
               </h1>
-              <p className="text-xs text-muted-foreground font-medium">Data Management & System Health</p>
+              <p className="text-xs text-muted-foreground font-medium">System Role: {role.toUpperCase()}</p>
             </div>
           </div>
           

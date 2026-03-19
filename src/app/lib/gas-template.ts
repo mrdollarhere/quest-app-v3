@@ -1,18 +1,36 @@
+
 export const GAS_CODE = `
 /**
- * QUESTFLOW BACKEND v2.0
+ * QUESTFLOW BACKEND v2.1
  * 
  * 1. Create a Google Sheet.
- * 2. Rename the first tab to "Questions".
- * 3. Add headers: test_id, id, question_text, question_type, options, correct_answer, order_group, image_url, metadata, required
- * 4. Deploy as Web App (Access: Anyone).
+ * 2. Tab "Questions": test_id, id, question_text, question_type, options, correct_answer, order_group, image_url, metadata, required
+ * 3. Tab "Users" (New): email, role
+ * 4. Tab "Responses": Timestamp, Test ID, Score, Total, Duration (ms), Raw Responses
+ * 5. Deploy as Web App (Access: Anyone).
  */
 
 const SPREADSHEET_ID = 'YOUR_SPREADSHEET_ID_HERE';
 
 function doGet(e) {
-  const testId = e.parameter.id;
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const action = e.parameter.action;
+
+  // Handle Role Checking
+  if (action === 'getRole') {
+    const email = e.parameter.email;
+    const usersSheet = ss.getSheetByName('Users');
+    if (!usersSheet) {
+      return createResponse({ role: 'user' });
+    }
+    const data = usersSheet.getDataRange().getValues();
+    const headers = data.shift();
+    const userRow = data.find(row => row[0].toLowerCase() === email.toLowerCase());
+    return createResponse({ role: userRow ? userRow[1] : 'user' });
+  }
+
+  // Handle Question Fetching
+  const testId = e.parameter.id;
   const sheet = ss.getSheetByName('Questions');
   
   if (!sheet) {
@@ -22,9 +40,6 @@ function doGet(e) {
   const data = sheet.getDataRange().getValues();
   const headers = data.shift();
   
-  // Find index of test_id column
-  const testIdIdx = headers.indexOf('test_id');
-  
   const questions = data
     .map(row => {
       const obj = {};
@@ -32,7 +47,6 @@ function doGet(e) {
       return obj;
     })
     .filter(q => {
-      // If no ID provided, return all. If ID provided, filter by test_id.
       if (!testId) return true;
       return String(q.test_id) === String(testId);
     });
