@@ -9,10 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowLeft, Save, Loader2, Sparkles, LayoutGrid, Image as ImageIcon, Clock, Gauge } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Sparkles, LayoutGrid, Image as ImageIcon, Clock, Gauge, X } from "lucide-react";
 
 export default function NewTestPage() {
   const [loading, setLoading] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -56,14 +57,14 @@ export default function NewTestPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex items-center gap-4">
         <Button variant="ghost" onClick={() => router.back()} className="rounded-full">
           <ArrowLeft className="w-4 h-4 mr-2" /> Back
         </Button>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-8">
+      <div className="flex flex-col lg:flex-row gap-8">
         <div className="flex-1 space-y-8">
           <div>
             <h1 className="text-4xl font-black tracking-tight text-slate-900 uppercase leading-none">New Intelligence</h1>
@@ -142,25 +143,36 @@ export default function NewTestPage() {
           </form>
         </div>
 
-        <div className="hidden lg:block w-80 shrink-0">
-          <div className="sticky top-28 space-y-6">
-            <Card className="border-none shadow-xl rounded-[2rem] bg-slate-900 text-white p-8">
-              <Sparkles className="w-8 h-8 text-primary mb-6 animate-pulse" />
-              <h3 className="text-xl font-black uppercase tracking-tight mb-4">Architecture Pro-Tip</h3>
-              <p className="text-sm text-slate-400 font-medium leading-relaxed">
-                DNTRNG modules are instantly synchronized with your Google Sheets. Once you commit this registry, you'll be taken straight to the question bank to start building content.
-              </p>
-            </Card>
-            
-            <div className="p-6 bg-slate-100 rounded-[2rem] border-2 border-dashed border-slate-200">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Sync Status</p>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-orange-400" />
-                <span className="text-xs font-bold text-slate-600">Pending Local Changes</span>
+        {showSidebar && (
+          <div className="hidden lg:block w-80 shrink-0 animate-in fade-in slide-in-from-right-4 duration-500">
+            <div className="sticky top-28 space-y-6">
+              <Card className="border-none shadow-xl rounded-[2rem] bg-slate-900 text-white p-8 relative overflow-hidden group">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => setShowSidebar(false)}
+                  className="absolute top-4 right-4 h-8 w-8 rounded-full text-slate-400 hover:text-white hover:bg-white/10 z-10 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+                <Sparkles className="w-8 h-8 text-primary mb-6 animate-pulse" />
+                <h3 className="text-xl font-black uppercase tracking-tight mb-4">Architecture Pro-Tip</h3>
+                <p className="text-sm text-slate-400 font-medium leading-relaxed">
+                  DNTRNG modules are instantly synchronized with your Google Sheets. Once you commit this registry, you'll be taken straight to the question bank to start building content.
+                </p>
+                <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-primary/10 rounded-full blur-3xl group-hover:bg-primary/20 transition-colors" />
+              </Card>
+              
+              <div className="p-6 bg-slate-100 rounded-[2rem] border-2 border-dashed border-slate-200">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Sync Status</p>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
+                  <span className="text-xs font-bold text-slate-600">Pending Local Changes</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
