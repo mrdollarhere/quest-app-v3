@@ -15,7 +15,8 @@ import {
   Loader2, 
   ListOrdered,
   Check,
-  Timer
+  Timer,
+  Zap
 } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
@@ -42,7 +43,7 @@ function QuizContent() {
     return AVAILABLE_TESTS.find(t => t.id === testId);
   }, [testId]);
 
-  const quizTitle = testMetadata?.title || 'QuestFlow Assessment';
+  const quizTitle = testMetadata?.title || 'DNTRNG Assessment';
 
   const [loading, setLoading] = useState(true);
   const [isStarted, setIsStarted] = useState(false);
@@ -162,7 +163,7 @@ function QuizContent() {
             responses: quiz.responses
           })
         });
-        toast({ title: "Results Synced", description: "Your performance has been logged." });
+        toast({ title: "Intelligence Synced", description: "Assessment results have been committed." });
       } catch (e) {
         console.error("Submission failed", e);
       }
@@ -194,7 +195,7 @@ function QuizContent() {
 
   const handleStart = () => {
     if (!user && !guestName.trim()) {
-      toast({ variant: "destructive", title: "Identity Required", description: "Please enter your name to start the test." });
+      toast({ variant: "destructive", title: "Identity Required", description: "Please provide a name to initialize." });
       return;
     }
     setIsStarted(true);
@@ -202,9 +203,9 @@ function QuizContent() {
   };
 
   if (loading) return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4">
-      <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
-      <p className="text-xl font-medium">Loading Assessment...</p>
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-slate-50">
+      <Loader2 className="w-12 h-12 text-primary animate-spin mb-6" />
+      <p className="text-sm font-black uppercase tracking-[0.3em] text-slate-400">Initializing DNTRNG Intelligence...</p>
     </div>
   );
 
@@ -237,50 +238,56 @@ function QuizContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center p-4 md:p-8">
-      <div className="w-full max-w-4xl flex-1 flex flex-col gap-6">
-        <header className="space-y-4 mb-4">
+    <div className="min-h-screen bg-slate-50/50 flex flex-col items-center p-4 md:p-8">
+      <div className="w-full max-w-5xl flex-1 flex flex-col gap-6">
+        <header className="space-y-6 mb-4">
           <div className="flex items-center justify-between">
             <Link href="/tests">
-              <Button variant="ghost" size="sm">
-                <ChevronLeft className="w-4 h-4 mr-1" /> Exit
+              <Button variant="ghost" size="sm" className="rounded-full font-bold">
+                <ChevronLeft className="w-4 h-4 mr-1" /> Terminate
               </Button>
             </Link>
-            <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight text-center flex-1 mx-4 line-clamp-1">{quizTitle}</h1>
-            <div className="w-[80px]" /> 
+            <div className="flex items-center gap-3">
+              <Zap className="w-6 h-6 text-primary fill-current" />
+              <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tighter uppercase line-clamp-1">{quizTitle}</h1>
+            </div>
+            <div className="w-[100px]" /> 
           </div>
 
-          <div className="space-y-2">
-            <div className="flex justify-between items-center text-xs font-black text-muted-foreground uppercase tracking-[0.2em] px-2">
-              <span>Question {quiz.currentQuestionIndex + 1} of {quiz.questions.length}</span>
-              <span>{Math.round(progress)}% Complete</span>
+          <div className="space-y-3 px-2">
+            <div className="flex justify-between items-end">
+              <div className="space-y-1">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Progress Monitor</span>
+                <span className="text-sm font-bold text-slate-900">Step {quiz.currentQuestionIndex + 1} of {quiz.questions.length}</span>
+              </div>
+              <span className="text-xs font-black text-primary bg-primary/10 px-3 py-1 rounded-full">{Math.round(progress)}%</span>
             </div>
-            <Progress value={progress} className="h-2 rounded-full bg-slate-100" />
+            <Progress value={progress} className="h-2 rounded-full bg-slate-200" />
           </div>
         </header>
 
-        <Card className="flex-1 shadow-2xl border-none overflow-hidden rounded-[2rem] bg-white flex flex-col">
+        <Card className="flex-1 shadow-2xl border-none overflow-hidden rounded-[3rem] bg-white flex flex-col">
           <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
-            <div className="flex justify-between items-center px-4 md:px-8 py-6 border-b bg-slate-50/50 backdrop-blur-sm sticky top-0 z-10">
+            <div className="flex justify-between items-center px-6 md:px-12 py-8 border-b bg-white/50 backdrop-blur-sm sticky top-0 z-10">
               <Button 
                 variant="outline" 
                 onClick={prev} 
                 disabled={quiz.currentQuestionIndex === 0}
-                className="rounded-full px-4 md:px-6 h-12 bg-white border-2 font-bold shrink-0"
+                className="rounded-full px-6 h-14 bg-white border-2 font-black shrink-0 hover:bg-slate-50 transition-all"
               >
-                <ChevronLeft className="w-5 h-5 md:mr-1.5" />
-                <span className="hidden md:inline">Back</span>
+                <ChevronLeft className="w-5 h-5 md:mr-2" />
+                <span className="hidden md:inline uppercase text-xs">Previous</span>
               </Button>
               
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full h-12 w-12 shrink-0 hover:bg-primary/10">
+                  <Button variant="ghost" size="icon" className="rounded-full h-14 w-14 shrink-0 hover:bg-primary/10 transition-colors">
                     <ListOrdered className="w-6 h-6 text-primary" />
                   </Button>
                 </SheetTrigger>
 
-                <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-full font-mono text-sm font-bold text-slate-700 shrink-0">
-                  <Timer className={cn("w-4 h-4", timeLeft < 60 ? "text-destructive animate-pulse" : "text-primary")} />
+                <div className="flex items-center gap-3 px-6 py-3 bg-slate-100 rounded-full font-black text-sm text-slate-900 shrink-0 ring-4 ring-white shadow-inner">
+                  <Timer className={cn("w-5 h-5", timeLeft < 60 ? "text-destructive animate-pulse" : "text-primary")} />
                   {formatTime(timeLeft)}
                 </div>
               </div>
@@ -289,28 +296,28 @@ function QuizContent() {
                 {quiz.currentQuestionIndex === quiz.questions.length - 1 ? (
                   <Button 
                     onClick={submit} 
-                    className="rounded-full px-6 md:px-10 h-12 bg-primary hover:bg-primary/90 shadow-xl font-bold transition-all hover:scale-105"
+                    className="rounded-full px-12 h-14 bg-primary hover:bg-primary/90 shadow-2xl font-black transition-all hover:scale-105"
                   >
-                    <span className="hidden md:inline">Submit</span>
-                    <Send className="w-4 h-4 md:ml-2.5" />
+                    <span className="hidden md:inline uppercase text-xs tracking-widest">Commit</span>
+                    <Send className="w-4 h-4 md:ml-3" />
                   </Button>
                 ) : (
                   <Button 
                     onClick={next} 
-                    className="rounded-full px-6 md:px-10 h-12 shadow-lg font-bold transition-all hover:scale-105"
+                    className="rounded-full px-12 h-14 bg-slate-900 text-white shadow-2xl font-black transition-all hover:scale-105"
                   >
-                    <span className="hidden md:inline">Next</span>
-                    <ChevronRight className="w-5 h-5 md:ml-1.5" />
+                    <span className="hidden md:inline uppercase text-xs tracking-widest">Forward</span>
+                    <ChevronRight className="w-5 h-5 md:ml-2" />
                   </Button>
                 )}
               </div>
             </div>
 
-            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-              <SheetHeader className="mb-6">
-                <SheetTitle className="text-2xl font-bold">Assessment Progress</SheetTitle>
+            <SheetContent side="right" className="w-[300px] sm:w-[450px] rounded-l-[3rem]">
+              <SheetHeader className="mb-10 pt-10 px-4">
+                <SheetTitle className="text-3xl font-black tracking-tighter uppercase">Assessment Flow</SheetTitle>
               </SheetHeader>
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-4 gap-4 px-4">
                 {quiz.questions.map((q, idx) => {
                   const isCurrent = quiz.currentQuestionIndex === idx;
                   const answered = isAnswered(q.id);
@@ -319,15 +326,15 @@ function QuizContent() {
                       key={q.id}
                       variant={isCurrent ? "default" : "outline"}
                       className={cn(
-                        "h-12 w-full rounded-xl font-bold transition-all border-2 relative",
-                        !isCurrent && answered && "bg-green-50 border-green-200 text-green-600",
-                        isCurrent && "border-primary shadow-md",
+                        "h-16 w-full rounded-[1.5rem] font-black transition-all border-2 relative text-lg",
+                        !isCurrent && answered && "bg-slate-50 border-primary/20 text-primary",
+                        isCurrent && "border-primary shadow-xl scale-110 z-10",
                       )}
                       onClick={() => jumpToQuestion(idx)}
                     >
                       {idx + 1}
                       {answered && !isCurrent && (
-                        <Check className="w-3 h-3 absolute -top-1 -right-1 bg-green-500 text-white rounded-full p-0.5" />
+                        <Check className="w-4 h-4 absolute -top-1 -right-1 bg-primary text-white rounded-full p-1 shadow-lg" />
                       )}
                     </Button>
                   );
@@ -336,8 +343,8 @@ function QuizContent() {
             </SheetContent>
           </Sheet>
 
-          <CardContent className="pt-12 px-6 md:px-20 pb-20 flex-1 overflow-y-auto">
-            <div className="max-w-3xl mx-auto">
+          <CardContent className="pt-16 px-6 md:px-24 pb-24 flex-1 overflow-y-auto">
+            <div className="max-w-4xl mx-auto">
               <QuestionRenderer 
                 question={currentQuestion} 
                 value={currentResponse} 
@@ -354,9 +361,9 @@ function QuizContent() {
 export default function QuizPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex flex-col items-center justify-center p-4">
-        <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
-        <p className="text-xl font-medium">Preparing Assessment...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-slate-50">
+        <Loader2 className="w-12 h-12 text-primary animate-spin mb-6" />
+        <p className="text-xs font-black uppercase tracking-[0.3em] text-slate-400">Loading Intelligence Modules...</p>
       </div>
     }>
       <QuizContent />
