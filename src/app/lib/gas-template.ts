@@ -1,7 +1,7 @@
 
 export const GAS_CODE = `
 /**
- * QUESTFLOW BACKEND v5.0 - STRUCTURED DATABASE
+ * QUESTFLOW BACKEND v6.0 - SECURE AUTH WITH PASSWORDS
  * 
  * SETUP INSTRUCTIONS:
  * 1. Create a Google Sheet.
@@ -14,7 +14,7 @@ export const GAS_CODE = `
  *    test_id, id, question_text, question_type, options, correct_answer, order_group, image_url, metadata, required
  * 
  * 4. Add Headers to "Users":
- *    id, name, email, role
+ *    id, name, email, role, password
  * 
  * 5. Add Headers to "Responses":
  *    Timestamp, Test ID, Score, Total, Duration (ms), Raw Responses
@@ -32,6 +32,8 @@ function doGet(e) {
   // --- ACTION: login / getRole ---
   if (action === 'getRole' || action === 'login') {
     const email = e.parameter.email;
+    const password = e.parameter.password;
+    
     if (!email) return createResponse({ error: 'Email required' }, 400);
 
     const usersSheet = ss.getSheetByName('Users');
@@ -44,19 +46,30 @@ function doGet(e) {
     const emailIdx = headers.indexOf('email');
     const roleIdx = headers.indexOf('role');
     const nameIdx = headers.indexOf('name');
+    const passIdx = headers.indexOf('password');
+    const idIdx = headers.indexOf('id');
     
     if (emailIdx === -1) return createResponse({ error: 'Email column not found in Users tab' }, 500);
 
     const userRow = data.find(row => String(row[emailIdx]).toLowerCase() === email.toLowerCase());
     
     if (userRow) {
+      // Check password if password column exists
+      if (passIdx !== -1) {
+        const storedPass = String(userRow[passIdx]);
+        if (storedPass !== String(password)) {
+          return createResponse({ error: 'Invalid password' }, 401);
+        }
+      }
+
       return createResponse({ 
+        id: idIdx !== -1 ? userRow[idIdx] : null,
         email: userRow[emailIdx], 
         role: userRow[roleIdx] || 'user',
         name: nameIdx !== -1 ? userRow[nameIdx] : email.split('@')[0]
       });
     } else {
-      return createResponse({ error: 'User not authorized' }, 403);
+      return createResponse({ error: 'User not found or authorized' }, 403);
     }
   }
 

@@ -22,10 +22,10 @@ export default function SetupGuide() {
     });
   };
 
-  const SAMPLE_USERS = `id\tname\temail\trole
-U001\tAdmin User\tadmin@example.com\tadmin
-U002\tJane Smith\tuser@example.com\tuser
-U003\tJohn Doe\tjohn@example.com\tuser`;
+  const SAMPLE_USERS = `id\tname\temail\trole\tpassword
+U001\tAdmin User\tadmin@example.com\tadmin\tadmin123
+U002\tJane Smith\tuser@example.com\tuser\tpass123
+U003\tJohn Doe\tjohn@example.com\tuser\tjohn123`;
 
   const SAMPLE_QUESTIONS = `test_id\tid\tquestion_text\tquestion_type\toptions\tcorrect_answer\torder_group\timage_url\tmetadata\trequired
 demo-1\tq1\tWhat is QuestFlow?\tsingle_choice\tA Tool,A Framework,A Platform,All of the above\tAll of the above\t\t\tTRUE
@@ -79,14 +79,14 @@ demo-1\th1\tLocate the peak in the image:\thotspot\t\t\t\thttps://picsum.photos/
                   </Button>
                 </CardHeader>
                 <CardContent className="pt-6">
-                  <p className="text-xs text-muted-foreground mb-4">Paste this into cell <strong>A1</strong> of your Users tab (Headers: id, name, email, role):</p>
+                  <p className="text-xs text-muted-foreground mb-4">Paste this into cell <strong>A1</strong> of your Users tab (Headers: id, name, email, role, password):</p>
                   <pre className="bg-slate-900 p-4 rounded-xl overflow-x-auto font-mono text-[10px] text-green-400">
                     {SAMPLE_USERS}
                   </pre>
                   <Alert className="mt-4 bg-amber-50 border-amber-100 text-amber-800">
                     <Info className="h-4 w-4" />
                     <AlertDescription className="text-xs">
-                      Users with role <strong>admin</strong> can access the dashboard. <strong>user</strong> role can only take tests.
+                      Users with role <strong>admin</strong> can access the dashboard. The system now checks for <strong>password</strong> matches.
                     </AlertDescription>
                   </Alert>
                 </CardContent>
@@ -159,7 +159,7 @@ demo-1\th1\tLocate the peak in the image:\thotspot\t\t\t\thttps://picsum.photos/
                     Login Instructions
                   </h3>
                   <p className="text-sm text-slate-600 font-medium">
-                    Use the email <strong>admin@example.com</strong> to test the admin dashboard after you've pasted the sample data into your sheet.
+                    Use <strong>admin@example.com</strong> and password <strong>admin123</strong> to test the admin dashboard after setup.
                   </p>
                   <Link href="/login">
                     <Button className="w-full rounded-full font-bold shadow-lg">Go to Login Page</Button>
