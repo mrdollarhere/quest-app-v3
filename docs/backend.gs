@@ -1,6 +1,6 @@
 
 /**
- * QUESTFLOW BACKEND v11.0 - MULTI-SHEET CRUD ARCHITECTURE
+ * QUESTFLOW BACKEND v16.0 - SUBMISSION SYNC FIX
  * 
  * ACTIONS SUPPORTED:
  * - GET: login, getTests, getUsers, getResponses, getQuestions
@@ -69,17 +69,34 @@ function doPost(e) {
 
     if (action === 'submitResponse') {
       let sheet = ss.getSheetByName('Responses') || ss.insertSheet('Responses');
-      if (sheet.getLastRow() === 0) sheet.appendRow(['Timestamp', 'Test ID', 'Score', 'Total', 'Duration (ms)', 'Raw Responses']);
-      sheet.appendRow([new Date(), payload.testId, payload.score, payload.total, payload.duration, JSON.stringify(payload.responses)]);
+      const headers = ['Timestamp', 'User Name', 'User Email', 'Test ID', 'Score', 'Total', 'Duration (ms)', 'Raw Responses'];
+      
+      if (sheet.getLastRow() === 0) {
+        sheet.appendRow(headers);
+      }
+      
+      const rowData = [
+        new Date(), 
+        payload.userName || 'Guest',
+        payload.userEmail || 'Anonymous', 
+        payload.testId || 'Unknown', 
+        payload.score || 0, 
+        payload.total || 0, 
+        payload.duration || 0, 
+        JSON.stringify(payload.responses || [])
+      ];
+      
+      sheet.appendRow(rowData);
       return createResponse({ status: 'success' });
     }
 
     if (action === 'saveTest') {
       const sheet = ss.getSheetByName('Tests') || ss.insertSheet('Tests');
       const data = payload.data;
+      if (sheet.getLastRow() === 0) sheet.appendRow(['id', 'title', 'description', 'category', 'difficulty', 'duration', 'image_url']);
       upsertRow(sheet, 'id', data.id, data);
       
-      // Create questions sheet if it doesn't exist
+      // Ensure questions sheet exists
       if (!ss.getSheetByName(data.id)) {
         const qSheet = ss.insertSheet(data.id);
         qSheet.appendRow(['id', 'question_text', 'question_type', 'options', 'correct_answer', 'order_group', 'image_url', 'metadata', 'required']);
@@ -152,14 +169,21 @@ function upsertRow(sheet, idKey, idValue, data) {
   if (values.length === 0) return;
   const headers = values[0];
   const idIdx = headers.indexOf(idKey);
+  if (idIdx === -1) return;
+
   let rowIndex = -1;
   for (let i = 1; i < values.length; i++) {
-    if (String(values[i][idIdx]) === String(idValue)) {
+    if (String(values[i][idIdx]).trim().toLowerCase() === String(idValue).trim().toLowerCase()) {
       rowIndex = i + 1;
       break;
     }
   }
-  const rowData = headers.map(h => data[h] !== undefined ? data[h] : "");
+  
+  const rowData = headers.map(h => {
+    const val = data[h];
+    return (val !== undefined && val !== null) ? val : "";
+  });
+
   if (rowIndex > -1) {
     sheet.getRange(rowIndex, 1, 1, headers.length).setValues([rowData]);
   } else {
@@ -172,8 +196,10 @@ function deleteRow(sheet, idKey, idValue) {
   if (values.length < 2) return;
   const headers = values[0];
   const idIdx = headers.indexOf(idKey);
+  if (idIdx === -1) return;
+
   for (let i = values.length - 1; i >= 1; i--) {
-    if (String(values[i][idIdx]) === String(idValue)) {
+    if (String(values[i][idIdx]).trim().toLowerCase() === String(idValue).trim().toLowerCase()) {
       sheet.deleteRow(i + 1);
     }
   }
