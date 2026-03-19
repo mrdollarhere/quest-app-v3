@@ -240,7 +240,9 @@ export default function AdminDashboard() {
     const formData = new FormData(e.currentTarget as HTMLFormElement);
     const qData = Object.fromEntries(formData.entries());
     const isRequired = formData.get('required') === 'on';
-    const newQuestionId = (qData.id as string) || `q_${Date.now()}`;
+    
+    // Auto-generate ID if empty
+    const newQuestionId = (qData.id as string)?.trim() || `q_${Date.now()}`;
     
     const preparedQuestion = {
       ...qData,
@@ -772,7 +774,16 @@ export default function AdminDashboard() {
                   <option value="dropdown">Dropdown</option>
                 </select>
               </div>
-              <div className="space-y-2"><Label className="font-bold">Question ID</Label><Input name="id" defaultValue={editingItem?.id} placeholder="e.g. q1" className="rounded-xl h-11" /></div>
+              <div className="space-y-2">
+                <Label className="font-bold">Question ID</Label>
+                <Input 
+                  name="id" 
+                  defaultValue={editingItem?.id} 
+                  placeholder="Auto-generated if empty" 
+                  className="rounded-xl h-11" 
+                  disabled={!!editingItem}
+                />
+              </div>
             </div>
             <div className="space-y-2"><Label className="font-bold">Prompt Text</Label><Textarea name="question_text" defaultValue={editingItem?.question_text} required className="rounded-xl min-h-[100px]" /></div>
             <div className="space-y-2"><Label className="font-bold">Choices (Comma separated)</Label><Input name="options" defaultValue={editingItem?.options} placeholder="Choice A, Choice B..." className="rounded-xl h-11" /></div>
