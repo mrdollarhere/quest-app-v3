@@ -9,6 +9,7 @@ import { QuizResults } from '@/components/quiz/QuizResults';
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { 
   ChevronRight, 
   ChevronLeft, 
@@ -19,7 +20,8 @@ import {
   Timer,
   Zap,
   AlertCircle,
-  RotateCcw
+  RotateCcw,
+  Gamepad2
 } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
