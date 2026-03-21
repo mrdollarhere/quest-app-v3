@@ -44,8 +44,6 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
     }) || [];
   }, [question.order_group, question.question_type]);
 
-  const leftItems = useMemo(() => matchingPairs.map(p => p.left), [matchingPairs]);
-  
   const [shuffledRightItems, setShuffledRightItems] = useState<string[]>([]);
   useEffect(() => {
     if (['matching', 'ordering'].includes(question.question_type)) {
@@ -62,28 +60,6 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
   );
 
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
-  const [selectedPoolItem, setSelectedPoolItem] = useState<string | null>(null);
-
-  const correctMatchingPairs = useMemo(() => {
-    if (question.question_type !== 'matching') return [];
-    return question.correct_answer?.split(',').map(p => {
-      const [l, r] = p.split('|');
-      return { l: (l || "").trim(), r: (r || "").trim() };
-    }) || [];
-  }, [question.correct_answer, question.question_type]);
-
-  const matches = (value as Record<string, string>) || {};
-  const currentOrder = (value as string[]) || initialOrderItems;
-
-  const handleMatchingDrop = (prompt: string, answer: string) => {
-    if (reviewMode) return;
-    const newMatches = { ...matches };
-    newMatches[prompt] = answer;
-    onChange(newMatches);
-    setSelectedPoolItem(null);
-  };
-
-  const isMatchingAnswerUsed = (answer: string) => Object.values(matches).includes(answer);
 
   const renderSingleChoice = () => (
     <RadioGroup 
@@ -157,6 +133,7 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
   };
 
   const renderOrdering = () => {
+    const currentOrder = (value as string[]) || initialOrderItems;
     const correctOrder = question.correct_answer?.split(',').map(i => i.trim()) || [];
 
     const handleDragOver = (e: React.DragEvent, index: number) => {
@@ -222,6 +199,79 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
                   </div>
                 ) : (
                   <GripVertical className="w-6 h-6 text-slate-200 group-hover:text-primary transition-colors shrink-0" />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const renderMatching = () => {
+    const responses = (value as Record<string, string>) || {};
+    const prompts = matchingPairs.map(p => p.left);
+
+    const handleSelect = (prompt: string, answer: string) => {
+      if (reviewMode) return;
+      onChange({ ...responses, [prompt]: answer });
+    };
+
+    return (
+      <div className="space-y-6">
+        {!reviewMode && (
+          <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 flex items-center gap-3">
+            <Info className="w-5 h-5 text-primary" />
+            <p className="text-xs font-medium text-primary">Select the correct matching pair for each prompt below.</p>
+          </div>
+        )}
+        
+        <div className="grid gap-4">
+          {prompts.map((prompt, i) => {
+            const userVal = responses[prompt];
+            const pair = matchingPairs.find(p => p.left === prompt);
+            const correctAnswer = pair?.right;
+            const isCorrect = reviewMode && userVal === correctAnswer;
+
+            return (
+              <div key={i} className={cn(
+                "p-6 rounded-[2rem] border-2 transition-all flex flex-col md:flex-row md:items-center justify-between gap-6",
+                reviewMode 
+                  ? (isCorrect ? "bg-green-50 border-green-100" : "bg-red-50 border-red-100") 
+                  : "bg-white border-slate-100 shadow-sm"
+              )}>
+                <div className="flex-1">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 block">Prompt</span>
+                  <p className="font-bold text-lg text-slate-700">{prompt}</p>
+                </div>
+                
+                <div className="flex items-center gap-4 shrink-0">
+                  <div className="hidden md:block">
+                    <Link2 className="w-5 h-5 text-slate-300" />
+                  </div>
+                  
+                  <Select 
+                    value={userVal || "none"} 
+                    onValueChange={(val) => handleSelect(prompt, val === "none" ? "" : val)}
+                    disabled={reviewMode}
+                  >
+                    <SelectTrigger className="w-full md:w-[240px] h-12 rounded-xl font-bold bg-slate-50 border-none ring-1 ring-slate-200">
+                      <SelectValue placeholder="Match with..." />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-2xl">
+                      <SelectItem value="none" className="font-bold text-slate-400 italic">Select an answer</SelectItem>
+                      {shuffledRightItems.map((ans, j) => (
+                        <SelectItem key={j} value={ans} className="font-bold">{ans}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {reviewMode && !isCorrect && (
+                  <div className="w-full md:w-auto pt-4 md:pt-0 border-t md:border-none border-slate-100">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-green-600 mb-1">Correct Match</p>
+                    <p className="font-bold text-sm text-green-700">{correctAnswer}</p>
+                  </div>
                 )}
               </div>
             );
