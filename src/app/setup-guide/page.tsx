@@ -46,7 +46,7 @@ export default function SetupGuide() {
   const content = {
     en: {
       title: "DNTRNG Protocol",
-      subtitle: "Intelligence Initialization v17.0",
+      subtitle: "Intelligence Initialization v17.5",
       returnBase: "Return to DNTRNG Home",
       launchConsole: "Launch DNTRNG Console",
       step1: {
@@ -94,7 +94,7 @@ export default function SetupGuide() {
     },
     vi: {
       title: "Giao Thức DNTRNG",
-      subtitle: "Khởi Tạo Trí Tuệ v17.0",
+      subtitle: "Khởi Tạo Trí Tuệ v17.5",
       returnBase: "Về Trang Chủ DNTRNG",
       launchConsole: "Mở Bảng Điều Khiển DNTRNG",
       step1: {

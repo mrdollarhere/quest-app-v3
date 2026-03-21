@@ -8,81 +8,75 @@
 
 ---
 
-## 🚀 Initialization Protocol
+## 🚀 Core Features | Tính Năng Cốt Lõi
 
-To activate the **DNTRNG™** engine, follow this structured initialization sequence.
-
-### Phase 01: DNTRNG™ Sheet Architecture
-Create a new Google Sheet and provision the following core tabs. Tab names are **case-sensitive** and must match the **DNTRNG™ Registry Protocol** exactly.
-
-#### 1. `Tests` (The Master Registry)
-*Stores metadata for all active intelligence modules.*
-**Headers:** `id`, `title`, `description`, `category`, `difficulty`, `duration`, `image_url`
-
-#### 2. `Users` (Identity Provider)
-*Manages platform access and operator roles.*
-**Headers:** `id`, `name`, `email`, `role`, `password`
-
-#### 3. `Responses` (Intelligence Logs)
-*Automatically populated by the DNTRNG™ engine upon submission.*
-**Headers:** `Timestamp`, `User Name`, `User Email`, `Test ID`, `Score`, `Total`, `Duration (ms)`, `Raw Responses`
-
-#### 4. Module-Specific Tabs
-For every entry in your `Tests` tab, create a corresponding tab named after its `id` (e.g., `demo-full`).
-**Headers:** `id`, `question_text`, `question_type`, `options`, `correct_answer`, `order_group`, `image_url`, `metadata`, `required`
+- **Direct Cloud Sync**: Real-time bi-directional synchronization with Google Sheets™ as your database.
+- **Advanced Interaction Modules**: Support for Single/Multiple Choice, Hotspots (Visual mapping), Ordering, Matching (Drag & Drop), Matrix Choice, and Multiple True/False.
+- **Intelligence Zone Mapper**: Built-in visual CAD tool for administrators to map hotspot coordinates on any image asset.
+- **Daily Access Protocol**: Dynamic, time-sensitive security keys generated algorithmically for session protection.
+- **Bilingual Core**: Native support for English and Vietnamese initialization protocols.
+- **Identity Registry**: Personalized operator dashboards with live performance analytics.
 
 ---
 
-### Phase 02: DNTRNG™ Intelligence Bridge (GAS)
-Deploy the logic layer that connects your UI to the database.
+## 🇺🇸 Initialization Protocol (English)
 
-1.  In your Google Sheet, navigate to **Extensions > Apps Script**.
-2.  Clear any existing code.
-3.  Copy the backend template from `src/app/lib/gas-template.ts` and paste it into the editor.
-4.  Click **Deploy > New Deployment**.
-5.  **Select type:** Web App.
-6.  **Execute as:** Me (Your Google Account).
-7.  **Who has access:** Anyone (Required for the DNTRNG™ Handshake).
-8.  **Authorize Permissions** and copy the generated **Web App URL**.
+To activate the **DNTRNG™** engine, follow this structured sequence.
 
----
+### Phase 01: Sheet Architecture
+Create a new Google Sheet and provision the following core tabs (Case-Sensitive).
+
+1.  **`Tests` (Master Registry)**: `id`, `title`, `description`, `category`, `difficulty`, `duration`, `image_url`
+2.  **`Users` (Identity)**: `id`, `name`, `email`, `role`, `password`
+3.  **`Responses` (Logs)**: `Timestamp`, `User Name`, `User Email`, `Test ID`, `Score`, `Total`, `Duration (ms)`, `Raw Responses`
+4.  **Module Tabs**: Create a tab for every test `id` using: `id`, `question_text`, `question_type`, `options`, `correct_answer`, `order_group`, `image_url`, `metadata`, `required`
+
+### Phase 02: Logic Injection
+1. Open your Google Sheet > **Extensions > Apps Script**.
+2. Paste the template found in `src/app/lib/gas-template.ts`.
+3. **Deploy > New Deployment > Web App**.
+4. Set "Execute as: Me" and "Who has access: Anyone".
+5. Copy the **Web App URL**.
 
 ### Phase 03: System Handshake
-Finalize the connection between the **DNTRNG™** frontend and your cloud data.
-
-1.  Open `src/lib/api-config.ts`.
-2.  Locate the `API_URL` constant.
-3.  Replace the placeholder with your **Web App URL** from Phase 02.
-
+Update `src/lib/api-config.ts` with your URL:
 ```typescript
-// src/lib/api-config.ts
 export const API_URL = "YOUR_DEPLOYED_WEB_APP_URL_HERE";
 ```
 
 ---
 
-### Phase 04: Identity Provisioning
-Access the **DNTRNG™ Console** to manage your intelligence library.
+## 🇻🇳 Quy Trình Khởi Tạo (Tiếng Việt)
 
-1.  Launch the application locally or via your deployment URL.
-2.  Navigate to `/login`.
-3.  Use the default **DNTRNG™ Admin** credentials:
-    *   **Identity:** `admin@dntrng.com`
-    *   **Secret:** `admin123`
+Làm theo các bước sau để kích hoạt hệ thống **DNTRNG™**.
+
+### Giai đoạn 01: Kiến Trúc Bảng Tính
+Tạo một Google Sheet mới và thiết lập các tab sau (Phân biệt chữ hoa/thường).
+
+1.  **`Tests` (Danh Mục)**: `id`, `title`, `description`, `category`, `difficulty`, `duration`, `image_url`
+2.  **`Users` (Người Dùng)**: `id`, `name`, `email`, `role`, `password`
+3.  **`Responses` (Nhật Ký)**: `Timestamp`, `User Name`, `User Email`, `Test ID`, `Score`, `Total`, `Duration (ms)`, `Raw Responses`
+4.  **Tab Câu Hỏi**: Tạo tab cho mỗi `id` bài test: `id`, `question_text`, `question_type`, `options`, `correct_answer`, `order_group`, `image_url`, `metadata`, `required`
+
+### Giai đoạn 02: Triển Khai Backend
+1. Vào Google Sheet > **Tiện ích mở rộng > Apps Script**.
+2. Dán mã nguồn từ tệp `src/app/lib/gas-template.ts`.
+3. **Triển khai > Tùy chọn triển khai mới > Ứng dụng Web**.
+4. Cấu hình "Thực thi dưới tên: Tôi" và "Ai có quyền truy cập: Mọi người".
+5. Sao chép **URL Ứng dụng Web**.
+
+### Giai đoạn 03: Kết Nối Hệ Thống
+Cập nhật tệp `src/lib/api-config.ts` với URL của bạn.
 
 ---
 
-## 🛠 Features of the DNTRNG™ Engine
-
-- **Real-time Synchronization**: Instant bi-directional sync with Google Sheets™.
-- **Advanced Interaction Modules**: Support for Single/Multiple Choice, Hotspots, Ordering, and Matching.
-- **Bilingual Onboarding**: Integrated support for English and Vietnamese setup protocols.
-- **Admin Console**: A professional dashboard for managing assessments, users, and submission logs.
-- **Responsive Review**: Interactive, accordion-based post-assessment analysis.
+## 🔐 Identity Provisioning
+Access the **DNTRNG™ Console** using default admin credentials:
+*   **Identity:** `admin@dntrng.com`
+*   **Secret:** `admin123`
 
 ## ⚖️ License
-This project is part of the **DNTRNG™ Open Source Initiative**. All rights reserved under the DNTRNG™ Intelligence Simplified framework.
+This project is part of the **DNTRNG™ Open Source Initiative**. All rights reserved.
 
 ---
-
 *Generated by the DNTRNG™ Protocol v17.5 • Intelligence Simplified.*
