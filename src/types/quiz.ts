@@ -7,7 +7,9 @@ export type QuestionType =
   | 'true_false'
   | 'ordering'
   | 'matching'
-  | 'hotspot';
+  | 'hotspot'
+  | 'multiple_true_false'
+  | 'matrix_choice';
 
 export type QuizMode = 'training' | 'test' | 'race';
 
@@ -15,9 +17,9 @@ export interface Question {
   id: string;
   question_text: string;
   question_type: QuestionType;
-  options?: string; // comma-separated
-  correct_answer?: string;
-  order_group?: string; // comma-separated items for ordering or prompt|answer pairs for matching
+  options?: string; // comma-separated (used for choices, dropdowns, or matrix columns)
+  correct_answer?: string; // comma-separated correct values
+  order_group?: string; // comma-separated items for ordering, prompt|answer pairs for matching, or rows for matrix/multiple_tf
   image_url?: string;
   metadata?: string; // JSON string for hotspot zones or scale config
   required?: boolean;

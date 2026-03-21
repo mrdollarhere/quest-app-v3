@@ -28,8 +28,6 @@ export const calculateScoreForQuestion = (q: Question, response: any): boolean =
   if (questionType === 'hotspot') {
     try {
       const zones: HotspotZone[] = JSON.parse(q.metadata || "[]");
-      // Find if the click hit any zone marked as correct.
-      // If no zones are marked specifically as correct, fallback to hitting ANY defined zone.
       const correctZones = zones.some(z => z.isCorrect) 
         ? zones.filter(z => z.isCorrect)
         : zones;
@@ -47,6 +45,30 @@ export const calculateScoreForQuestion = (q: Question, response: any): boolean =
     const userPairs = Object.entries(response as Record<string, string>).map(([k, v]) => `${k}|${v}`);
     if (correctPairs.length !== userPairs.length) return false;
     return correctPairs.every(cp => userPairs.includes(cp));
+  }
+
+  if (questionType === 'multiple_true_false') {
+    const correctArr = correctAnswerStr.split(',').map(c => c.trim().toLowerCase());
+    const statements = q.order_group?.split(',').map(s => s.trim()) || [];
+    const userResp = response as Record<string, string>;
+    
+    return statements.every((s, i) => {
+      const userVal = (userResp[s] || "").toLowerCase();
+      const correctVal = (correctArr[i] || "").toLowerCase();
+      return userVal === correctVal;
+    });
+  }
+
+  if (questionType === 'matrix_choice') {
+    const correctArr = correctAnswerStr.split(',').map(c => c.trim().toLowerCase());
+    const rows = q.order_group?.split(',').map(r => r.trim()) || [];
+    const userResp = response as Record<string, string>;
+
+    return rows.every((row, i) => {
+      const userVal = (userResp[row] || "").toLowerCase();
+      const correctVal = (correctArr[i] || "").toLowerCase();
+      return userVal === correctVal;
+    });
   }
   
   return false;
