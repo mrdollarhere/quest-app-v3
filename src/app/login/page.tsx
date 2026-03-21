@@ -31,7 +31,8 @@ export default function LoginPage() {
         title: "Access Granted",
         description: "Authenticated with DNTRNG identity provider.",
       });
-      router.push('/tests');
+      // Redirect to profile page instead of tests library
+      router.push('/profile');
     } else {
       toast({
         variant: "destructive",
