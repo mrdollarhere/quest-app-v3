@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Search, LayoutGrid, List, Loader2, ArrowLeft } from "lucide-react";
+import { Search, LayoutGrid, List, Loader2, ArrowLeft, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,7 @@ interface LibraryHeaderProps {
   setViewMode: (mode: 'card' | 'list') => void;
   loading: boolean;
   onRefresh: () => void;
+  lastSync?: Date | null;
 }
 
 export function LibraryHeader({ 
@@ -22,7 +23,8 @@ export function LibraryHeader({
   viewMode, 
   setViewMode, 
   loading, 
-  onRefresh 
+  onRefresh,
+  lastSync
 }: LibraryHeaderProps) {
   return (
     <header className="bg-white/80 backdrop-blur-xl border-b sticky top-0 z-40">
@@ -36,10 +38,18 @@ export function LibraryHeader({
             </Link>
             <div>
               <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">Intelligence Library</h1>
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mt-2 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                DNTRNG™ Registry Active
-              </p>
+              <div className="flex items-center gap-4 mt-2">
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                  DNTRNG™ Registry Active
+                </p>
+                {lastSync && (
+                  <div className="flex items-center gap-1.5 px-3 py-0.5 bg-slate-50 border rounded-full text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    <Clock className="w-3 h-3 text-slate-300" />
+                    <span>Updated {lastSync.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           

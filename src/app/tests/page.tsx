@@ -14,6 +14,7 @@ export default function TestsLibrary() {
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
   const [tests, setTests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastSync, setLastSync] = useState<Date | null>(null);
 
   useEffect(() => {
     fetchTests();
@@ -33,9 +34,11 @@ export default function TestsLibrary() {
       } else {
         setTests(DEMO_TESTS);
       }
+      setLastSync(new Date());
     } catch (err) {
       console.error("Failed to fetch tests", err);
       setTests(DEMO_TESTS);
+      setLastSync(new Date()); // Still mark as updated even if fallback is used
     } finally {
       setLoading(false);
     }
@@ -56,10 +59,11 @@ export default function TestsLibrary() {
         setViewMode={setViewMode}
         loading={loading}
         onRefresh={fetchTests}
+        lastSync={lastSync}
       />
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-12">
-        {loading ? (
+        {loading && tests.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32">
             <div className="relative w-20 h-20 mb-6">
               <Loader2 className="w-20 h-20 animate-spin text-primary absolute top-0 left-0" />
