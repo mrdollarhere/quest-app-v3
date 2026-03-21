@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useMemo } from 'react';
@@ -12,7 +13,8 @@ import {
   Zap, 
   RefreshCcw,
   Database,
-  Clock
+  Clock,
+  Key
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,11 +31,12 @@ import {
 import { cn } from "@/lib/utils";
 import { AdminTab } from '@/components/admin/AdminSidebar';
 import { useRouter } from 'next/navigation';
+import { generateDailyPassword } from '@/lib/security-utils';
 
 interface OverviewTabProps {
   data: { tests: any[], users: any[], responses: any[] };
   lastSync: Date | null;
-  onNewTest: () => void; // This remains for backwards compat but we'll prefer router
+  onNewTest: () => void;
   onManageContent: () => void;
   onSync: () => void;
   onSeed: () => void;
@@ -42,6 +45,7 @@ interface OverviewTabProps {
 
 export function OverviewTab({ data, lastSync, onNewTest, onManageContent, onSync, onSeed, setActiveTab }: OverviewTabProps) {
   const router = useRouter();
+  const dailyKey = generateDailyPassword();
 
   const chartData = useMemo(() => {
     if (!data.responses.length) return [];
@@ -62,7 +66,7 @@ export function OverviewTab({ data, lastSync, onNewTest, onManageContent, onSync
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between px-2">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
             <span className="relative flex h-3 w-3">
@@ -79,6 +83,19 @@ export function OverviewTab({ data, lastSync, onNewTest, onManageContent, onSync
               </span>
             </div>
           )}
+        </div>
+
+        <div className="flex items-center gap-4 bg-slate-900 p-4 rounded-[1.5rem] shadow-xl border border-white/5 group">
+          <div className="p-2 bg-primary/10 rounded-xl">
+            <Key className="w-4 h-4 text-primary group-hover:rotate-12 transition-transform" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Daily Access Key</span>
+            <span className="text-lg font-black text-white tracking-[0.1em] font-mono leading-none">{dailyKey}</span>
+          </div>
+          <div className="ml-4 pl-4 border-l border-white/10 text-[9px] font-bold text-slate-500 max-w-[120px]">
+            Share with students for valid daily entry.
+          </div>
         </div>
       </div>
 

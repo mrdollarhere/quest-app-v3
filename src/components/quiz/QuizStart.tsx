@@ -15,11 +15,14 @@ import {
   Target, 
   Flame,
   CheckCircle2,
-  Clock,
-  RotateCcw
+  Lock,
+  ShieldCheck,
+  AlertCircle
 } from "lucide-react";
 import { QuizMode } from '@/types/quiz';
 import { cn } from "@/lib/utils";
+import { generateDailyPassword } from '@/lib/security-utils';
+import { useToast } from '@/hooks/use-toast';
 
 interface QuizStartProps {
   title: string;
@@ -32,6 +35,8 @@ interface QuizStartProps {
   onStart: (mode: QuizMode) => void;
 }
 
+type Step = 'gate' | 'identity' | 'mode';
+
 export function QuizStart({
   title,
   description,
@@ -42,8 +47,27 @@ export function QuizStart({
   setGuestName,
   onStart
 }: QuizStartProps) {
-  const [step, setStep] = useState<'identity' | 'mode'>(user ? 'mode' : 'identity');
+  const [step, setStep] = useState<Step>('gate');
+  const [password, setPassword] = useState('');
   const [selectedMode, setSelectedMode] = useState<QuizMode>('test');
+  const { toast } = useToast();
+
+  const handleVerifyPassword = () => {
+    const dailyKey = generateDailyPassword();
+    if (password.trim() === dailyKey) {
+      toast({
+        title: "Access Granted",
+        description: "Security Protocol Cleared. Please proceed with identity registration.",
+      });
+      setStep(user ? 'mode' : 'identity');
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Access Denied",
+        description: "The daily security key provided is invalid for this node.",
+      });
+    }
+  };
 
   const modes = [
     {
@@ -83,13 +107,50 @@ export function QuizStart({
           </div>
           <CardTitle className="text-4xl font-black tracking-tighter uppercase text-slate-900">{title}</CardTitle>
           <CardDescription className="text-lg font-medium text-slate-500 mt-2">
-            {step === 'identity' ? (description || 'Ready to initialize intelligence?') : 'Select Initialization Protocol'}
+            {step === 'gate' && 'Security Protocol Required'}
+            {step === 'identity' && (description || 'Identity Registration')}
+            {step === 'mode' && 'Select Initialization Protocol'}
           </CardDescription>
         </CardHeader>
 
         <CardContent className="px-10 pb-12">
-          {step === 'identity' ? (
-            <div className="space-y-8">
+          {step === 'gate' && (
+            <div className="space-y-8 animate-in fade-in zoom-in-95 duration-500">
+              <div className="p-8 bg-slate-900 rounded-[2.5rem] text-white relative overflow-hidden">
+                <ShieldCheck className="absolute top-0 right-0 w-32 h-32 text-white/5 -mr-8 -mt-8" />
+                <div className="relative z-10 space-y-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Lock className="w-5 h-5 text-primary" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Secure Entry Required</span>
+                  </div>
+                  <p className="text-sm font-medium text-slate-400">This intelligence module is protected by a daily access key. Please provide the key shared by your supervisor.</p>
+                  
+                  <div className="pt-4">
+                    <Input 
+                      type="text"
+                      placeholder="ENTER DAILY ACCESS KEY"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="h-16 text-center text-2xl font-black tracking-[0.2em] bg-white/5 border-white/10 rounded-2xl focus:ring-primary/40 uppercase placeholder:text-slate-700 text-primary"
+                      onKeyDown={(e) => e.key === 'Enter' && handleVerifyPassword()}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Button 
+                onClick={handleVerifyPassword}
+                disabled={!password.trim()}
+                className="w-full h-20 rounded-full text-xl font-black shadow-2xl transition-all hover:scale-[1.02] bg-primary uppercase tracking-tighter"
+              >
+                Authenticate Node
+                <ShieldCheck className="w-6 h-6 ml-2" />
+              </Button>
+            </div>
+          )}
+
+          {step === 'identity' && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
               <div className="flex items-center justify-center gap-6 py-6 border-y border-slate-50">
                 <div className="text-center">
                   <p className="text-3xl font-black text-slate-900">{questionsCount}</p>
@@ -125,7 +186,9 @@ export function QuizStart({
                 <ChevronRight className="w-6 h-6 ml-2" />
               </Button>
             </div>
-          ) : (
+          )}
+
+          {step === 'mode' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {modes.map((mode) => (
@@ -197,12 +260,20 @@ export function QuizStart({
                 </div>
               </div>
 
-              <button 
-                onClick={() => setStep('identity')}
-                className="w-full text-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-300 hover:text-slate-500 transition-colors"
-              >
-                Change Identity Registry
-              </button>
+              <div className="flex flex-col gap-4">
+                <button 
+                  onClick={() => setStep('identity')}
+                  className="w-full text-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-300 hover:text-slate-500 transition-colors"
+                >
+                  Change Identity Registry
+                </button>
+                <button 
+                  onClick={() => { setStep('gate'); setPassword(''); }}
+                  className="w-full text-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-300 hover:text-slate-500 transition-colors"
+                >
+                  Lock Assessment Session
+                </button>
+              </div>
             </div>
           )}
         </CardContent>
