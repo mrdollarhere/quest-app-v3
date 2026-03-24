@@ -1,8 +1,7 @@
-
 "use client";
 
 import React, { useMemo, useState } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { 
@@ -18,9 +17,7 @@ import {
   Search, 
   LogIn, 
   LogOut, 
-  Clock, 
-  User,
-  Filter
+  Clock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLanguage } from '@/context/language-context';
@@ -41,13 +38,8 @@ export function ActivityTab({ activities }: ActivityTabProps) {
   }, [activities, searchTerm]);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
-        <div>
-          <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight">{t('systemActivity')}</h2>
-          <p className="text-slate-500 font-medium">{t('monitorAccess')}</p>
-        </div>
-        
+    <div className="space-y-6 animate-in fade-in duration-700">
+      <div className="flex justify-end px-2">
         <div className="relative w-full md:w-80">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input 
