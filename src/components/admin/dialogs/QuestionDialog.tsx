@@ -74,19 +74,24 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
       if (editingItem) {
         setSelectedType(editingItem.question_type as QuestionType);
         
-        // Load sequence items from order_group if it's an ordering question
+        // Ensure values are strings before calling .split
         const rawOptions = (editingItem.question_type === 'ordering') 
-          ? editingItem.order_group 
-          : editingItem.options;
+          ? (editingItem.order_group ? String(editingItem.order_group) : "")
+          : (editingItem.options ? String(editingItem.options) : "");
           
         setOptionsList(rawOptions ? rawOptions.split(',').map((o: string) => o.trim()) : []);
-        setCorrectAnswers(editingItem.correct_answer ? editingItem.correct_answer.split(',').map((c: string) => c.trim()) : []);
-        setImageUrl(editingItem.image_url || '');
-        setMetadata(editingItem.metadata || '');
-        setMatrixRows(editingItem.order_group ? editingItem.order_group.split(',').map((r: string) => r.trim()) : []);
+        
+        const correctStr = editingItem.correct_answer ? String(editingItem.correct_answer) : "";
+        setCorrectAnswers(correctStr ? correctStr.split(',').map((c: string) => c.trim()) : []);
+        
+        setImageUrl(editingItem.image_url ? String(editingItem.image_url) : '');
+        setMetadata(editingItem.metadata ? String(editingItem.metadata) : '');
+        
+        const orderGroupStr = editingItem.order_group ? String(editingItem.order_group) : "";
+        setMatrixRows(orderGroupStr ? orderGroupStr.split(',').map((r: string) => r.trim()) : []);
 
         if (editingItem.question_type === 'matching') {
-          const pairs = editingItem.order_group?.split(',').map((p: string) => {
+          const pairs = orderGroupStr?.split(',').map((p: string) => {
             const [l, r] = p.split('|');
             return { left: (l || "").trim(), right: (r || "").trim() };
           }) || [{ left: '', right: '' }];
@@ -109,9 +114,9 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData.entries());
     
-    let finalOptions = data.options as string;
-    let finalCorrect = data.correct_answer as string;
-    let finalOrderGroup = data.order_group as string;
+    let finalOptions = (data.options as string) || "";
+    let finalCorrect = (data.correct_answer as string) || "";
+    let finalOrderGroup = (data.order_group as string) || "";
 
     const filteredOptions = optionsList.filter(o => o.trim());
 
