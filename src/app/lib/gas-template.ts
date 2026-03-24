@@ -1,10 +1,10 @@
 
 export const GAS_CODE = `/**
- * QUESTFLOW BACKEND v17.5 - FINAL SUBMISSION SYNC
+ * QUESTFLOW BACKEND v17.6 - ACTIVITY TRACKING
  * 
  * ACTIONS SUPPORTED:
- * - GET: login, getTests, getUsers, getResponses, getQuestions
- * - POST: submitResponse, saveTest, deleteTest, saveUser, deleteUser, saveQuestions, saveUsers
+ * - GET: login, getTests, getUsers, getResponses, getQuestions, getActivity
+ * - POST: submitResponse, saveTest, deleteTest, saveUser, deleteUser, saveQuestions, saveUsers, logActivity
  */
 
 function doGet(e) {
@@ -48,6 +48,12 @@ function doGet(e) {
       return createResponse(getRowsAsObjects(sheet).reverse().slice(0, 100));
     }
 
+    if (action === 'getActivity') {
+      const sheet = ss.getSheetByName('Activity');
+      if (!sheet) return createResponse([]);
+      return createResponse(getRowsAsObjects(sheet).reverse().slice(0, 200));
+    }
+
     if (action === 'getQuestions') {
       const testId = e.parameter.id;
       const sheet = ss.getSheetByName(testId);
@@ -66,6 +72,21 @@ function doPost(e) {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const payload = JSON.parse(e.postData.contents);
     const action = payload.action;
+
+    if (action === 'logActivity') {
+      let sheet = ss.getSheetByName('Activity') || ss.insertSheet('Activity');
+      const headers = ['Timestamp', 'User Name', 'User Email', 'Event'];
+      if (sheet.getLastRow() === 0) sheet.appendRow(headers);
+      
+      const rowData = [
+        new Date(), 
+        payload.name || 'Unknown', 
+        payload.email || 'N/A', 
+        payload.event || 'Unknown'
+      ];
+      sheet.appendRow(rowData);
+      return createResponse({ status: 'success' });
+    }
 
     if (action === 'submitResponse') {
       let sheet = ss.getSheetByName('Responses') || ss.insertSheet('Responses');

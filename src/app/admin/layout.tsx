@@ -19,7 +19,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const activeTab = pathname === '/admin' ? 'overview' : 
                     pathname.startsWith('/admin/tests') ? 'tests' :
                     pathname.startsWith('/admin/users') ? 'users' :
-                    pathname.startsWith('/admin/responses') ? 'responses' : 'overview';
+                    pathname.startsWith('/admin/responses') ? 'responses' :
+                    pathname.startsWith('/admin/activity') ? 'activity' : 'overview';
 
   if (authLoading) {
     return (

@@ -17,6 +17,7 @@ const translations: Record<Language, Record<string, string>> = {
     testLibrary: "Test Library",
     students: "Students",
     results: "Results",
+    activity: "Activity Logs",
     logout: "Log out",
     adminConsole: "Admin Console",
     statusActive: "Status: Active",
@@ -73,13 +74,18 @@ const translations: Record<Language, Record<string, string>> = {
     waitingFirst: "Waiting for the first student submission...",
     confirmDeleteTitle: "Are you sure?",
     confirmDeleteDesc: "This will permanently remove this item and all its associated data. This action cannot be undone.",
-    cancel: "Cancel"
+    cancel: "Cancel",
+    timestamp: "Timestamp",
+    event: "Event",
+    systemActivity: "System Activity Logs",
+    monitorAccess: "Monitor student login/logout events"
   },
   vi: {
     dashboard: "Bảng điều khiển",
     testLibrary: "Thư viện bài thi",
     students: "Học sinh",
     results: "Kết quả",
+    activity: "Lịch sử hoạt động",
     logout: "Đăng xuất",
     adminConsole: "Quản trị",
     statusActive: "Trạng thái: Hoạt động",
@@ -136,13 +142,18 @@ const translations: Record<Language, Record<string, string>> = {
     waitingFirst: "Đang chờ bài nộp đầu tiên từ học sinh...",
     confirmDeleteTitle: "Bạn có chắc chắn không?",
     confirmDeleteDesc: "Thao tác này sẽ xóa vĩnh viễn mục này và tất cả dữ liệu liên quan. Hành động này không thể hoàn tác.",
-    cancel: "Hủy"
+    cancel: "Hủy",
+    timestamp: "Thời gian",
+    event: "Sự kiện",
+    systemActivity: "Nhật ký hệ thống",
+    monitorAccess: "Theo dõi đăng nhập/đăng xuất của học sinh"
   },
   es: {
     dashboard: "Panel",
     testLibrary: "Biblioteca de pruebas",
     students: "Estudiantes",
     results: "Resultados",
+    activity: "Registro de actividad",
     logout: "Cerrar sesión",
     adminConsole: "Panel de control",
     statusActive: "Estado: Activo",
@@ -199,7 +210,11 @@ const translations: Record<Language, Record<string, string>> = {
     waitingFirst: "Esperando la primera entrega del estudiante...",
     confirmDeleteTitle: "¿Estás seguro?",
     confirmDeleteDesc: "Esto eliminará permanentemente este elemento y todos sus datos asociados. Esta acción no se puede deshacer.",
-    cancel: "Cancelar"
+    cancel: "Cancelar",
+    timestamp: "Fecha y hora",
+    event: "Evento",
+    systemActivity: "Registros de actividad",
+    monitorAccess: "Monitorear eventos de inicio y cierre de sesión"
   }
 };
 

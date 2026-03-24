@@ -9,6 +9,7 @@ import {
   Zap, 
   LogOut,
   MessageSquare,
+  History,
   Languages
 } from "lucide-react";
 import { 
@@ -35,7 +36,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export type AdminTab = 'overview' | 'tests' | 'users' | 'responses';
+export type AdminTab = 'overview' | 'tests' | 'users' | 'responses' | 'activity';
 
 interface AdminSidebarProps {
   activeTab: AdminTab;
@@ -51,7 +52,8 @@ export function AdminSidebar({ activeTab, user, logout }: AdminSidebarProps) {
     { id: 'overview', label: t('dashboard'), icon: BarChart3, href: '/admin' },
     { id: 'tests', label: t('testLibrary'), icon: ClipboardList, href: '/admin/tests' },
     { id: 'users', label: t('students'), icon: UsersIcon, href: '/admin/users' },
-    { id: 'responses', label: t('results'), icon: MessageSquare, href: '/admin/responses' }
+    { id: 'responses', label: t('results'), icon: MessageSquare, href: '/admin/responses' },
+    { id: 'activity', label: t('activity'), icon: History, href: '/admin/activity' }
   ];
 
   return (

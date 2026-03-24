@@ -32,6 +32,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   }, []);
 
+  const logActivity = async (email: string, name: string, event: 'Login' | 'Logout') => {
+    if (!API_URL) return;
+    try {
+      await fetch(API_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: JSON.stringify({ action: 'logActivity', email, name, event })
+      });
+    } catch (e) {
+      console.error("Failed to log activity", e);
+    }
+  };
+
   const login = async (email: string, password?: string): Promise<boolean> => {
     if (!API_URL) return false;
     
@@ -53,6 +66,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
         setUser(newUser);
         localStorage.setItem('questflow_user', JSON.stringify(newUser));
+        
+        // Log Login Activity
+        logActivity(newUser.email, newUser.displayName || 'User', 'Login');
+        
         return true;
       }
       return false;
@@ -63,6 +80,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
+    if (user) {
+      // Log Logout Activity before state clear
+      logActivity(user.email, user.displayName || 'User', 'Logout');
+    }
     setUser(null);
     localStorage.removeItem('questflow_user');
   };
