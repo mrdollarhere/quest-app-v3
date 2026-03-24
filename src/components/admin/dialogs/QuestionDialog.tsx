@@ -72,7 +72,13 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
     if (open) {
       if (editingItem) {
         setSelectedType(editingItem.question_type as QuestionType);
-        setOptionsList(editingItem.options ? editingItem.options.split(',').map((o: string) => o.trim()) : []);
+        
+        // Load sequence items from order_group if it's an ordering question
+        const rawOptions = (editingItem.question_type === 'ordering') 
+          ? editingItem.order_group 
+          : editingItem.options;
+          
+        setOptionsList(rawOptions ? rawOptions.split(',').map((o: string) => o.trim()) : []);
         setCorrectAnswers(editingItem.correct_answer ? editingItem.correct_answer.split(',').map((c: string) => c.trim()) : []);
         setImageUrl(editingItem.image_url || '');
         setMetadata(editingItem.metadata || '');
@@ -106,12 +112,19 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
     let finalCorrect = data.correct_answer as string;
     let finalOrderGroup = data.order_group as string;
 
+    const filteredOptions = optionsList.filter(o => o.trim());
+
     if (['single_choice', 'multiple_choice', 'dropdown', 'matrix_choice'].includes(selectedType)) {
-      finalOptions = optionsList.filter(o => o.trim()).join(', ');
+      finalOptions = filteredOptions.join(', ');
       finalCorrect = correctAnswers.filter(c => c.trim()).join(', ');
     } else if (selectedType === 'true_false') {
       finalOptions = "True, False";
       finalCorrect = correctAnswers[0] || "";
+    } else if (selectedType === 'ordering') {
+      // Ordering uses order_group for the items and correct_answer for the sequence
+      finalOrderGroup = filteredOptions.join(', ');
+      finalCorrect = filteredOptions.join(', '); // Entered order is correct
+      finalOptions = "";
     } else if (selectedType === 'matching') {
       const validPairs = matchingPairs.filter(p => p.left.trim() && p.right.trim());
       const pairsStr = validPairs.map(p => `${p.left.trim()}|${p.right.trim()}`).join(', ');
@@ -169,20 +182,25 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
                 <Textarea name="question_text" defaultValue={editingItem?.question_text} required className="rounded-[1.5rem] min-h-[100px] text-lg p-6 bg-slate-50 border-none ring-1 ring-slate-100" />
               </div>
 
-              {(['single_choice', 'multiple_choice', 'dropdown', 'matrix_choice'].includes(selectedType)) && (
+              {(['single_choice', 'multiple_choice', 'dropdown', 'matrix_choice', 'ordering'].includes(selectedType)) && (
                 <div className="space-y-4 p-8 bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200">
                   <div className="flex items-center justify-between">
-                    <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400">Columns / Options</Label>
-                    <Button type="button" size="sm" onClick={() => setOptionsList([...optionsList, `Opt ${optionsList.length + 1}`])} className="rounded-full h-8 px-4 font-bold shadow-sm"><Plus className="w-3 h-3 mr-2" /> Add</Button>
+                    <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400">
+                      {selectedType === 'ordering' ? 'Sequence Items' : 'Columns / Options'}
+                    </Label>
+                    <Button type="button" size="sm" onClick={() => setOptionsList([...optionsList, `Item ${optionsList.length + 1}`])} className="rounded-full h-8 px-4 font-bold shadow-sm"><Plus className="w-3 h-3 mr-2" /> Add</Button>
                   </div>
                   <div className="space-y-2">
                     {optionsList.map((opt, i) => (
                       <div key={i} className="flex gap-2">
-                        <Input value={opt} onChange={(e) => { const n = [...optionsList]; n[i] = e.target.value; setOptionsList(n); }} className="rounded-xl h-10 bg-white" />
+                        <Input value={opt} onChange={(e) => { const n = [...optionsList]; n[i] = e.target.value; setOptionsList(n); }} className="rounded-xl h-10 bg-white" placeholder={selectedType === 'ordering' ? "Sequence step..." : "Option text..."} />
                         <Button type="button" variant="ghost" size="icon" onClick={() => setOptionsList(optionsList.filter((_, idx) => idx !== i))} className="h-10 w-10 text-destructive"><Trash2 className="w-4 h-4" /></Button>
                       </div>
                     ))}
                   </div>
+                  {selectedType === 'ordering' && (
+                    <p className="text-[10px] font-bold text-primary uppercase tracking-widest mt-2">Note: Enter items in their correct final order.</p>
+                  )}
                 </div>
               )}
 

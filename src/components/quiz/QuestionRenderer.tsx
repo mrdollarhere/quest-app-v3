@@ -32,24 +32,16 @@ interface Props {
 }
 
 export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, reviewMode }) => {
-  // --- ALL HOOKS MUST BE AT THE TOP LEVEL ---
-  
-  // State for Drag and Drop (Matching)
   const [draggingItem, setDraggingItem] = useState<string | null>(null);
-  
-  // State for Drag and Drop (Ordering)
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
-
-  // State for UI presentation items (Matching/Ordering)
   const [shuffledItemsPool, setShuffledItemsPool] = useState<string[]>([]);
+  const [initialShuffledOrder, setInitialShuffledOrder] = useState<string[]>([]);
 
-  // Memoized options from comma-separated string
   const options = useMemo(() => 
     question.options ? question.options.split(',').map(o => o.trim()) : [], 
     [question.options]
   );
 
-  // Memoized matching pairs for the Matching logic
   const matchingPairs = useMemo(() => {
     if (question.question_type !== 'matching') return [];
     return question.order_group?.split(',').map(p => {
@@ -58,24 +50,21 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
     }) || [];
   }, [question.order_group, question.question_type]);
 
-  // Initial sequence for Ordering
   const initialOrderItems = useMemo(() => 
     question.order_group?.split(',').map(i => i.trim()) || [],
     [question.order_group]
   );
 
-  // Initialize UI-only state (Shuffling for presentation)
   useEffect(() => {
     if (question.question_type === 'matching') {
       const pool = matchingPairs.map(p => p.right).sort(() => 0.5 - Math.random());
       setShuffledItemsPool(pool);
     } else if (question.question_type === 'ordering') {
-      // For ordering, we don't shuffle the source here, but we could if we wanted a random start
-      setShuffledItemsPool(initialOrderItems);
+      // Shuffle the sequence once for the session if no value is provided
+      const shuffled = [...initialOrderItems].sort(() => Math.random() - 0.5);
+      setInitialShuffledOrder(shuffled);
     }
   }, [matchingPairs, initialOrderItems, question.question_type]);
-
-  // --- RENDER HELPERS (NO HOOKS INSIDE THESE) ---
 
   const renderSingleChoice = () => (
     <RadioGroup 
@@ -149,7 +138,8 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
   };
 
   const renderOrdering = () => {
-    const currentOrder = (value as string[]) || initialOrderItems;
+    // Start with the user's value or the shuffled initial order
+    const currentOrder = (value as string[]) || initialShuffledOrder;
     const correctOrder = question.correct_answer?.split(',').map(i => i.trim()) || [];
 
     const handleDragOver = (e: React.DragEvent, index: number) => {
@@ -164,6 +154,11 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
       onChange(newOrder);
     };
 
+    // Wait for initial shuffle state to hydration properly
+    if (!reviewMode && currentOrder.length === 0 && initialOrderItems.length > 0) {
+      return <div className="h-40 flex items-center justify-center text-slate-300 font-bold animate-pulse">Initializing Sequence...</div>;
+    }
+
     return (
       <div className="space-y-4">
         {!reviewMode && (
@@ -172,7 +167,7 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
               <Info className="w-4 h-4" />
               <span>Drag items to reorder them into the correct sequence.</span>
             </div>
-            <Button variant="outline" size="sm" onClick={() => onChange(initialOrderItems)} className="rounded-full gap-2">
+            <Button variant="outline" size="sm" onClick={() => onChange(initialShuffledOrder)} className="rounded-full gap-2">
               <RotateCcw className="w-4 h-4" />
               Reset
             </Button>
@@ -252,7 +247,6 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-          {/* Left Side: Targets */}
           <div className="lg:col-span-7 space-y-4">
             <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-2">Protocol Targets</h3>
             <div className="space-y-3">
@@ -318,7 +312,6 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
             </div>
           </div>
 
-          {/* Right Side: Pool */}
           {!reviewMode && (
             <div className="lg:col-span-5">
               <div className="sticky top-24 space-y-4">
