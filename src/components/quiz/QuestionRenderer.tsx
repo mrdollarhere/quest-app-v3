@@ -33,17 +33,37 @@ interface Props {
   reviewMode?: boolean;
 }
 
+/**
+ * Fisher-Yates shuffle algorithm for stable randomization.
+ */
+const shuffleArray = <T,>(array: T[]): T[] => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
 export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, reviewMode }) => {
   const [draggingItem, setDraggingItem] = useState<string | null>(null);
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
   const [shuffledItemsPool, setShuffledItemsPool] = useState<string[]>([]);
   const [initialShuffledOrder, setInitialShuffledOrder] = useState<string[]>([]);
-  const [imgSrc, setImgSrc] = useState<string | undefined>(question.image_url);
+  const [imgSrc, setImgSrc] = useState<string | undefined>(question.image_url || undefined);
   const [hasImageError, setHasImageError] = useState(false);
 
+  // Randomize standard options (Choices, Dropdown, Matrix Columns)
   const options = useMemo(() => {
-    return parseRegistryArray(question.options);
-  }, [question.options]);
+    const rawOptions = parseRegistryArray(question.options);
+    return reviewMode ? rawOptions : shuffleArray(rawOptions);
+  }, [question.id, question.options, reviewMode]);
+
+  // Randomize rows/statements (MTF, Matrix Rows)
+  const shuffledRows = useMemo(() => {
+    const rawRows = parseRegistryArray(question.order_group);
+    return reviewMode ? rawRows : shuffleArray(rawRows);
+  }, [question.id, question.order_group, reviewMode]);
 
   const matchingPairs = useMemo(() => {
     if (question.question_type !== 'matching') return [];
@@ -59,7 +79,8 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
   }, [question.order_group]);
 
   useEffect(() => {
-    setImgSrc(question.image_url);
+    // Ensure we don't pass an empty string to src
+    setImgSrc(question.image_url || undefined);
     setHasImageError(false);
   }, [question.id, question.image_url]);
 
@@ -362,8 +383,9 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
   };
 
   const renderMultipleTrueFalse = () => {
-    const statements = parseRegistryArray(question.order_group);
-    const correctAnswers = parseRegistryArray(question.correct_answer);
+    const statements = shuffledRows;
+    const correctAnswersArr = parseRegistryArray(question.correct_answer);
+    const originalStatements = parseRegistryArray(question.order_group);
     const responses = (value as Record<string, string>) || {};
 
     const handleUpdate = (statement: string, val: string) => {
@@ -375,7 +397,8 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
       <div className="space-y-6">
         {statements.map((s, i) => {
           const userVal = responses[s];
-          const isCorrect = reviewMode && userVal === correctAnswers[i];
+          const originalIdx = originalStatements.indexOf(s);
+          const isCorrect = reviewMode && userVal === correctAnswersArr[originalIdx];
           
           return (
             <div key={i} className={cn(
@@ -404,7 +427,7 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
               </div>
               {reviewMode && !isCorrect && (
                 <div className="mt-4 flex items-center gap-2 text-[10px] font-black text-green-600 uppercase tracking-widest">
-                  <CheckCircle2 className="w-3 h-3" /> Correct: {correctAnswers[i]}
+                  <CheckCircle2 className="w-3 h-3" /> Correct: {correctAnswersArr[originalIdx]}
                 </div>
               )}
             </div>
@@ -415,9 +438,10 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
   };
 
   const renderMatrixChoice = () => {
-    const rows = parseRegistryArray(question.order_group);
+    const rows = shuffledRows;
     const columns = options;
-    const correctAnswers = parseRegistryArray(question.correct_answer);
+    const correctAnswersArr = parseRegistryArray(question.correct_answer);
+    const originalRows = parseRegistryArray(question.order_group);
     const responses = (value as Record<string, string>) || {};
 
     const handleUpdate = (row: string, col: string) => {
@@ -439,7 +463,8 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
           <tbody>
             {rows.map((row, i) => {
               const userVal = responses[row];
-              const isCorrectRow = reviewMode && userVal === correctAnswers[i];
+              const originalIdx = originalRows.indexOf(row);
+              const isCorrectRow = reviewMode && userVal === correctAnswersArr[originalIdx];
 
               return (
                 <tr key={i} className={cn(
@@ -458,8 +483,8 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
                       className={cn(
                         "p-4 border-y-2 text-center transition-all cursor-pointer last:border-r-2 last:rounded-r-[2rem]",
                         userVal === col ? "bg-primary/5 border-primary/20" : "bg-white border-slate-100",
-                        reviewMode && userVal === col && col === correctAnswers[i] && "bg-green-50 border-green-200",
-                        reviewMode && userVal === col && col !== correctAnswers[i] && "bg-red-50 border-red-200"
+                        reviewMode && userVal === col && col === correctAnswersArr[originalIdx] && "bg-green-50 border-green-200",
+                        reviewMode && userVal === col && col !== correctAnswersArr[originalIdx] && "bg-red-50 border-red-200"
                       )}
                       onClick={() => handleUpdate(row, col)}
                     >
@@ -496,13 +521,15 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
             onChange({ x: ((e.clientX - rect.left) / rect.width) * 100, y: ((e.clientY - rect.top) / rect.height) * 100 });
           }}
         >
-          <img 
-            src={imgSrc} 
-            alt="Question" 
-            className="w-full h-full object-cover select-none" 
-            draggable={false} 
-            onError={handleImageError}
-          />
+          {imgSrc && (
+            <img 
+              src={imgSrc} 
+              alt="Question" 
+              className="w-full h-full object-cover select-none" 
+              draggable={false} 
+              onError={handleImageError}
+            />
+          )}
           {coords && (
             <div className="absolute w-10 h-10 border-4 border-white rounded-full -translate-x-1/2 -translate-y-1/2 shadow-2xl ring-8 bg-primary/80 ring-primary/10" style={{ left: `${coords.x}%`, top: `${coords.y}%` }} />
           )}
@@ -580,8 +607,8 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
         <div className="h-1.5 w-20 bg-primary/10 rounded-full mt-6" />
       </div>
 
-      {/* Global Visual Asset Rendering (for all types except Hotspot which handles its own) */}
-      {question.image_url && question.question_type !== 'hotspot' && (
+      {/* Global Visual Asset Rendering (explicit truthiness check to avoid empty string src) */}
+      {!!imgSrc && question.question_type !== 'hotspot' && (
         <div className="mb-10 rounded-[2.5rem] overflow-hidden border-4 border-white shadow-2xl bg-slate-100 relative group">
           <img 
             src={imgSrc} 
