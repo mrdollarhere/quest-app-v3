@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -13,7 +14,9 @@ import {
   Trophy,
   ArrowRight,
   User,
-  Activity
+  Activity,
+  History,
+  Target
 } from "lucide-react";
 import Link from 'next/link';
 import { cn } from "@/lib/utils";
@@ -47,108 +50,159 @@ export function QuizResults({
   onRestart
 }: QuizResultsProps) {
   const percentage = Math.round((score / totalQuestions) * 100);
-  const isPassing = percentage >= 70;
+  
+  // Performance Thresholds
+  const isMastery = percentage >= 80;
+  const isPass = percentage >= 50;
+  
+  const statusColor = isMastery 
+    ? "text-emerald-500" 
+    : isPass 
+      ? "text-orange-500" 
+      : "text-destructive";
+
+  const bgColor = isMastery 
+    ? "bg-emerald-50" 
+    : isPass 
+      ? "bg-orange-50" 
+      : "bg-red-50";
+
+  const borderColor = isMastery 
+    ? "border-emerald-100" 
+    : isPass 
+      ? "border-orange-100" 
+      : "border-red-100";
 
   const getCompliment = (pct: number) => {
     if (pct >= 95) return "Exceptional mastery! Absolute precision detected.";
-    if (pct >= 85) return "Outstanding! Peak cognitive synchronization.";
+    if (pct >= 80) return "Outstanding! Peak cognitive synchronization.";
     if (pct >= 70) return "Success! Core requirements fully met.";
     if (pct >= 50) return "Completed. Optimization recommended.";
     return "Alignment incomplete. Re-engagement advised.";
   };
 
+  // Circular Gauge Calculation
+  const radius = 70;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (percentage / 100) * circumference;
+
   return (
-    <div className="min-h-screen bg-slate-50/50 flex flex-col items-center py-12 px-4 md:px-8 selection:bg-primary selection:text-white">
-      <div className="w-full max-w-4xl space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
+    <div className="min-h-screen bg-slate-50/50 flex flex-col items-center py-12 px-4 md:px-8 selection:bg-primary selection:text-white pb-32">
+      <div className="w-full max-w-5xl space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-1000">
         
-        {/* Main Result Card */}
-        <Card className="border-none shadow-[0_40px_80px_-15px_rgba(0,0,0,0.15)] rounded-[3.5rem] overflow-hidden bg-white">
-          <div className={cn("h-4", isPassing ? "bg-green-500" : "bg-primary")} />
-          
-          <CardHeader className="text-center pt-16 pb-6 px-10">
-            <div className="flex justify-center mb-8">
-              <div className={cn(
-                "w-24 h-24 rounded-[2rem] flex items-center justify-center shadow-2xl rotate-3 transition-transform hover:rotate-0",
-                isPassing ? "bg-green-100 text-green-600" : "bg-primary/10 text-primary"
-              )}>
-                {isPassing ? <Trophy className="w-12 h-12" /> : <Zap className="w-12 h-12 fill-current" />}
-              </div>
+        {/* Header: User Identity */}
+        <div className="text-center space-y-6">
+          <div className="inline-flex items-center gap-4 px-8 py-4 rounded-[2.5rem] bg-slate-900 text-white shadow-2xl ring-8 ring-white">
+            <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+              <User className="w-6 h-6 text-primary fill-primary" />
             </div>
+            <div className="text-left">
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 leading-none mb-1">Operator Identity</p>
+              <h1 className="text-3xl font-black tracking-tight uppercase">{userName}</h1>
+            </div>
+          </div>
+          
+          <div>
+            <h2 className="text-xl font-black text-slate-400 uppercase tracking-[0.4em]">{title}</h2>
+            <div className="h-1.5 w-24 bg-primary/10 rounded-full mx-auto mt-4" />
+          </div>
+        </div>
+
+        {/* Performance Hub */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+          
+          {/* Left: Circular Gauge */}
+          <Card className="lg:col-span-5 border-none shadow-2xl rounded-[4rem] bg-white overflow-hidden flex flex-col items-center justify-center p-12 relative">
+            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-slate-50/50 to-transparent pointer-events-none" />
             
-            <div className="space-y-4">
-              <div className="inline-flex items-center gap-2.5 px-6 py-2 rounded-full bg-slate-900 text-white shadow-xl ring-8 ring-slate-100">
-                <User className="w-4 h-4 text-primary fill-primary" />
-                <span className="text-sm font-black uppercase tracking-widest">{userName}</span>
-              </div>
-              
-              <div className="pt-2">
-                <CardTitle className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900 uppercase leading-none">
-                  {isPassing ? 'Assessment Cleared' : 'Protocol Complete'}
-                </CardTitle>
-                <p className="text-[10px] font-black text-slate-400 mt-4 uppercase tracking-[0.4em]">{title}</p>
+            <div className="relative w-64 h-64 flex items-center justify-center">
+              <svg className="w-full h-full -rotate-90">
+                <circle
+                  cx="128"
+                  cy="128"
+                  r={radius}
+                  stroke="currentColor"
+                  strokeWidth="12"
+                  fill="transparent"
+                  className="text-slate-100"
+                />
+                <circle
+                  cx="128"
+                  cy="128"
+                  r={radius}
+                  stroke="currentColor"
+                  strokeWidth="12"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={offset}
+                  strokeLinecap="round"
+                  fill="transparent"
+                  className={cn("transition-all duration-1000 ease-out", statusColor)}
+                />
+              </svg>
+              <div className="absolute flex flex-col items-center">
+                <span className="text-7xl font-black text-slate-900 tracking-tighter">{percentage}%</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Accuracy</span>
               </div>
             </div>
-          </CardHeader>
-          
-          <CardContent className="px-10 pb-12">
-            <div className="grid md:grid-cols-2 gap-8 items-stretch">
-              {/* Score Display */}
-              <div className="bg-slate-50 p-12 rounded-[3rem] border-2 border-slate-100 text-center relative overflow-hidden flex flex-col items-center justify-center group">
-                <div className="absolute top-0 right-0 p-4 opacity-[0.03] pointer-events-none">
-                  <Zap className="w-48 h-48 fill-slate-900" />
+
+            <div className="mt-10 grid grid-cols-2 gap-8 w-full border-t border-slate-50 pt-10">
+              <div className="text-center">
+                <p className="text-3xl font-black text-slate-900">{score}</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Correct</p>
+              </div>
+              <div className="text-center border-l">
+                <p className="text-3xl font-black text-slate-900">{totalQuestions - score}</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Errors</p>
+              </div>
+            </div>
+          </Card>
+
+          {/* Right: Analysis & Actions */}
+          <div className="lg:col-span-7 space-y-8 flex flex-col">
+            <Card className="flex-1 border-none shadow-xl rounded-[3.5rem] bg-white p-10 flex flex-col justify-center">
+              <div className={cn("p-8 rounded-[2.5rem] border-2 border-dashed mb-8", borderColor, bgColor)}>
+                <div className="flex items-center gap-3 mb-4">
+                  {isMastery ? <Trophy className="w-5 h-5 text-emerald-600" /> : <Zap className="w-5 h-5 text-primary" />}
+                  <h4 className={cn("text-[10px] font-black uppercase tracking-widest", statusColor)}>Diagnostic Output</h4>
                 </div>
-                
-                <div className="relative z-10">
-                  <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 mb-2">Final Intelligence Set</p>
-                  <p className="text-9xl font-black text-slate-900 tracking-tighter leading-none flex items-baseline justify-center">
-                    {score}<span className="text-4xl text-slate-300 ml-2">/ {totalQuestions}</span>
-                  </p>
-                  <div className="mt-8 flex justify-center">
-                    <div className={cn(
-                      "px-6 py-2 rounded-full font-black text-xs uppercase tracking-widest shadow-lg flex items-center gap-2",
-                      isPassing ? "bg-green-500 text-white shadow-green-500/20" : "bg-primary text-white shadow-primary/20"
-                    )}>
-                      <Activity className="w-3 h-3" />
-                      {percentage}% Accuracy
-                    </div>
-                  </div>
-                </div>
+                <p className="text-slate-700 font-black text-3xl leading-tight tracking-tight">
+                  "{getCompliment(percentage)}"
+                </p>
               </div>
 
-              {/* Quick Actions & Feedback */}
-              <div className="flex flex-col justify-between py-2">
-                <div className="space-y-6">
-                  <div className="p-8 bg-slate-50 rounded-[2.5rem] border-2 border-dashed border-slate-200">
-                    <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-3">Diagnostic Feedback</h4>
-                    <p className="text-slate-700 font-black text-2xl leading-tight tracking-tight">
-                      "{getCompliment(percentage)}"
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex flex-col gap-4 mt-8">
-                  <Button onClick={onRestart} variant="outline" className="h-16 rounded-full font-black border-2 text-xs uppercase tracking-widest hover:bg-slate-50 transition-all group">
-                    <RotateCcw className="w-4 h-4 mr-2 transition-transform group-hover:-rotate-45" />
-                    Re-Initialize
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Button onClick={onRestart} variant="outline" className="h-16 rounded-full font-black border-4 text-xs uppercase tracking-widest hover:bg-slate-50 transition-all group">
+                  <RotateCcw className="w-4 h-4 mr-2 transition-transform group-hover:-rotate-45" />
+                  Restart Module
+                </Button>
+                <Link href="/tests">
+                  <Button className="w-full h-16 rounded-full font-black shadow-2xl bg-slate-900 hover:bg-slate-800 transition-all text-xs uppercase tracking-widest">
+                    Enter Library
+                    <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
-                  <Link href="/tests" className="w-full">
-                    <Button className="w-full h-16 rounded-full font-black shadow-2xl bg-slate-900 hover:bg-slate-800 transition-all text-xs uppercase tracking-widest">
-                      Library Access
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
-                  </Link>
-                </div>
+                </Link>
               </div>
+            </Card>
+
+            <div className="grid grid-cols-3 gap-4">
+              <StatSmall icon={History} label="Attempts" value="01" />
+              <StatSmall icon={Target} label="Precision" value={isMastery ? "High" : isPass ? "Med" : "Low"} />
+              <StatSmall icon={Activity} label="Efficiency" value="Live" />
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Detailed Review Section */}
-        <div className="space-y-6 pt-8">
-          <div className="flex items-center justify-between px-8">
-            <div>
-              <h3 className="text-2xl font-black tracking-tight text-slate-900 uppercase">Step Analytics</h3>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Structural Response Audit</p>
+        <div className="space-y-8 pt-12">
+          <div className="flex items-center justify-between px-10">
+            <div className="flex items-center gap-4">
+              <div className="bg-primary p-2.5 rounded-xl shadow-lg">
+                <History className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-3xl font-black tracking-tight text-slate-900 uppercase leading-none">Step Analytics</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Structural Registry Audit</p>
+              </div>
             </div>
           </div>
 
@@ -163,30 +217,30 @@ export function QuizResults({
                   key={q.id} 
                   value={`item-${idx}`}
                   className={cn(
-                    "border-none rounded-[2.5rem] overflow-hidden bg-white shadow-sm transition-all hover:shadow-xl",
-                    isCorrect ? "ring-2 ring-green-100" : (hasAnswered ? "ring-2 ring-destructive/10" : "ring-2 ring-slate-100")
+                    "border-none rounded-[3rem] overflow-hidden bg-white shadow-sm transition-all hover:shadow-xl",
+                    isCorrect ? "ring-4 ring-emerald-50" : (hasAnswered ? "ring-4 ring-red-50" : "ring-4 ring-slate-100")
                   )}
                 >
-                  <AccordionTrigger className="px-10 py-8 hover:no-underline group">
+                  <AccordionTrigger className="px-10 py-10 hover:no-underline group">
                     <div className="flex items-center gap-8 text-left">
                       <div className={cn(
-                        "w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-sm border-2",
+                        "w-16 h-16 rounded-[1.5rem] flex items-center justify-center shrink-0 shadow-sm border-2 transition-transform group-data-[state=open]:rotate-6",
                         !q.correct_answer ? "bg-slate-50 border-slate-100 text-slate-400" : 
-                        (isCorrect ? "bg-green-50 border-green-100 text-green-600" : "bg-destructive/5 border-destructive/10 text-destructive")
+                        (isCorrect ? "bg-emerald-50 border-emerald-100 text-emerald-600" : "bg-red-50 border-red-100 text-red-600")
                       )}>
-                        {!q.correct_answer ? <AlertCircle className="w-6 h-6" /> : (isCorrect ? <CheckCircle2 className="w-6 h-6" /> : <XCircle className="w-6 h-6" />)}
+                        {!q.correct_answer ? <AlertCircle className="w-7 h-7" /> : (isCorrect ? <CheckCircle2 className="w-7 h-7" /> : <XCircle className="w-7 h-7" />)}
                       </div>
-                      <div className="flex flex-col">
-                        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-400 mb-1">Step {idx + 1} Audit</span>
-                        <h4 className="font-bold text-slate-800 text-xl leading-tight line-clamp-1 group-hover:text-primary transition-colors">
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-1">Step {idx + 1} Registry</span>
+                        <h4 className="font-black text-slate-800 text-2xl tracking-tight line-clamp-1 group-hover:text-primary transition-colors">
                           {q.question_text}
                         </h4>
                       </div>
                     </div>
                   </AccordionTrigger>
-                  <AccordionContent className="px-10 pb-10 pt-0">
-                    <div className="h-px w-full bg-slate-50 mb-10" />
-                    <div className="max-w-3xl mx-auto">
+                  <AccordionContent className="px-12 pb-12 pt-0">
+                    <div className="h-px w-full bg-slate-50 mb-12" />
+                    <div className="max-w-4xl mx-auto">
                       <QuestionRenderer 
                         question={q} 
                         value={userResp} 
@@ -202,15 +256,25 @@ export function QuizResults({
         </div>
 
         {/* Bottom Navigation */}
-        <div className="flex justify-center pt-12 pb-24">
+        <div className="flex justify-center pt-16">
           <Link href="/">
-            <Button variant="ghost" className="rounded-full font-black text-slate-400 hover:text-slate-900 transition-colors uppercase tracking-[0.4em] text-[9px]">
-              <Home className="w-3 h-3 mr-2" />
+            <Button variant="ghost" className="rounded-full font-black text-slate-400 hover:text-slate-900 transition-colors uppercase tracking-[0.5em] text-[10px] h-12 px-10">
+              <Home className="w-4 h-4 mr-3" />
               Terminate Session
             </Button>
           </Link>
         </div>
       </div>
+    </div>
+  );
+}
+
+function StatSmall({ icon: Icon, label, value }: { icon: any, label: string, value: string }) {
+  return (
+    <div className="p-6 bg-white rounded-[2rem] border shadow-sm flex flex-col items-center text-center gap-2">
+      <Icon className="w-4 h-4 text-slate-300" />
+      <p className="text-lg font-black text-slate-900 leading-none">{value}</p>
+      <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">{label}</p>
     </div>
   );
 }
