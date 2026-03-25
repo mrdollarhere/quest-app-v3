@@ -26,7 +26,8 @@ import {
   Server,
   Cloud,
   Terminal,
-  FlaskConical
+  FlaskConical,
+  History
 } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -59,16 +60,19 @@ export default function SetupGuide() {
         title: "Database Architecture",
         desc: "Provision your storage using Google Sheets™ as the master registry.",
         alertTitle: "Critical Requirement",
-        alertDesc: "You must create three core tabs named exactly: Tests, Users, Responses.",
+        alertDesc: "You must create four core tabs named exactly: Tests, Users, Responses, Activity.",
         tabTests: "Tests (Modules)",
         tabUsers: "Users (Identities)",
         tabResponses: "Responses (Logs)",
+        tabActivity: "Activity (System)",
         testsTitle: "Registry Tab: Tests",
         testsHeaders: "id, title, description, category, difficulty, duration, image_url",
         usersTitle: "Registry Tab: Users",
         usersHeaders: "id, name, email, role, password",
         responsesTitle: "Registry Tab: Responses",
         responsesHeaders: "Timestamp, User Name, User Email, Test ID, Score, Total, Duration (ms), Raw Responses",
+        activityTitle: "Registry Tab: Activity",
+        activityHeaders: "Timestamp, User Name, User Email, Event, IP Address, Device",
         dynamicTitle: "Module Sheets",
         dynamicHeaders: "id, question_text, question_type, options, correct_answer, order_group, image_url, metadata, required"
       },
@@ -106,16 +110,19 @@ export default function SetupGuide() {
         title: "Kiến Trúc Dữ Liệu",
         desc: "Thiết lập Google Sheets™ làm kho lưu trữ dữ liệu chính.",
         alertTitle: "Yêu Cầu Bắt Buộc",
-        alertDesc: "Bạn phải tạo 3 tab chính: Tests, Users, Responses (Đúng chính tả).",
+        alertDesc: "Bạn phải tạo 4 tab chính: Tests, Users, Responses, Activity (Đúng chính tả).",
         tabTests: "Tests (Bài học)",
         tabUsers: "Users (Người dùng)",
         tabResponses: "Responses (Kết quả)",
+        tabActivity: "Activity (Hệ thống)",
         testsTitle: "Tab Danh Mục: Tests",
         testsHeaders: "id, title, description, category, difficulty, duration, image_url",
         usersTitle: "Tab Danh Tính: Users",
         usersHeaders: "id, name, email, role, password",
         responsesTitle: "Tab Nhật Ký: Responses",
         responsesHeaders: "Timestamp, User Name, User Email, Test ID, Score, Total, Duration (ms), Raw Responses",
+        activityTitle: "Tab Hoạt Động: Activity",
+        activityHeaders: "Timestamp, User Name, User Email, Event, IP Address, Device",
         dynamicTitle: "Tab Câu Hỏi",
         dynamicHeaders: "id, question_text, question_type, options, correct_answer, order_group, image_url, metadata, required"
       },
@@ -204,10 +211,11 @@ export default function SetupGuide() {
           </Alert>
 
           <Tabs defaultValue="tests" className="w-full">
-            <TabsList className="grid grid-cols-3 bg-slate-200/50 p-2 rounded-[2rem] h-auto shadow-inner">
+            <TabsList className="grid grid-cols-4 bg-slate-200/50 p-2 rounded-[2rem] h-auto shadow-inner">
               <TabsTrigger value="tests" className="rounded-2xl py-4 font-black uppercase text-[10px] tracking-[0.2em] data-[state=active]:bg-white data-[state=active]:shadow-xl">{t.step1.tabTests}</TabsTrigger>
               <TabsTrigger value="users" className="rounded-2xl py-4 font-black uppercase text-[10px] tracking-[0.2em] data-[state=active]:bg-white data-[state=active]:shadow-xl">{t.step1.tabUsers}</TabsTrigger>
               <TabsTrigger value="responses" className="rounded-2xl py-4 font-black uppercase text-[10px] tracking-[0.2em] data-[state=active]:bg-white data-[state=active]:shadow-xl">{t.step1.tabResponses}</TabsTrigger>
+              <TabsTrigger value="activity" className="rounded-2xl py-4 font-black uppercase text-[10px] tracking-[0.2em] data-[state=active]:bg-white data-[state=active]:shadow-xl">{t.step1.tabActivity}</TabsTrigger>
             </TabsList>
             
             <TabsContent value="tests" className="mt-10">
@@ -246,6 +254,19 @@ export default function SetupGuide() {
                   <Button variant="outline" size="lg" onClick={() => copyToClipboard(t.step1.responsesHeaders, "Headers Copied")} className="rounded-full font-black text-xs border-2">Copy Headers</Button>
                 </div>
                 <div className="bg-slate-900 p-8 rounded-[2rem] font-mono text-sm text-green-400 overflow-x-auto whitespace-nowrap shadow-inner border-4 border-slate-800">{t.step1.responsesHeaders}</div>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="activity" className="mt-10">
+              <Card className="border-none shadow-2xl rounded-[3.5rem] bg-white p-12">
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-4">
+                    <History className="w-6 h-6 text-primary" />
+                    <CardTitle className="text-2xl font-black uppercase tracking-tight">{t.step1.activityTitle}</CardTitle>
+                  </div>
+                  <Button variant="outline" size="lg" onClick={() => copyToClipboard(t.step1.activityHeaders, "Headers Copied")} className="rounded-full font-black text-xs border-2">Copy Headers</Button>
+                </div>
+                <div className="bg-slate-900 p-8 rounded-[2rem] font-mono text-sm text-green-400 overflow-x-auto whitespace-nowrap shadow-inner border-4 border-slate-800">{t.step1.activityHeaders}</div>
               </Card>
             </TabsContent>
           </Tabs>
