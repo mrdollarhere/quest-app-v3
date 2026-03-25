@@ -29,7 +29,9 @@ import {
   Terminal,
   FlaskConical,
   History,
-  Settings
+  Settings,
+  Github,
+  Monitor
 } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -96,7 +98,13 @@ export default function SetupGuide() {
       step3: {
         num: "03",
         title: "Frontend Protocol",
-        desc: "Deploy your interactive UI to the global edge.",
+        desc: "Initialize your repository and deploy the interface to the global edge.",
+        repoTitle: "1. Repository Initialization",
+        repoDesc: "Clone the DNTRNG framework and install dependencies.",
+        configTitle: "2. Registry Bridge Config",
+        configDesc: "Link your local code to your Google Sheet deployment.",
+        deployFinalTitle: "3. Global Edge Deployment",
+        deployFinalDesc: "Push your code to production using Vercel or Firebase.",
         ready: "Registry Handshake Complete",
         launch: "Initialize Console"
       }
@@ -145,7 +153,13 @@ export default function SetupGuide() {
       step3: {
         num: "03",
         title: "Triển Khai Giao Diện",
-        desc: "Đưa website của bạn lên internet.",
+        desc: "Thiết lập mã nguồn và đưa website của bạn lên internet.",
+        repoTitle: "1. Khởi Tạo Mã Nguồn",
+        repoDesc: "Tải mã nguồn từ GitHub và cài đặt các thư viện cần thiết.",
+        configTitle: "2. Cấu Hình Kết Nối",
+        configDesc: "Kết nối giao diện với backend Google Sheets của bạn.",
+        deployFinalTitle: "3. Đưa Lên Internet",
+        deployFinalDesc: "Sử dụng Vercel hoặc Firebase để chạy website chính thức.",
         ready: "Hệ Thống Sẵn Sàng",
         launch: "Bắt Đầu"
       }
@@ -324,12 +338,81 @@ export default function SetupGuide() {
         </section>
 
         {/* Step 3 */}
-        <section className="space-y-12 pb-20">
+        <section className="space-y-16">
           <div className="flex items-center gap-8">
             <div className="w-20 h-20 rounded-[2.5rem] bg-slate-900 text-primary flex items-center justify-center text-3xl font-black shadow-[0_20px_40px_-10px_rgba(0,0,0,0.3)]">{t.step3.num}</div>
             <div>
               <h2 className="text-4xl font-black text-slate-900 uppercase tracking-tight">{t.step3.title}</h2>
               <p className="text-slate-500 font-medium text-lg mt-1">{t.step3.desc}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-10">
+            {/* 3.1 Clone Repo */}
+            <Card className="border-none shadow-2xl rounded-[3rem] overflow-hidden bg-white">
+              <div className="p-10 flex flex-col md:flex-row gap-10 items-start">
+                <div className="w-16 h-16 rounded-2xl bg-slate-900 flex items-center justify-center shrink-0">
+                  <Github className="w-8 h-8 text-primary" />
+                </div>
+                <div className="flex-1 space-y-6">
+                  <div>
+                    <h3 className="text-2xl font-black uppercase tracking-tight">{t.step3.repoTitle}</h3>
+                    <p className="text-slate-500 font-medium mt-2">{t.step3.repoDesc}</p>
+                  </div>
+                  <div className="bg-slate-900 p-6 rounded-2xl space-y-3 shadow-inner">
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Execute in Terminal</p>
+                    <code className="block text-green-400 text-xs font-mono bg-black/30 p-4 rounded-xl border border-white/5">
+                      git clone https://github.com/your-username/dntrng-framework.git<br/>
+                      cd dntrng-framework<br/>
+                      npm install<br/>
+                      npm run dev
+                    </code>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* 3.2 Configuration */}
+            <Card className="border-none shadow-2xl rounded-[3rem] overflow-hidden bg-white">
+              <div className="p-10 flex flex-col md:flex-row gap-10 items-start">
+                <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
+                  <Code2 className="w-8 h-8 text-white" />
+                </div>
+                <div className="flex-1 space-y-6">
+                  <div>
+                    <h3 className="text-2xl font-black uppercase tracking-tight">{t.step3.configTitle}</h3>
+                    <p className="text-slate-500 font-medium mt-2">{t.step3.configDesc}</p>
+                  </div>
+                  <div className="p-6 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                    <p className="text-sm font-bold text-slate-700 leading-relaxed">
+                      Locate <code className="text-primary bg-primary/5 px-2 py-0.5 rounded">src/lib/api-config.ts</code> and update the <code className="font-black">API_URL</code> constant with the Web App URL obtained in <span className="text-primary font-black">Step 02</span>.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* 3.3 Deploy */}
+            <div className="grid md:grid-cols-2 gap-10">
+              <Card className="border-none shadow-2xl rounded-[3rem] p-10 bg-slate-900 text-white group hover:scale-[1.02] transition-transform">
+                <Cloud className="w-12 h-12 text-primary mb-6" />
+                <h3 className="text-2xl font-black uppercase tracking-tight mb-4">Vercel Deployment</h3>
+                <ul className="space-y-3 text-sm font-medium text-slate-400">
+                  <li className="flex items-center gap-3"><CheckCircle2 className="w-4 h-4 text-primary" /> Push code to GitHub</li>
+                  <li className="flex items-center gap-3"><CheckCircle2 className="w-4 h-4 text-primary" /> Import Project in Vercel</li>
+                  <li className="flex items-center gap-3"><CheckCircle2 className="w-4 h-4 text-primary" /> Framework: Next.js (Auto)</li>
+                </ul>
+              </Card>
+
+              <Card className="border-none shadow-2xl rounded-[3rem] p-10 bg-white border-4 border-primary/10 group hover:scale-[1.02] transition-transform">
+                <Monitor className="w-12 h-12 text-primary mb-6" />
+                <h3 className="text-2xl font-black uppercase tracking-tight mb-4">Firebase Hosting</h3>
+                <ul className="space-y-3 text-sm font-medium text-slate-500">
+                  <li className="flex items-center gap-3"><CheckCircle2 className="w-4 h-4 text-primary" /> Enable App Hosting</li>
+                  <li className="flex items-center gap-3"><CheckCircle2 className="w-4 h-4 text-primary" /> Connect GitHub Repo</li>
+                  <li className="flex items-center gap-3"><CheckCircle2 className="w-4 h-4 text-primary" /> Automatic SSR Optimization</li>
+                </ul>
+              </Card>
             </div>
           </div>
 
