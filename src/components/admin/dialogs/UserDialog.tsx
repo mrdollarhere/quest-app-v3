@@ -12,7 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users as UsersIcon, Zap, ShieldCheck, UserPlus, ListOrdered, Mail, Lock } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Users as UsersIcon, Zap, ShieldCheck, UserPlus, ListOrdered, Mail, Lock, AlertCircle, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface UserDialogProps {
@@ -29,7 +30,14 @@ export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatc
   const handleSingleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    onSave(Object.fromEntries(formData.entries()));
+    const data = Object.fromEntries(formData.entries());
+    
+    // Safety: Omit password if editing to prevent clearing the existing password in the sheet
+    if (editingItem) {
+      delete data.password;
+    }
+    
+    onSave(data);
     onOpenChange(false);
   };
 
@@ -115,13 +123,31 @@ export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatc
                   <Input name="email" type="email" defaultValue={editingItem?.email} required disabled={!!editingItem} placeholder="student@email.com" className="h-12 pl-11 rounded-xl bg-slate-50 border-none ring-1 ring-slate-200 font-bold focus:ring-primary/40 disabled:opacity-50" />
                 </div>
               </div>
+              
               <div className="space-y-2">
-                <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">Password</Label>
+                <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">Password Registry</Label>
+                {editingItem && (
+                  <Alert className="bg-orange-50 border-orange-100 rounded-2xl mb-4 border shadow-sm">
+                    <AlertCircle className="h-4 w-4 text-orange-600" />
+                    <AlertTitle className="text-[10px] font-black uppercase text-orange-800">Registry Lock Active</AlertTitle>
+                    <AlertDescription className="text-[11px] font-medium text-orange-700 leading-relaxed">
+                      To change this student's password, please edit the <strong className="font-black">"password"</strong> column directly in your Google Sheet. UI updates are currently disabled.
+                    </AlertDescription>
+                  </Alert>
+                )}
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                  <Input name="password" type="password" placeholder={editingItem ? "Leave empty to keep same" : "Set password"} required={!editingItem} className="h-12 pl-11 rounded-xl bg-slate-50 border-none ring-1 ring-slate-200 font-bold focus:ring-primary/40" />
+                  <Input 
+                    name="password" 
+                    type="password" 
+                    placeholder={editingItem ? "Update via Google Sheet only" : "Set password"} 
+                    required={!editingItem} 
+                    disabled={!!editingItem}
+                    className="h-12 pl-11 rounded-xl bg-slate-50 border-none ring-1 ring-slate-200 font-bold focus:ring-primary/40 disabled:opacity-50 disabled:bg-slate-100" 
+                  />
                 </div>
               </div>
+
               <div className="space-y-2">
                 <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">Account Role</Label>
                 <select name="role" defaultValue={editingItem?.role || 'user'} className="w-full h-12 px-4 rounded-xl border-none ring-1 ring-slate-200 bg-slate-50 font-black text-sm outline-none focus:ring-primary/40 cursor-pointer">
