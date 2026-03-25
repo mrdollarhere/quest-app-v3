@@ -22,10 +22,16 @@ import {
   Trash2,
   Table as TableIcon,
   AlertCircle,
-  ImageIcon
+  ImageIcon,
+  Maximize2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { parseRegistryArray } from '@/lib/quiz-utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface Props {
   question: Question;
@@ -51,6 +57,7 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
   const [draggingItem, setDraggingItem] = useState<string | null>(null);
   const [imgSrc, setImgSrc] = useState<string | undefined>(undefined);
   const [hasImageError, setHasImageError] = useState(false);
+  const [isZoomOpen, setIsZoomOpen] = useState(false);
 
   // Randomize standard options (Choices, Dropdown, Matrix Columns)
   const options = useMemo(() => {
@@ -604,23 +611,46 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
 
       {/* Global Visual Asset Rendering */}
       {!!imgSrc && question.question_type !== 'hotspot' && (
-        <div className="mb-10 rounded-[2.5rem] overflow-hidden border-4 border-white shadow-2xl bg-slate-100 relative group">
-          <img 
-            src={imgSrc} 
-            alt="Step Asset" 
-            className="w-full h-auto object-cover max-h-[450px] transition-transform duration-700 group-hover:scale-[1.02]"
-            onError={handleImageError}
-          />
-          {hasImageError && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/10 backdrop-blur-sm text-slate-400">
-              <ImageIcon className="w-12 h-12 mb-4 opacity-20" />
-              <p className="text-[10px] font-black uppercase tracking-[0.4em]">Media Sync Failed • Placeholder Active</p>
+        <>
+          <div 
+            className="mb-10 rounded-[2.5rem] overflow-hidden border-4 border-white shadow-2xl bg-slate-100 relative group cursor-zoom-in"
+            onClick={() => setIsZoomOpen(true)}
+          >
+            <img 
+              src={imgSrc} 
+              alt="Step Asset" 
+              className="w-full h-auto object-cover max-h-[450px] transition-transform duration-700 group-hover:scale-[1.02]"
+              onError={handleImageError}
+            />
+            {hasImageError && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/10 backdrop-blur-sm text-slate-400">
+                <ImageIcon className="w-12 h-12 mb-4 opacity-20" />
+                <p className="text-[10px] font-black uppercase tracking-[0.4em]">Media Sync Failed • Placeholder Active</p>
+              </div>
+            )}
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center">
+              <div className="bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all duration-500">
+                <Maximize2 className="w-6 h-6 text-slate-900" />
+              </div>
             </div>
-          )}
-          <div className="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black/20 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-            <span className="text-[8px] font-black text-white uppercase tracking-widest bg-black/40 px-2 py-1 rounded-md backdrop-blur-md">Visual Context Protocol</span>
+            <div className="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black/20 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+              <span className="text-[8px] font-black text-white uppercase tracking-widest bg-black/40 px-2 py-1 rounded-md backdrop-blur-md">Visual Context Protocol</span>
+            </div>
           </div>
-        </div>
+
+          <Dialog open={isZoomOpen} onOpenChange={setIsZoomOpen}>
+            <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 border-none bg-transparent shadow-none flex items-center justify-center">
+              <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+                <img 
+                  src={imgSrc} 
+                  alt="Zoomed Asset" 
+                  className="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl animate-in zoom-in-95 duration-300"
+                />
+                <DialogTitle className="sr-only">Image Perspective View</DialogTitle>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </>
       )}
 
       <div className="space-y-10">{renderContent()}</div>
