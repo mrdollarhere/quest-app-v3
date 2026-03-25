@@ -1,10 +1,10 @@
 
 export const GAS_CODE = `/**
- * QUESTFLOW BACKEND v17.7 - SECURITY ENHANCED
+ * QUESTFLOW BACKEND v17.8 - SETTINGS ENABLED
  * 
  * ACTIONS SUPPORTED:
- * - GET: login, getTests, getUsers, getResponses, getQuestions, getActivity
- * - POST: submitResponse, saveTest, deleteTest, saveUser, deleteUser, saveQuestions, saveUsers, logActivity
+ * - GET: login, getTests, getUsers, getResponses, getQuestions, getActivity, getSettings
+ * - POST: submitResponse, saveTest, deleteTest, saveUser, deleteUser, saveQuestions, saveUsers, logActivity, saveSetting
  */
 
 function doGet(e) {
@@ -54,6 +54,15 @@ function doGet(e) {
       return createResponse(getRowsAsObjects(sheet).reverse().slice(0, 200));
     }
 
+    if (action === 'getSettings') {
+      const sheet = ss.getSheetByName('Settings');
+      if (!sheet) return createResponse({});
+      const data = getRowsAsObjects(sheet);
+      const settings = {};
+      data.forEach(row => { if (row.key) settings[row.key] = row.value; });
+      return createResponse(settings);
+    }
+
     if (action === 'getQuestions') {
       const testId = e.parameter.id;
       const sheet = ss.getSheetByName(testId);
@@ -87,6 +96,13 @@ function doPost(e) {
         payload.device || 'N/A'
       ];
       sheet.appendRow(rowData);
+      return createResponse({ status: 'success' });
+    }
+
+    if (action === 'saveSetting') {
+      let sheet = ss.getSheetByName('Settings') || ss.insertSheet('Settings');
+      if (sheet.getLastRow() === 0) sheet.appendRow(['key', 'value']);
+      upsertRow(sheet, 'key', payload.key, { key: payload.key, value: payload.value });
       return createResponse({ status: 'success' });
     }
 

@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, Suspense, useMemo } from 'react';
@@ -30,6 +31,7 @@ function QuizContent() {
   const [guestName, setGuestName] = useState("");
   const [timeLeft, setTimeLeft] = useState(900); // 15 minutes default
   const [isWrongInRace, setIsWrongInRace] = useState(false);
+  const [protocolSalt, setProtocolSalt] = useState("");
   
   // Master registry to keep the original order for Training/Race
   const [originalQuestions, setOriginalQuestions] = useState<Question[]>([]);
@@ -70,17 +72,29 @@ function QuizContent() {
     setLoading(true);
     try {
       let fetched: Question[] = [];
+      let salt = "";
+      
       if (API_URL) {
-        const res = await fetch(`${API_URL}?action=getQuestions&id=${testId}`);
-        const data = await res.json();
-        if (data && Array.isArray(data) && data.length > 0) {
-          fetched = data;
+        const [qRes, sRes] = await Promise.all([
+          fetch(`${API_URL}?action=getQuestions&id=${testId}`),
+          fetch(`${API_URL}?action=getSettings`)
+        ]);
+        
+        const qData = await qRes.json();
+        const sData = await sRes.json();
+        
+        if (qData && Array.isArray(qData) && qData.length > 0) {
+          fetched = qData;
         } else {
           fetched = DEMO_QUESTIONS;
         }
+        
+        salt = sData.daily_key_salt || "";
       } else {
         fetched = DEMO_QUESTIONS;
       }
+      
+      setProtocolSalt(salt);
       setOriginalQuestions(fetched);
       setQuiz(prev => ({ ...prev, questions: fetched, startTime: Date.now() }));
     } catch (err) {
@@ -254,6 +268,7 @@ function QuizContent() {
         user={user}
         guestName={guestName}
         setGuestName={setGuestName}
+        protocolSalt={protocolSalt}
         onStart={handleStart}
       />
     );

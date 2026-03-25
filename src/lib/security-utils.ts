@@ -1,24 +1,27 @@
+
 /**
  * Generates a dynamic, unpredictable password based on a specific date and a secret salt.
  * 
  * Logic: 
- * 1. Combines a secure internal constant with the target date (YYYY-MM-DD).
+ * 1. Combines a secure internal constant (or admin-defined salt) with the target date (YYYY-MM-DD).
  * 2. Processes the string through a deterministic FNV-1a hashing algorithm.
  * 3. Converts the resulting hash into a readable 8-character alphanumeric token.
  * 
  * This key is valid only for the specific 24-hour period of the input date.
  */
-export function generateDailyPassword(targetDate?: Date): string {
-  // Internal secret key - not exposed to the user interface directly
-  const SECRET_SALT = "DNTRNG-ULTIMATE-V17-SECURE-KEY-PRO-2025";
+export function generateDailyPassword(targetDate?: Date, customSalt?: string): string {
+  // Use the custom salt if provided (e.g. from admin settings), otherwise fallback to the hardcoded default
+  const salt = (customSalt && customSalt.trim().length > 0) 
+    ? customSalt.trim() 
+    : "DNTRNG-ULTIMATE-V17-SECURE-KEY-PRO-2025";
   
   const date = targetDate || new Date();
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   
-  // Format: DNTRNG-SECRET-2025-05-20
-  const input = `${SECRET_SALT}-${year}-${month}-${day}`;
+  // Format: MY-SALT-2025-05-20
+  const input = `${salt}-${year}-${month}-${day}`;
 
   // FNV-1a Hash Implementation (32-bit)
   let hash = 2166136261;

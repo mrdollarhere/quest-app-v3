@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { 
   LayoutGrid, 
   Users as UsersIcon, 
@@ -17,11 +17,15 @@ import {
   Key,
   CalendarDays,
   Copy,
-  Code2
+  Code2,
+  Settings2,
+  Save
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { 
   Area, 
   AreaChart, 
@@ -36,6 +40,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { AdminTab } from '@/components/admin/AdminSidebar';
 import { useRouter } from 'next/navigation';
@@ -48,19 +61,25 @@ import { useLanguage } from '@/context/language-context';
 interface OverviewTabProps {
   data: { tests: any[], users: any[], responses: any[] };
   lastSync: Date | null;
+  settings: Record<string, string>;
   onNewTest: () => void;
   onManageContent: () => void;
   onSync: () => void;
   onSeed: () => void;
+  onSaveSetting: (key: string, value: string) => void;
   setActiveTab: (tab: AdminTab) => void;
 }
 
-export function OverviewTab({ data, lastSync, onNewTest, onManageContent, onSync, onSeed, setActiveTab }: OverviewTabProps) {
+export function OverviewTab({ data, lastSync, settings, onNewTest, onManageContent, onSync, onSeed, onSaveSetting, setActiveTab }: OverviewTabProps) {
   const router = useRouter();
   const { toast } = useToast();
   const { t } = useLanguage();
   
-  const currentDailyKey = generateDailyPassword();
+  const [isSaltDialogOpen, setIsSaltDialogOpen] = useState(false);
+  const [newSalt, setNewSalt] = useState(settings.daily_key_salt || "");
+
+  const protocolSalt = settings.daily_key_salt || "";
+  const currentDailyKey = generateDailyPassword(undefined, protocolSalt);
 
   const protocolSchedule = useMemo(() => {
     return Array.from({ length: 8 }).map((_, i) => {
@@ -68,10 +87,10 @@ export function OverviewTab({ data, lastSync, onNewTest, onManageContent, onSync
       return {
         date: format(date, 'MMM dd, yyyy'),
         isToday: i === 0,
-        key: generateDailyPassword(date)
+        key: generateDailyPassword(date, protocolSalt)
       };
     });
-  }, []);
+  }, [protocolSalt]);
 
   const chartData = useMemo(() => {
     if (!data.responses.length) return [];
@@ -96,6 +115,11 @@ export function OverviewTab({ data, lastSync, onNewTest, onManageContent, onSync
       title: "Copied!",
       description: `${label} has been copied to your clipboard.`,
     });
+  };
+
+  const handleUpdateSalt = () => {
+    onSaveSetting('daily_key_salt', newSalt);
+    setIsSaltDialogOpen(false);
   };
 
   return (
@@ -136,7 +160,48 @@ export function OverviewTab({ data, lastSync, onNewTest, onManageContent, onSync
             </div>
           </div>
           
-          <div className="ml-4 pl-4 border-l border-white/10">
+          <div className="ml-4 pl-4 border-l border-white/10 flex items-center gap-2">
+            <Dialog open={isSaltDialogOpen} onOpenChange={setIsSaltDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-primary">
+                  <Settings2 className="w-4 h-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="rounded-[2.5rem] p-10 border-none shadow-2xl">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl font-black uppercase tracking-tight">Configure Protocol Secret</DialogTitle>
+                  <DialogDescription className="text-slate-500 font-medium">
+                    This secret salt is used to generate the dynamic daily keys. Changing this will invalidate all currently distributed keys for today.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="py-6 space-y-4">
+                  <div className="space-y-2">
+                    <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">Custom Protocol Salt</Label>
+                    <Input 
+                      value={newSalt} 
+                      onChange={(e) => setNewSalt(e.target.value)} 
+                      placeholder="e.g. MY-PRIVATE-PROTOCOL-2025" 
+                      className="h-12 rounded-xl bg-slate-50 border-none ring-1 ring-slate-200 font-bold"
+                    />
+                  </div>
+                  <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                    <p className="text-[10px] font-bold text-primary leading-relaxed">
+                      Pro Tip: Use a unique, long string to ensure your Daily Access Keys are unpredictable.
+                    </p>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button 
+                    onClick={handleUpdateSalt}
+                    className="w-full h-14 rounded-full bg-primary font-black uppercase text-xs tracking-widest shadow-xl"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Apply New Secret
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-10 rounded-xl bg-white/5 hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest gap-2">
@@ -261,7 +326,7 @@ export function OverviewTab({ data, lastSync, onNewTest, onManageContent, onSync
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <QuickActionCard title={t('createTest')} description="Add assessment" icon={Plus} onClick={() => router.push('/admin/tests/new')} theme="primary" />
         <QuickActionCard title={t('manageTests')} description="Edit library" icon={Zap} onClick={onManageContent} theme="dark" />
-        <QuickActionCard title={t('gsCode')} description="GS Protocol v17.7" icon={Code2} onClick={() => copyToClipboard(GAS_CODE, t('gsCode'))} theme="accent" />
+        <QuickActionCard title={t('gsCode')} description="GS Protocol v17.8" icon={Code2} onClick={() => copyToClipboard(GAS_CODE, t('gsCode'))} theme="accent" />
         <QuickActionCard title={t('syncData')} description="Refresh from Sheets" icon={RefreshCcw} onClick={onSync} theme="light" />
         <QuickActionCard title={t('seedData')} description="Initialize demo content" icon={Database} onClick={onSeed} theme="warning" />
       </div>

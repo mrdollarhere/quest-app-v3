@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -11,6 +12,7 @@ import { DEMO_QUESTIONS, AVAILABLE_TESTS } from '@/app/lib/demo-data';
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
+  const [settings, setSettings] = useState<Record<string, string>>({});
   const [data, setData] = useState<{ tests: any[], users: any[], responses: any[] }>({
     tests: [],
     users: [],
@@ -30,16 +32,18 @@ export default function AdminDashboard() {
     if (!API_URL) return;
     setLoading(true);
     try {
-      const [testsRes, usersRes, responsesRes] = await Promise.all([
+      const [testsRes, usersRes, responsesRes, settingsRes] = await Promise.all([
         fetch(`${API_URL}?action=getTests`),
         fetch(`${API_URL}?action=getUsers`),
-        fetch(`${API_URL}?action=getResponses`)
+        fetch(`${API_URL}?action=getResponses`),
+        fetch(`${API_URL}?action=getSettings`)
       ]);
 
-      const [testsData, usersData, responsesData] = await Promise.all([
+      const [testsData, usersData, responsesData, settingsData] = await Promise.all([
         testsRes.json(),
         usersRes.json(),
-        responsesRes.json()
+        responsesRes.json(),
+        settingsRes.json()
       ]);
 
       setData({
@@ -47,6 +51,7 @@ export default function AdminDashboard() {
         users: Array.isArray(usersData) ? usersData : [],
         responses: Array.isArray(responsesData) ? responsesData : []
       });
+      setSettings(settingsData || {});
       setLastSync(new Date());
     } catch (err) {
       toast({ variant: "destructive", title: "Sync Error", description: "Could not fetch data." });
@@ -74,6 +79,14 @@ export default function AdminDashboard() {
       return false;
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveSetting = async (key: string, value: string) => {
+    const ok = await handlePost('saveSetting', { key, value });
+    if (ok) {
+      toast({ title: "Success", description: "System settings updated." });
+      fetchData();
     }
   };
 
@@ -117,10 +130,12 @@ export default function AdminDashboard() {
       <OverviewTab 
         data={data} 
         lastSync={lastSync}
+        settings={settings}
         onNewTest={() => setDialogs({ ...dialogs, test: true })}
         onManageContent={() => router.push('/admin/tests')}
         onSync={fetchData}
         onSeed={handleSeedData}
+        onSaveSetting={handleSaveSetting}
         setActiveTab={(tab) => router.push(`/admin/${tab === 'overview' ? '' : tab}`)}
       />
 

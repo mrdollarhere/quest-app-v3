@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from 'react';
@@ -27,7 +28,8 @@ import {
   Cloud,
   Terminal,
   FlaskConical,
-  History
+  History,
+  Settings
 } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -60,11 +62,12 @@ export default function SetupGuide() {
         title: "Database Architecture",
         desc: "Provision your storage using Google Sheets™ as the master registry.",
         alertTitle: "Critical Requirement",
-        alertDesc: "You must create four core tabs named exactly: Tests, Users, Responses, Activity.",
-        tabTests: "Tests (Modules)",
-        tabUsers: "Users (Identities)",
-        tabResponses: "Responses (Logs)",
-        tabActivity: "Activity (System)",
+        alertDesc: "You must create five core tabs named exactly: Tests, Users, Responses, Activity, Settings.",
+        tabTests: "Tests",
+        tabUsers: "Users",
+        tabResponses: "Logs",
+        tabActivity: "System",
+        tabSettings: "Settings",
         testsTitle: "Registry Tab: Tests",
         testsHeaders: "id, title, description, category, difficulty, duration, image_url",
         usersTitle: "Registry Tab: Users",
@@ -73,6 +76,8 @@ export default function SetupGuide() {
         responsesHeaders: "Timestamp, User Name, User Email, Test ID, Score, Total, Duration (ms), Raw Responses",
         activityTitle: "Registry Tab: Activity",
         activityHeaders: "Timestamp, User Name, User Email, Event, IP Address, Device",
+        settingsTitle: "Registry Tab: Settings",
+        settingsHeaders: "key, value",
         dynamicTitle: "Module Sheets",
         dynamicHeaders: "id, question_text, question_type, options, correct_answer, order_group, image_url, metadata, required"
       },
@@ -80,7 +85,7 @@ export default function SetupGuide() {
         num: "02",
         title: "Intelligence Bridge",
         desc: "Deploy the Google Apps Script backend to connect the UI to your Sheet.",
-        codeTitle: "GAS Template",
+        codeTitle: "GAS Template v17.8",
         codeDesc: "Navigate to Extensions > Apps Script in your sheet and inject the template below.",
         deployTitle: "Cloud Deployment",
         deploy1: "Type: Web App",
@@ -92,10 +97,6 @@ export default function SetupGuide() {
         num: "03",
         title: "Frontend Protocol",
         desc: "Deploy your interactive UI to the global edge.",
-        vercelTitle: "Vercel Hosting",
-        vercelDesc: "Connect your repo. Vercel will auto-detect the Next.js framework.",
-        firebaseTitle: "Firebase Hosting",
-        firebaseDesc: "High-scale performance. Use 'firebase deploy' from your terminal.",
         ready: "Registry Handshake Complete",
         launch: "Initialize Console"
       }
@@ -110,11 +111,12 @@ export default function SetupGuide() {
         title: "Kiến Trúc Dữ Liệu",
         desc: "Thiết lập Google Sheets™ làm kho lưu trữ dữ liệu chính.",
         alertTitle: "Yêu Cầu Bắt Buộc",
-        alertDesc: "Bạn phải tạo 4 tab chính: Tests, Users, Responses, Activity (Đúng chính tả).",
-        tabTests: "Tests (Bài học)",
-        tabUsers: "Users (Người dùng)",
-        tabResponses: "Responses (Kết quả)",
-        tabActivity: "Activity (Hệ thống)",
+        alertDesc: "Bạn phải tạo 5 tab chính: Tests, Users, Responses, Activity, Settings (Đúng chính tả).",
+        tabTests: "Tests",
+        tabUsers: "Users",
+        tabResponses: "Kết quả",
+        tabActivity: "Hệ thống",
+        tabSettings: "Cấu hình",
         testsTitle: "Tab Danh Mục: Tests",
         testsHeaders: "id, title, description, category, difficulty, duration, image_url",
         usersTitle: "Tab Danh Tính: Users",
@@ -123,6 +125,8 @@ export default function SetupGuide() {
         responsesHeaders: "Timestamp, User Name, User Email, Test ID, Score, Total, Duration (ms), Raw Responses",
         activityTitle: "Tab Hoạt Động: Activity",
         activityHeaders: "Timestamp, User Name, User Email, Event, IP Address, Device",
+        settingsTitle: "Tab Cấu Hình: Settings",
+        settingsHeaders: "key, value",
         dynamicTitle: "Tab Câu Hỏi",
         dynamicHeaders: "id, question_text, question_type, options, correct_answer, order_group, image_url, metadata, required"
       },
@@ -130,7 +134,7 @@ export default function SetupGuide() {
         num: "02",
         title: "Cầu Nối Đám Mây",
         desc: "Triển khai Google Apps Script để đồng bộ hóa dữ liệu.",
-        codeTitle: "Mã Nguồn GAS",
+        codeTitle: "Mã Nguồn GAS v17.8",
         codeDesc: "Vào Tiện ích mở rộng > Apps Script và dán mã nguồn từ nút bên dưới.",
         deployTitle: "Triển Khai Web",
         deploy1: "Loại: Ứng dụng Web",
@@ -142,10 +146,6 @@ export default function SetupGuide() {
         num: "03",
         title: "Triển Khai Giao Diện",
         desc: "Đưa website của bạn lên internet.",
-        vercelTitle: "Hosting Vercel",
-        vercelDesc: "Kết nối GitHub. Vercel sẽ tự động cấu hình Next.js.",
-        firebaseTitle: "Hosting Firebase",
-        firebaseDesc: "Hiệu suất cao. Chạy lệnh 'firebase deploy' từ terminal.",
         ready: "Hệ Thống Sẵn Sàng",
         launch: "Bắt Đầu"
       }
@@ -211,11 +211,12 @@ export default function SetupGuide() {
           </Alert>
 
           <Tabs defaultValue="tests" className="w-full">
-            <TabsList className="grid grid-cols-4 bg-slate-200/50 p-2 rounded-[2rem] h-auto shadow-inner">
-              <TabsTrigger value="tests" className="rounded-2xl py-4 font-black uppercase text-[10px] tracking-[0.2em] data-[state=active]:bg-white data-[state=active]:shadow-xl">{t.step1.tabTests}</TabsTrigger>
-              <TabsTrigger value="users" className="rounded-2xl py-4 font-black uppercase text-[10px] tracking-[0.2em] data-[state=active]:bg-white data-[state=active]:shadow-xl">{t.step1.tabUsers}</TabsTrigger>
-              <TabsTrigger value="responses" className="rounded-2xl py-4 font-black uppercase text-[10px] tracking-[0.2em] data-[state=active]:bg-white data-[state=active]:shadow-xl">{t.step1.tabResponses}</TabsTrigger>
-              <TabsTrigger value="activity" className="rounded-2xl py-4 font-black uppercase text-[10px] tracking-[0.2em] data-[state=active]:bg-white data-[state=active]:shadow-xl">{t.step1.tabActivity}</TabsTrigger>
+            <TabsList className="grid grid-cols-5 bg-slate-200/50 p-2 rounded-[2rem] h-auto shadow-inner">
+              <TabsTrigger value="tests" className="rounded-2xl py-4 font-black uppercase text-[9px] tracking-[0.1em] data-[state=active]:bg-white data-[state=active]:shadow-xl">{t.step1.tabTests}</TabsTrigger>
+              <TabsTrigger value="users" className="rounded-2xl py-4 font-black uppercase text-[9px] tracking-[0.1em] data-[state=active]:bg-white data-[state=active]:shadow-xl">{t.step1.tabUsers}</TabsTrigger>
+              <TabsTrigger value="responses" className="rounded-2xl py-4 font-black uppercase text-[9px] tracking-[0.1em] data-[state=active]:bg-white data-[state=active]:shadow-xl">{t.step1.tabResponses}</TabsTrigger>
+              <TabsTrigger value="activity" className="rounded-2xl py-4 font-black uppercase text-[9px] tracking-[0.1em] data-[state=active]:bg-white data-[state=active]:shadow-xl">{t.step1.tabActivity}</TabsTrigger>
+              <TabsTrigger value="settings" className="rounded-2xl py-4 font-black uppercase text-[9px] tracking-[0.1em] data-[state=active]:bg-white data-[state=active]:shadow-xl">{t.step1.tabSettings}</TabsTrigger>
             </TabsList>
             
             <TabsContent value="tests" className="mt-10">
@@ -269,6 +270,19 @@ export default function SetupGuide() {
                 <div className="bg-slate-900 p-8 rounded-[2rem] font-mono text-sm text-green-400 overflow-x-auto whitespace-nowrap shadow-inner border-4 border-slate-800">{t.step1.activityHeaders}</div>
               </Card>
             </TabsContent>
+
+            <TabsContent value="settings" className="mt-10">
+              <Card className="border-none shadow-2xl rounded-[3.5rem] bg-white p-12">
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-4">
+                    <Settings className="w-6 h-6 text-primary" />
+                    <CardTitle className="text-2xl font-black uppercase tracking-tight">{t.step1.settingsTitle}</CardTitle>
+                  </div>
+                  <Button variant="outline" size="lg" onClick={() => copyToClipboard(t.step1.settingsHeaders, "Headers Copied")} className="rounded-full font-black text-xs border-2">Copy Headers</Button>
+                </div>
+                <div className="bg-slate-900 p-8 rounded-[2rem] font-mono text-sm text-green-400 overflow-x-auto whitespace-nowrap shadow-inner border-4 border-slate-800">{t.step1.settingsHeaders}</div>
+              </Card>
+            </TabsContent>
           </Tabs>
         </section>
 
@@ -317,20 +331,6 @@ export default function SetupGuide() {
               <h2 className="text-4xl font-black text-slate-900 uppercase tracking-tight">{t.step3.title}</h2>
               <p className="text-slate-500 font-medium text-lg mt-1">{t.step3.desc}</p>
             </div>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-10">
-            <Card className="border-none shadow-2xl rounded-[4rem] p-12 bg-white border-2 border-slate-50 hover:-translate-y-2 transition-all duration-500">
-              <Cloud className="w-12 h-12 text-blue-500 mb-8" />
-              <h3 className="text-2xl font-black uppercase mb-4 tracking-tight">{t.step3.vercelTitle}</h3>
-              <p className="text-slate-500 font-medium leading-relaxed">{t.step3.vercelDesc}</p>
-            </Card>
-
-            <Card className="border-none shadow-2xl rounded-[4rem] p-12 bg-white border-2 border-slate-50 hover:-translate-y-2 transition-all duration-500">
-              <Server className="w-12 h-12 text-orange-500 mb-8" />
-              <h3 className="text-2xl font-black uppercase mb-4 tracking-tight">{t.step3.firebaseTitle}</h3>
-              <p className="text-slate-500 font-medium leading-relaxed">{t.step3.firebaseDesc}</p>
-            </Card>
           </div>
 
           <div className="pt-10">

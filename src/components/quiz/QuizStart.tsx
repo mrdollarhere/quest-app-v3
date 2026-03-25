@@ -32,6 +32,7 @@ interface QuizStartProps {
   user: any;
   guestName: string;
   setGuestName: (name: string) => void;
+  protocolSalt?: string;
   onStart: (mode: QuizMode) => void;
 }
 
@@ -45,6 +46,7 @@ export function QuizStart({
   user,
   guestName,
   setGuestName,
+  protocolSalt,
   onStart
 }: QuizStartProps) {
   const [step, setStep] = useState<Step>('gate');
@@ -53,8 +55,8 @@ export function QuizStart({
   const { toast } = useToast();
 
   const handleVerifyPassword = () => {
-    const dailyKey = generateDailyPassword();
-    if (password.trim() === dailyKey) {
+    const dailyKey = generateDailyPassword(undefined, protocolSalt);
+    if (password.trim().toUpperCase() === dailyKey.toUpperCase()) {
       toast({
         title: "Access Granted",
         description: "Security Protocol Cleared. Please proceed with identity registration.",
