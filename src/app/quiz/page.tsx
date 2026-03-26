@@ -292,6 +292,7 @@ function QuizContent() {
     return (
       <QuizResults 
         title={quizTitle}
+        testId={testId || undefined}
         score={quiz.score}
         totalQuestions={quiz.questions.length}
         questions={quiz.questions}

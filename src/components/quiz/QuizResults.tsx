@@ -1,7 +1,7 @@
 
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -17,13 +17,16 @@ import {
   Activity,
   History,
   Target,
-  Clock
+  Clock,
+  TrendingUp,
+  Loader2
 } from "lucide-react";
 import Link from 'next/link';
 import { cn } from "@/lib/utils";
 import { Question, UserResponse } from '@/types/quiz';
 import { QuestionRenderer } from './QuestionRenderer';
 import { calculateScoreForQuestion } from '@/lib/quiz-utils';
+import { API_URL } from '@/lib/api-config';
 import {
   Accordion,
   AccordionContent,
@@ -33,6 +36,7 @@ import {
 
 interface QuizResultsProps {
   title: string;
+  testId?: string;
   score: number;
   totalQuestions: number;
   questions: Question[];
@@ -45,6 +49,7 @@ interface QuizResultsProps {
 
 export function QuizResults({
   title,
+  testId,
   score,
   totalQuestions,
   questions,
@@ -54,6 +59,9 @@ export function QuizResults({
   startTime,
   endTime
 }: QuizResultsProps) {
+  const [percentile, setPercentile] = useState<number | null>(null);
+  const [comparativeLoading, setComparativeLoading] = useState(false);
+
   const percentage = Math.round((score / totalQuestions) * 100);
   
   // Performance Thresholds
@@ -78,6 +86,40 @@ export function QuizResults({
       ? "border-orange-100" 
       : "border-red-100";
 
+  useEffect(() => {
+    if (!testId || !API_URL) return;
+    
+    const fetchComparison = async () => {
+      setComparativeLoading(true);
+      try {
+        const res = await fetch(`${API_URL}?action=getResponses`);
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          // Filter results for this specific test
+          const testResponses = data.filter(r => String(r['Test ID']) === String(testId));
+          if (testResponses.length > 0) {
+            const currentScorePct = percentage;
+            const scores = testResponses.map(r => (Number(r.Score) / (Number(r.Total) || 1)) * 100);
+            
+            // Calculate how many people scored less than the current user
+            const lowerScores = scores.filter(s => s < currentScorePct).length;
+            const calculatedPercentile = Math.round((lowerScores / scores.length) * 100);
+            setPercentile(calculatedPercentile);
+          } else {
+            // If user is the first, they are technically in the 100th percentile
+            setPercentile(100);
+          }
+        }
+      } catch (e) {
+        console.error("Comparison fetch failed", e);
+      } finally {
+        setComparativeLoading(false);
+      }
+    };
+
+    fetchComparison();
+  }, [testId, percentage]);
+
   const getCompliment = (pct: number) => {
     if (pct >= 95) return "Exceptional mastery! Absolute precision detected.";
     if (pct >= 80) return "Outstanding! Peak cognitive synchronization.";
@@ -92,7 +134,8 @@ export function QuizResults({
     const seconds = Math.floor(ms / 1000);
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
-    return `${minutes}m ${remainingSeconds}s`;
+    if (minutes > 0) return `${minutes}m ${remainingSeconds}s`;
+    return `${remainingSeconds}s`;
   };
   const formattedDuration = formatDuration(durationMs);
 
@@ -185,12 +228,34 @@ export function QuizResults({
                 </p>
               </div>
 
+              {/* Percentile Comparison Box */}
+              {percentile !== null && !comparativeLoading && (
+                <div className="p-6 bg-primary/5 rounded-[2.5rem] border-2 border-primary/10 flex items-center gap-6 mb-8 animate-in fade-in slide-in-from-bottom-2 duration-700">
+                  <div className="w-14 h-14 rounded-2xl bg-white shadow-sm flex items-center justify-center shrink-0">
+                    <TrendingUp className="w-6 h-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mb-1">Global Benchmarking</p>
+                    <p className="text-lg font-bold text-slate-700 leading-tight">
+                      Your score is better than <span className="text-primary font-black">{percentile}%</span> of participants.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {comparativeLoading && (
+                <div className="h-20 flex items-center justify-center mb-8 bg-slate-50 rounded-[2.5rem] border-2 border-dashed border-slate-100">
+                  <Loader2 className="w-5 h-5 animate-spin text-slate-300 mr-3" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Syncing Benchmark Registry...</span>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Button onClick={onRestart} variant="outline" className="h-16 rounded-full font-black border-4 text-xs uppercase tracking-widest hover:bg-slate-50 transition-all group">
                   <RotateCcw className="w-4 h-4 mr-2 transition-transform group-hover:-rotate-45" />
                   Restart Module
                 </Button>
-                <Link href="/tests">
+                <Link href="/tests" className="w-full">
                   <Button className="w-full h-16 rounded-full font-black shadow-2xl bg-slate-900 hover:bg-slate-800 transition-all text-xs uppercase tracking-widest">
                     Enter Library
                     <ArrowRight className="w-4 h-4 ml-2" />
