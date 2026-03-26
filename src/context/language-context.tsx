@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
@@ -13,6 +12,10 @@ interface LanguageContextType {
 
 const translations: Record<Language, Record<string, string>> = {
   en: {
+    // Theme
+    lightMode: "Light Mode",
+    darkMode: "Dark Mode",
+    system: "System",
     // Admin & General
     dashboard: "Dashboard",
     testLibrary: "Test Library",
@@ -112,6 +115,10 @@ const translations: Record<Language, Record<string, string>> = {
     systemOptimal: "System: Optimal"
   },
   vi: {
+    // Theme
+    lightMode: "Chế độ Sáng",
+    darkMode: "Chế độ Tối",
+    system: "Hệ thống",
     // Admin & General
     dashboard: "Bảng điều khiển",
     testLibrary: "Thư viện bài thi",
@@ -211,6 +218,10 @@ const translations: Record<Language, Record<string, string>> = {
     systemOptimal: "Hệ thống: Tốt"
   },
   es: {
+    // Theme
+    lightMode: "Modo Claro",
+    darkMode: "Modo Oscuro",
+    system: "Sistema",
     // Admin & General
     dashboard: "Panel",
     testLibrary: "Biblioteca de pruebas",
