@@ -43,7 +43,7 @@ export default function LandingPage() {
           </div>
           
           <div className="flex items-center gap-4 md:gap-8">
-            <nav className="hidden md:flex items-center gap-10 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+            <nav className="hidden md:flex items-center gap-10 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
               <Link href="/tests" className="hover:text-primary transition-colors">{t('library')}</Link>
               <Link href="/setup-guide" className="hover:text-primary transition-colors">{t('setupGuide')}</Link>
             </nav>
@@ -59,7 +59,7 @@ export default function LandingPage() {
                     <span className="hidden sm:inline">{language === 'en' ? 'EN' : language === 'vi' ? 'VI' : 'ES'}</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-[180px] rounded-2xl p-2 shadow-2xl border-none" align="end">
+                <DropdownMenuContent className="w-[180px] rounded-2xl p-2 shadow-2xl border-none dark:bg-slate-900" align="end">
                   <DropdownMenuItem onClick={() => setLanguage('en')} className="font-bold cursor-pointer rounded-xl p-3">English (US)</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setLanguage('vi')} className="font-bold cursor-pointer rounded-xl p-3">Tiếng Việt</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setLanguage('es')} className="font-bold cursor-pointer rounded-xl p-3">Español</DropdownMenuItem>
@@ -76,12 +76,12 @@ export default function LandingPage() {
         {/* Hero Section */}
         <section className="relative overflow-hidden pt-24 pb-32 md:pt-48 md:pb-64">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10">
-            <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/5 blur-[140px] rounded-full" />
-            <div className="absolute bottom-[10%] right-[-10%] w-[40%] h-[40%] bg-accent/5 blur-[140px] rounded-full" />
+            <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/5 dark:bg-primary/10 blur-[140px] rounded-full" />
+            <div className="absolute bottom-[10%] right-[-10%] w-[40%] h-[40%] bg-accent/5 dark:bg-accent/10 blur-[140px] rounded-full" />
           </div>
 
           <div className="container max-w-6xl mx-auto px-6 text-center">
-            <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-500 text-[10px] font-black uppercase tracking-[0.25em] mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-[0.25em] mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
               <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse" />
               {t('heroBadge')}
             </div>
@@ -129,7 +129,7 @@ export default function LandingPage() {
                     { title: t('feature3Title'), desc: t('feature3Desc'), icon: CheckCircle }
                   ].map((item, i) => (
                     <div key={i} className="flex gap-6 group">
-                      <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-800 shadow-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
+                      <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-800 shadow-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500 border border-transparent dark:border-slate-700">
                         <item.icon className="w-6 h-6 text-primary" />
                       </div>
                       <div>
@@ -170,7 +170,7 @@ export default function LandingPage() {
               </p>
               <div className="flex justify-center">
                 <Link href="/tests">
-                  <Button size="lg" className="h-20 px-16 text-xl rounded-full bg-white text-slate-900 hover:bg-slate-100 font-black uppercase tracking-tight transition-all hover:scale-105 shadow-2xl">
+                  <Button size="lg" className="h-20 px-16 text-xl rounded-full bg-white text-slate-900 hover:bg-slate-100 dark:bg-primary dark:text-white dark:hover:bg-primary/90 font-black uppercase tracking-tight transition-all hover:scale-105 shadow-2xl border-none">
                     {t('openLibrary')}
                     <ArrowRight className="w-6 h-6 ml-3" />
                   </Button>
@@ -203,7 +203,7 @@ export default function LandingPage() {
             <div className="grid grid-cols-2 gap-24">
               <div className="space-y-6">
                 <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-900 dark:text-white">{t('platform')}</h4>
-                <nav className="flex flex-col gap-4 text-sm font-bold text-slate-400">
+                <nav className="flex flex-col gap-4 text-sm font-bold text-slate-400 dark:text-slate-500">
                   <Link href="/tests" className="hover:text-primary transition-colors">{t('testLibrary')}</Link>
                   <Link href="/admin" className="hover:text-primary transition-colors">{t('adminConsole')}</Link>
                   <Link href="/setup-guide" className="hover:text-primary transition-colors">{t('setupProtocol')}</Link>
@@ -211,7 +211,7 @@ export default function LandingPage() {
               </div>
               <div className="space-y-6">
                 <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-900 dark:text-white">{t('resources')}</h4>
-                <nav className="flex flex-col gap-4 text-sm font-bold text-slate-400">
+                <nav className="flex flex-col gap-4 text-sm font-bold text-slate-400 dark:text-slate-500">
                   <span className="cursor-pointer hover:text-primary transition-colors">{t('identityGuide')}</span>
                   <span className="cursor-pointer hover:text-primary transition-colors">{t('cloudSync')}</span>
                 </nav>
@@ -226,7 +226,7 @@ export default function LandingPage() {
             <div className="flex items-center gap-8">
               <div className="flex items-center gap-3 px-4 py-2 bg-slate-50 dark:bg-slate-900 rounded-full border border-slate-100 dark:border-slate-800">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t('systemOptimal')}</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">{t('systemOptimal')}</span>
               </div>
             </div>
           </div>

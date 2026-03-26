@@ -89,25 +89,25 @@ export default function ProfilePage() {
 
   if (authLoading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
         <AILoader />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 selection:bg-primary selection:text-white pb-20">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 selection:bg-primary selection:text-white pb-20 transition-colors duration-300">
       {/* Header */}
-      <header className="py-6 px-6 md:px-12 border-b bg-white/70 backdrop-blur-xl sticky top-0 z-50">
+      <header className="py-6 px-6 md:px-12 border-b bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-slate-100 dark:border-slate-800 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-4">
             <Link href="/tests">
-              <Button variant="ghost" size="icon" className="rounded-full hover:bg-slate-100">
-                <ArrowLeft className="w-5 h-5 text-slate-900" />
+              <Button variant="ghost" size="icon" className="rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
+                <ArrowLeft className="w-5 h-5 text-slate-900 dark:text-white" />
               </Button>
             </Link>
             <div>
-              <h1 className="text-xl font-black tracking-tighter text-slate-900 uppercase">Identity Registry</h1>
+              <h1 className="text-xl font-black tracking-tighter text-slate-900 dark:text-white uppercase">Identity Registry</h1>
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">DNTRNG™ Node: Active</p>
             </div>
           </div>
@@ -120,38 +120,38 @@ export default function ProfilePage() {
           
           {/* Sidebar / Identity Card */}
           <div className="lg:col-span-4 space-y-8">
-            <Card className="border-none shadow-2xl rounded-[3rem] overflow-hidden bg-white">
+            <Card className="border-none shadow-2xl rounded-[3rem] overflow-hidden bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800">
               <div className="h-32 bg-primary relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
                 <Zap className="absolute -bottom-8 -right-8 w-32 h-32 text-white/5 fill-current" />
               </div>
               <div className="px-8 pb-10 -mt-16 relative z-10 text-center">
-                <Avatar className="h-32 w-32 border-8 border-white shadow-2xl mx-auto mb-6">
-                  <AvatarFallback className="bg-slate-100 text-primary font-black text-4xl">
+                <Avatar className="h-32 w-32 border-8 border-white dark:border-slate-900 shadow-2xl mx-auto mb-6">
+                  <AvatarFallback className="bg-slate-100 dark:bg-slate-800 text-primary font-black text-4xl">
                     {user.displayName?.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 
-                <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">{user.displayName}</h2>
+                <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter uppercase">{user.displayName}</h2>
                 <div className="flex items-center justify-center gap-2 mt-2">
-                  <Badge variant="secondary" className="bg-primary/5 text-primary border-none font-black text-[10px] uppercase tracking-widest px-3 py-1 rounded-full">
+                  <Badge variant="secondary" className="bg-primary/5 dark:bg-primary/10 text-primary border-none font-black text-[10px] uppercase tracking-widest px-3 py-1 rounded-full">
                     {user.role} Operator
                   </Badge>
                 </div>
 
                 <div className="mt-10 space-y-4 text-left">
-                  <div className="p-4 bg-slate-50 rounded-2xl flex items-center gap-4 border border-slate-100">
-                    <div className="p-2 bg-white rounded-xl shadow-sm"><Mail className="w-4 h-4 text-slate-400" /></div>
+                  <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl flex items-center gap-4 border border-slate-100 dark:border-slate-800">
+                    <div className="p-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm"><Mail className="w-4 h-4 text-slate-400 dark:text-slate-500" /></div>
                     <div className="min-w-0">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Identity Key</p>
-                      <p className="text-sm font-bold text-slate-700 truncate">{user.email}</p>
+                      <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none mb-1">Identity Key</p>
+                      <p className="text-sm font-bold text-slate-700 dark:text-slate-300 truncate">{user.email}</p>
                     </div>
                   </div>
-                  <div className="p-4 bg-slate-50 rounded-2xl flex items-center gap-4 border border-slate-100">
-                    <div className="p-2 bg-white rounded-xl shadow-sm"><Shield className="w-4 h-4 text-slate-400" /></div>
+                  <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl flex items-center gap-4 border border-slate-100 dark:border-slate-800">
+                    <div className="p-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm"><Shield className="w-4 h-4 text-slate-400 dark:text-slate-500" /></div>
                     <div className="min-w-0">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Access Protocol</p>
-                      <p className="text-sm font-bold text-slate-700 truncate">{user.role === 'admin' ? 'Elevated Oversight' : 'Standard Student'}</p>
+                      <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none mb-1">Access Protocol</p>
+                      <p className="text-sm font-bold text-slate-700 dark:text-slate-300 truncate">{user.role === 'admin' ? 'Elevated Oversight' : 'Standard Student'}</p>
                     </div>
                   </div>
                 </div>
@@ -168,7 +168,7 @@ export default function ProfilePage() {
             </Card>
 
             {user.role === 'admin' && (
-              <Card className="border-none shadow-xl rounded-[2.5rem] bg-slate-900 text-white p-8 group relative overflow-hidden">
+              <Card className="border-none shadow-xl rounded-[2.5rem] bg-slate-900 dark:bg-slate-900 text-white p-8 group relative overflow-hidden border border-transparent dark:border-slate-800">
                 <div className="absolute top-0 right-0 p-6 opacity-10">
                   <Settings className="w-24 h-24" />
                 </div>
@@ -211,41 +211,41 @@ export default function ProfilePage() {
               />
             </div>
 
-            <Card className="border-none shadow-sm rounded-[2.5rem] overflow-hidden bg-white min-h-[500px] flex flex-col">
-              <CardHeader className="bg-slate-50/50 border-b p-8 flex flex-row items-center justify-between">
+            <Card className="border-none shadow-sm rounded-[2.5rem] overflow-hidden bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 min-h-[500px] flex flex-col">
+              <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 p-8 flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle className="text-2xl font-black text-slate-900 uppercase tracking-tight">Intelligence Log</CardTitle>
-                  <CardDescription className="font-medium">Your historical interaction with the DNTRNG Registry</CardDescription>
+                  <CardTitle className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Intelligence Log</CardTitle>
+                  <CardDescription className="font-medium text-slate-500 dark:text-slate-400">Your historical interaction with the DNTRNG Registry</CardDescription>
                 </div>
                 {loadingStats && <AILoader className="mb-0" iconClassName="w-6 h-6" />}
               </CardHeader>
               <CardContent className="p-0 flex-1">
                 {responses.length > 0 ? (
-                  <div className="divide-y divide-slate-50">
+                  <div className="divide-y divide-slate-50 dark:divide-slate-800">
                     {responses.map((resp, i) => {
                       const pct = Math.round((Number(resp.Score) / (Number(resp.Total) || 1)) * 100);
                       return (
-                        <div key={i} className="p-6 md:p-8 flex items-center justify-between hover:bg-slate-50/50 transition-colors group">
+                        <div key={i} className="p-6 md:p-8 flex items-center justify-between hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group">
                           <div className="flex items-center gap-6">
                             <div className={cn(
                               "w-14 h-14 rounded-2xl flex items-center justify-center font-black text-lg shadow-sm border-2",
-                              pct >= 80 ? "bg-green-50 border-green-100 text-green-600" : 
-                              pct >= 50 ? "bg-orange-50 border-orange-100 text-orange-600" : "bg-red-50 border-red-100 text-red-600"
+                              pct >= 80 ? "bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-900 text-green-600 dark:text-green-400" : 
+                              pct >= 50 ? "bg-orange-50 dark:bg-orange-900/20 border-orange-100 dark:border-orange-900 text-orange-600 dark:text-orange-400" : "bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-900 text-red-600 dark:text-red-400"
                             )}>
                               {pct}%
                             </div>
                             <div>
-                              <p className="font-black text-slate-900 text-lg group-hover:text-primary transition-colors">{resp['Test ID']}</p>
-                              <div className="flex items-center gap-3 text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
+                              <p className="font-black text-slate-900 dark:text-white text-lg group-hover:text-primary transition-colors">{resp['Test ID']}</p>
+                              <div className="flex items-center gap-3 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">
                                 <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(resp.Timestamp).toLocaleDateString()}</span>
-                                <span className="w-1 h-1 bg-slate-200 rounded-full" />
+                                <span className="w-1 h-1 bg-slate-200 dark:bg-slate-700 rounded-full" />
                                 <span>{resp.Score} / {resp.Total} Points</span>
                               </div>
                             </div>
                           </div>
                           <Link href={`/quiz?id=${resp['Test ID']}`}>
-                            <Button variant="ghost" size="icon" className="rounded-full h-12 w-12 opacity-0 group-hover:opacity-100 transition-all">
-                              <RotateCcw className="w-5 h-5 text-slate-400" />
+                            <Button variant="ghost" size="icon" className="rounded-full h-12 w-12 opacity-0 group-hover:opacity-100 transition-all dark:hover:bg-slate-800">
+                              <RotateCcw className="w-5 h-5 text-slate-400 dark:text-slate-600" />
                             </Button>
                           </Link>
                         </div>
@@ -254,11 +254,11 @@ export default function ProfilePage() {
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-32 text-center px-10">
-                    <div className="bg-slate-50 w-24 h-24 rounded-[2rem] flex items-center justify-center mb-6">
-                      <Database className="w-10 h-10 text-slate-200" />
+                    <div className="bg-slate-50 dark:bg-slate-800 w-24 h-24 rounded-[2rem] flex items-center justify-center mb-6">
+                      <Database className="w-10 h-10 text-slate-200 dark:text-slate-700" />
                     </div>
-                    <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">No Logs Detected</h3>
-                    <p className="text-slate-500 font-medium max-w-xs mt-2">You haven't initialized any intelligence modules yet. Your history will appear here once you complete a test.</p>
+                    <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">No Logs Detected</h3>
+                    <p className="text-slate-500 dark:text-slate-400 font-medium max-w-xs mt-2">You haven't initialized any intelligence modules yet. Your history will appear here once you complete a test.</p>
                     <Link href="/tests" className="mt-8">
                       <Button className="rounded-full bg-primary font-black px-8 h-12 shadow-xl shadow-primary/20">
                         Explore Library
@@ -271,27 +271,27 @@ export default function ProfilePage() {
 
             {user.role === 'admin' && (
               <div className="grid md:grid-cols-2 gap-8">
-                <Card className="border-none shadow-sm rounded-[2.5rem] p-8 bg-white border border-slate-100">
-                  <h4 className="font-black uppercase text-[10px] tracking-[0.3em] text-slate-400 mb-6">Registry Overview</h4>
+                <Card className="border-none shadow-sm rounded-[2.5rem] p-8 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                  <h4 className="font-black uppercase text-[10px] tracking-[0.3em] text-slate-400 dark:text-slate-500 mb-6">Registry Overview</h4>
                   <div className="space-y-6">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-slate-500">Active Modules</span>
-                      <span className="text-lg font-black text-slate-900">{testsCount}</span>
+                      <span className="text-sm font-bold text-slate-500 dark:text-slate-400">Active Modules</span>
+                      <span className="text-lg font-black text-slate-900 dark:text-white">{testsCount}</span>
                     </div>
-                    <Progress value={85} className="h-2 bg-slate-50" />
-                    <p className="text-[10px] font-medium text-slate-400">Structural integrity: 100% Optimal</p>
+                    <Progress value={85} className="h-2 bg-slate-50 dark:bg-slate-800" />
+                    <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500">Structural integrity: 100% Optimal</p>
                   </div>
                 </Card>
-                <Card className="border-none shadow-sm rounded-[2.5rem] p-8 bg-white border border-slate-100">
-                  <h4 className="font-black uppercase text-[10px] tracking-[0.3em] text-slate-400 mb-6">Quick Protocol</h4>
+                <Card className="border-none shadow-sm rounded-[2.5rem] p-8 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                  <h4 className="font-black uppercase text-[10px] tracking-[0.3em] text-slate-400 dark:text-slate-500 mb-6">Quick Protocol</h4>
                   <div className="flex flex-col gap-3">
                     <Link href="/admin/tests/new">
-                      <Button variant="outline" className="w-full h-11 rounded-full border-2 font-black text-xs">
+                      <Button variant="outline" className="w-full h-11 rounded-full border-2 border-slate-200 dark:border-slate-700 font-black text-xs hover:bg-slate-50 dark:hover:bg-slate-800">
                         Inject New Test
                       </Button>
                     </Link>
                     <Link href="/setup-guide">
-                      <Button variant="ghost" className="w-full h-11 rounded-full font-black text-xs text-primary">
+                      <Button variant="ghost" className="w-full h-11 rounded-full font-black text-xs text-primary hover:bg-primary/5">
                         View Setup Guide
                       </Button>
                     </Link>
@@ -308,20 +308,20 @@ export default function ProfilePage() {
 
 function StatCard({ icon: Icon, label, value, sub, theme }: any) {
   const themes: any = {
-    blue: "text-blue-600 bg-blue-50/50 border-blue-100",
-    green: "text-emerald-600 bg-emerald-50/50 border-emerald-100",
-    purple: "text-purple-600 bg-purple-50/50 border-purple-100"
+    blue: "text-blue-600 bg-blue-50/50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-900",
+    green: "text-emerald-600 bg-emerald-50/50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-900",
+    purple: "text-purple-600 bg-purple-50/50 dark:bg-purple-900/20 border-purple-100 dark:border-purple-900"
   };
   return (
-    <Card className="border-none shadow-sm bg-white p-6 group hover:shadow-xl transition-all rounded-[2rem]">
+    <Card className="border-none shadow-sm bg-white dark:bg-slate-900 p-6 group hover:shadow-xl transition-all rounded-[2rem] border border-transparent dark:border-slate-800">
       <div className="flex items-center gap-4">
         <div className={cn("p-4 rounded-2xl border transition-transform group-hover:scale-110", themes[theme])}>
           <Icon className="w-6 h-6" />
         </div>
         <div>
-          <p className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-400 leading-none mb-1">{label}</p>
-          <p className="text-2xl font-black text-slate-900 tracking-tighter">{value}</p>
-          <p className="text-[10px] font-bold text-slate-400 truncate">{sub}</p>
+          <p className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500 leading-none mb-1">{label}</p>
+          <p className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter">{value}</p>
+          <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 truncate">{sub}</p>
         </div>
       </div>
     </Card>

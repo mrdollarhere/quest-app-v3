@@ -24,7 +24,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50/30">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50/30 dark:bg-slate-950">
         <AILoader />
       </div>
     );
@@ -32,9 +32,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (!user || user.role !== 'admin') {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center bg-slate-50 dark:bg-slate-950">
         <ShieldAlert className="w-20 h-20 text-red-500 mb-4" />
-        <h1 className="text-2xl font-black">Access Denied</h1>
+        <h1 className="text-2xl font-black text-slate-900 dark:text-white">Access Denied</h1>
         <p className="text-muted-foreground mt-2">Only administrators can access this control panel.</p>
         <Link href="/" className="mt-6">
           <Button className="rounded-full">Return Home</Button>
@@ -46,18 +46,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <LanguageProvider>
       <SidebarProvider>
-        <div className="flex min-h-screen bg-slate-50/30 w-full">
+        <div className="flex min-h-screen bg-slate-50/30 dark:bg-slate-950 w-full transition-colors duration-300">
           <AdminSidebar 
             activeTab={activeTab as any} 
             user={user} 
             logout={logout} 
           />
           <main className="flex-1">
-            <header className="h-20 border-b bg-white flex items-center justify-between px-8 sticky top-0 z-10 backdrop-blur-sm bg-white/80">
+            <header className="h-20 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-8 sticky top-0 z-10 backdrop-blur-sm bg-white/80 dark:bg-slate-900/80">
               <div className="flex items-center gap-4">
                 <SidebarTrigger className="lg:hidden" />
                 <div>
-                  <h2 className="text-xl font-black capitalize tracking-tight text-slate-900">
+                  <h2 className="text-xl font-black capitalize tracking-tight text-slate-900 dark:text-white">
                     {pathname === '/admin' ? 'Dashboard' : pathname.split('/').pop()?.replace('-', ' ')}
                   </h2>
                   <span className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-1.5">

@@ -52,7 +52,7 @@ export default function TestsLibrary() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50/30 selection:bg-primary selection:text-white flex flex-col">
+    <div className="min-h-screen bg-slate-50/30 dark:bg-slate-950 selection:bg-primary selection:text-white flex flex-col transition-colors duration-300">
       <LibraryHeader 
         search={search}
         setSearch={setSearch}
@@ -72,8 +72,8 @@ export default function TestsLibrary() {
           <div className="space-y-12">
             {!search && (
               <div className="px-4">
-                <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase mb-2">Available Modules</h2>
-                <p className="text-slate-400 font-bold tracking-widest text-[10px] uppercase">Select a protocol to begin your session</p>
+                <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase mb-2">Available Modules</h2>
+                <p className="text-slate-400 dark:text-slate-500 font-bold tracking-widest text-[10px] uppercase">Select a protocol to begin your session</p>
               </div>
             )}
             
@@ -90,15 +90,15 @@ export default function TestsLibrary() {
         )}
       </main>
 
-      <footer className="bg-white border-t py-16 mt-20">
+      <footer className="bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 py-16 mt-20">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <div className="flex items-center justify-center gap-3 mb-6 opacity-30">
-            <div className="bg-slate-900 p-1.5 rounded-lg">
-              <Sparkles className="text-primary w-4 h-4 fill-current" />
+            <div className="bg-slate-900 dark:bg-primary p-1.5 rounded-lg">
+              <Sparkles className="text-primary dark:text-white w-4 h-4 fill-current" />
             </div>
-            <span className="text-xl font-black tracking-tighter text-slate-900 uppercase">DNTRNG</span>
+            <span className="text-xl font-black tracking-tighter text-slate-900 dark:text-white uppercase">DNTRNG</span>
           </div>
-          <p className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-300">
+          <p className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-300 dark:text-slate-700">
             GLOBAL ASSESSMENT REGISTRY • ENCRYPTED SESSION
           </p>
         </div>
