@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Database, Loader2, Sparkles } from "lucide-react";
 import { API_URL } from '@/lib/api-config';
 import { AVAILABLE_TESTS as DEMO_TESTS } from '@/app/lib/demo-data';
 import { LibraryHeader } from '@/components/library/LibraryHeader';
 import { CardView } from '@/components/library/CardView';
 import { ListView } from '@/components/library/ListView';
 import { EmptyState } from '@/components/library/EmptyState';
+import { AILoader } from '@/components/ui/ai-loader';
+import { Sparkles } from 'lucide-react';
 
 export default function TestsLibrary() {
   const [search, setSearch] = useState("");
@@ -64,14 +65,8 @@ export default function TestsLibrary() {
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-16 md:py-24">
         {loading && tests.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-40">
-            <div className="relative w-24 h-24 mb-10">
-              <Loader2 className="w-24 h-24 animate-spin text-primary absolute top-0 left-0 stroke-[3px]" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Sparkles className="w-8 h-8 text-primary animate-pulse" />
-              </div>
-            </div>
-            <p className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-400 animate-pulse">Syncing Learning Registry</p>
+          <div className="py-40">
+            <AILoader />
           </div>
         ) : (
           <div className="space-y-12">

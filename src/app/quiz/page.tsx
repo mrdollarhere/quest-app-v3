@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, Suspense, useMemo } from 'react';
@@ -6,13 +5,13 @@ import { QuizState, QuizMode, Question } from '@/types/quiz';
 import { QuizStart } from '@/components/quiz/QuizStart';
 import { QuizResults } from '@/components/quiz/QuizResults';
 import { QuizActive } from '@/components/quiz/QuizActive';
-import { Loader2 } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import { useSearchParams } from 'next/navigation';
 import { DEMO_QUESTIONS, AVAILABLE_TESTS } from '@/app/lib/demo-data';
 import { API_URL } from '@/lib/api-config';
 import { useAuth } from '@/context/auth-context';
 import { calculateTotalScore, calculateScoreForQuestion } from '@/lib/quiz-utils';
+import { AILoader } from '@/components/ui/ai-loader';
 
 function QuizContent() {
   const searchParams = useSearchParams();
@@ -266,9 +265,8 @@ function QuizContent() {
   };
 
   if (loading) return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-slate-50">
-      <Loader2 className="w-12 h-12 text-primary animate-spin mb-6" />
-      <p className="text-sm font-black uppercase tracking-[0.3em] text-slate-400">Initializing DNTRNG Intelligence...</p>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
+      <AILoader />
     </div>
   );
 
@@ -324,9 +322,8 @@ function QuizContent() {
 export default function QuizPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-slate-50">
-        <Loader2 className="w-12 h-12 text-primary animate-spin mb-6" />
-        <p className="text-xs font-black uppercase tracking-[0.3em] text-slate-400">Loading Intelligence Modules...</p>
+      <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
+        <AILoader />
       </div>
     }>
       <QuizContent />

@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -9,7 +8,8 @@ import { QuestionsTab } from '@/components/admin/QuestionsTab';
 import { AdminDialogs } from '@/components/admin/AdminDialogs';
 import { Question } from '@/types/quiz';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
+import { AILoader } from '@/components/ui/ai-loader';
 
 export default function AdminTestDetailPage() {
   const { id } = useParams();
@@ -72,9 +72,8 @@ export default function AdminTestDetailPage() {
       </div>
 
       {loading && questions.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
-          <p className="font-bold text-muted-foreground">Syncing Question Bank...</p>
+        <div className="py-20">
+          <AILoader />
         </div>
       ) : (
         <QuestionsTab 

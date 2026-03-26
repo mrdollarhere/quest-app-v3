@@ -4,8 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { API_URL } from '@/lib/api-config';
 import { ActivityTab } from '@/components/admin/ActivityTab';
-import { Loader2, History } from 'lucide-react';
+import { History } from 'lucide-react';
 import { useLanguage } from '@/context/language-context';
+import { AILoader } from '@/components/ui/ai-loader';
 
 export default function AdminActivityPage() {
   const [loading, setLoading] = useState(false);
@@ -33,9 +34,8 @@ export default function AdminActivityPage() {
 
   if (loading && activities.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-40">
-        <Loader2 className="w-12 h-12 animate-spin text-primary mb-6" />
-        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Syncing System Logs...</p>
+      <div className="py-40">
+        <AILoader />
       </div>
     );
   }

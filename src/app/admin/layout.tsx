@@ -1,8 +1,7 @@
-
 "use client";
 
 import React from 'react';
-import { Loader2, ShieldAlert } from "lucide-react";
+import { ShieldAlert } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from '@/context/auth-context';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
@@ -10,6 +9,7 @@ import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { usePathname } from 'next/navigation';
 import { LanguageProvider } from '@/context/language-context';
+import { AILoader } from '@/components/ui/ai-loader';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading, logout } = useAuth();
@@ -24,8 +24,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-slate-50/30">
+        <AILoader />
       </div>
     );
   }

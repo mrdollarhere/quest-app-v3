@@ -1,11 +1,9 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { 
   ArrowLeft, 
-  Loader2, 
   User as UserIcon, 
   Mail, 
   Shield, 
@@ -13,11 +11,8 @@ import {
   Activity, 
   Trophy, 
   Target,
-  Clock,
-  ExternalLink,
-  ChevronRight,
-  Database,
-  BarChart3
+  BarChart3,
+  Database
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -34,6 +29,7 @@ import {
 import { API_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from "@/lib/utils";
+import { AILoader } from '@/components/ui/ai-loader';
 
 function UserDetailContent() {
   const searchParams = useSearchParams();
@@ -99,9 +95,8 @@ function UserDetailContent() {
   }, [responses]);
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center py-32">
-      <Loader2 className="w-12 h-12 text-primary animate-spin mb-6" />
-      <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Loading Operator Intelligence...</p>
+    <div className="py-32">
+      <AILoader />
     </div>
   );
 
@@ -279,9 +274,8 @@ function StatSmall({ icon: Icon, label, value, color }: any) {
 export default function UserDetailPage() {
   return (
     <Suspense fallback={
-      <div className="flex flex-col items-center justify-center py-32">
-        <Loader2 className="w-12 h-12 text-primary animate-spin mb-6" />
-        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Loading Operator Intelligence...</p>
+      <div className="py-32">
+        <AILoader />
       </div>
     }>
       <UserDetailContent />

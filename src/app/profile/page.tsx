@@ -1,28 +1,22 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { 
-  User, 
-  Mail, 
-  Shield, 
   History, 
   Trophy, 
   Zap, 
   ArrowLeft, 
   LogOut, 
-  LayoutGrid, 
   Settings,
   Database,
-  Loader2,
-  CheckCircle2,
   Clock,
-  TrendingUp
+  TrendingUp,
+  RotateCcw
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -30,6 +24,8 @@ import { API_URL } from '@/lib/api-config';
 import { UserNav } from '@/components/UserNav';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { AILoader } from '@/components/ui/ai-loader';
+import { Mail, Shield } from 'lucide-react';
 
 export default function ProfilePage() {
   const { user, logout, loading: authLoading } = useAuth();
@@ -93,9 +89,8 @@ export default function ProfilePage() {
 
   if (authLoading || !user) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
-        <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
-        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Synchronizing Identity...</p>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <AILoader />
       </div>
     );
   }
@@ -222,7 +217,7 @@ export default function ProfilePage() {
                   <CardTitle className="text-2xl font-black text-slate-900 uppercase tracking-tight">Intelligence Log</CardTitle>
                   <CardDescription className="font-medium">Your historical interaction with the DNTRNG Registry</CardDescription>
                 </div>
-                {loadingStats && <Loader2 className="w-5 h-5 animate-spin text-primary" />}
+                {loadingStats && <AILoader className="mb-0" iconClassName="w-6 h-6" />}
               </CardHeader>
               <CardContent className="p-0 flex-1">
                 {responses.length > 0 ? (
@@ -330,25 +325,5 @@ function StatCard({ icon: Icon, label, value, sub, theme }: any) {
         </div>
       </div>
     </Card>
-  );
-}
-
-function RotateCcw(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-      <path d="M3 3v5h5" />
-    </svg>
   );
 }

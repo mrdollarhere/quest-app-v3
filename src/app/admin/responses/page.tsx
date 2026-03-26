@@ -1,11 +1,10 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { API_URL } from '@/lib/api-config';
 import { ResponsesTab } from '@/components/admin/ResponsesTab';
-import { Loader2 } from 'lucide-react';
+import { AILoader } from '@/components/ui/ai-loader';
 
 export default function AdminResponsesPage() {
   const [loading, setLoading] = useState(false);
@@ -32,9 +31,8 @@ export default function AdminResponsesPage() {
 
   if (loading && responses.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
-        <p className="font-bold text-muted-foreground">Syncing Results...</p>
+      <div className="py-20">
+        <AILoader />
       </div>
     );
   }
