@@ -602,7 +602,7 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
   return (
     <div className="w-full">
       <div className="mb-10">
-        <h2 className="text-3xl md:text-4xl font-black leading-[1.15] text-foreground tracking-tighter max-w-2xl">
+        <h2 className="text-3xl md:text-4xl font-black leading-[1.15] text-foreground tracking-tighter w-full">
           {question.question_text}
           {question.required && <span className="text-destructive ml-2">*</span>}
         </h2>
