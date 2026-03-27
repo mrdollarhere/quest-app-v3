@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { 
   LayoutGrid, 
   Users as UsersIcon, 
@@ -77,6 +77,11 @@ export function OverviewTab({ data, lastSync, settings, onNewTest, onManageConte
   
   const [isSaltDialogOpen, setIsSaltDialogOpen] = useState(false);
   const [newSalt, setNewSalt] = useState(settings.daily_key_salt || "");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const protocolSalt = settings.daily_key_salt || "";
   const currentDailyKey = generateDailyPassword(undefined, protocolSalt);
@@ -150,13 +155,17 @@ export function OverviewTab({ data, lastSync, settings, onNewTest, onManageConte
           <div className="flex flex-col">
             <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">{t('accessKey')}</span>
             <div className="flex items-center gap-3">
-              <span className="text-lg font-black text-white tracking-[0.2em] font-mono leading-none">{currentDailyKey}</span>
-              <button 
-                onClick={() => copyToClipboard(currentDailyKey, t('accessKey'))}
-                className="text-slate-600 hover:text-primary transition-colors"
-              >
-                <Copy className="w-3 h-3" />
-              </button>
+              <span className="text-lg font-black text-white tracking-[0.2em] font-mono leading-none">
+                {(!mounted || !lastSync) ? "••••••••" : currentDailyKey}
+              </span>
+              {mounted && lastSync && (
+                <button 
+                  onClick={() => copyToClipboard(currentDailyKey, t('accessKey'))}
+                  className="text-slate-600 hover:text-primary transition-colors"
+                >
+                  <Copy className="w-3 h-3" />
+                </button>
+              )}
             </div>
           </div>
           
@@ -215,28 +224,35 @@ export function OverviewTab({ data, lastSync, settings, onNewTest, onManageConte
                   <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Next 7 Days</p>
                 </div>
                 <div className="bg-white p-2 max-h-[400px] overflow-y-auto">
-                  {protocolSchedule.map((item, idx) => (
-                    <div 
-                      key={idx} 
-                      className={cn(
-                        "p-4 rounded-2xl flex items-center justify-between group transition-colors",
-                        item.isToday ? "bg-primary/5 ring-1 ring-primary/10" : "hover:bg-slate-50"
-                      )}
-                    >
-                      <div>
-                        <p className={cn("text-[10px] font-black uppercase tracking-widest", item.isToday ? "text-primary" : "text-slate-400")}>
-                          {item.isToday ? "Today" : item.date}
-                        </p>
-                        <p className="text-sm font-mono font-black text-slate-900 tracking-widest mt-0.5">{item.key}</p>
-                      </div>
-                      <button 
-                        onClick={() => copyToClipboard(item.key, `${item.date} Key`)}
-                        className="p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-slate-100"
+                  {mounted && lastSync ? (
+                    protocolSchedule.map((item, idx) => (
+                      <div 
+                        key={idx} 
+                        className={cn(
+                          "p-4 rounded-2xl flex items-center justify-between group transition-colors",
+                          item.isToday ? "bg-primary/5 ring-1 ring-primary/10" : "hover:bg-slate-50"
+                        )}
                       >
-                        <Copy className="w-3.5 h-3.5 text-slate-400" />
-                      </button>
+                        <div>
+                          <p className={cn("text-[10px] font-black uppercase tracking-widest", item.isToday ? "text-primary" : "text-slate-400")}>
+                            {item.isToday ? "Today" : item.date}
+                          </p>
+                          <p className="text-sm font-mono font-black text-slate-900 tracking-widest mt-0.5">{item.key}</p>
+                        </div>
+                        <button 
+                          onClick={() => copyToClipboard(item.key, `${item.date} Key`)}
+                          className="p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-slate-100"
+                        >
+                          <Copy className="w-3.5 h-3.5 text-slate-400" />
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="py-10 text-center">
+                      <RefreshCcw className="w-6 h-6 text-slate-200 animate-spin mx-auto mb-2" />
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Synchronizing Keys...</p>
                     </div>
-                  ))}
+                  )}
                 </div>
                 <div className="bg-slate-50 p-4 border-t text-center">
                   <p className="text-[9px] font-medium text-slate-400">{t('weeklyKeys')}</p>
