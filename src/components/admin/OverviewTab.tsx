@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -79,14 +78,24 @@ export function OverviewTab({ data, lastSync, settings, onNewTest, onManageConte
   const [isSaltDialogOpen, setIsSaltDialogOpen] = useState(false);
   const [newSalt, setNewSalt] = useState(settings.daily_key_salt || "");
   const [mounted, setMounted] = useState(false);
+  
+  // Optimistic local state for the protection toggle
+  const [localProtectionEnabled, setLocalProtectionEnabled] = useState(true);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // Sync local state when settings are loaded/updated from prop
+  useEffect(() => {
+    if (settings.access_key_protection_enabled !== undefined) {
+      const isEnabled = String(settings.access_key_protection_enabled) !== "false";
+      setLocalProtectionEnabled(isEnabled);
+    }
+  }, [settings.access_key_protection_enabled]);
+
   const protocolSalt = settings.daily_key_salt || "";
   const currentDailyKey = generateDailyPassword(undefined, protocolSalt);
-  const isProtectionEnabled = settings.access_key_protection_enabled !== "false";
 
   const protocolSchedule = useMemo(() => {
     return Array.from({ length: 8 }).map((_, i) => {
@@ -141,56 +150,61 @@ export function OverviewTab({ data, lastSync, settings, onNewTest, onManageConte
             <span className="text-xs font-black uppercase tracking-widest text-slate-400">{t('statusActive')}</span>
           </div>
           {lastSync && (
-            <div className="flex items-center gap-2 px-3 py-1 bg-white rounded-full border shadow-sm">
+            <div className="flex items-center gap-2 px-3 py-1 bg-white dark:bg-slate-900 rounded-full border dark:border-slate-800 shadow-sm">
               <Clock className="w-3 h-3 text-primary" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
                 {t('lastSync')}: {lastSync.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-4 bg-slate-900 p-4 rounded-[1.5rem] shadow-xl border border-white/5 group">
-          <div className="p-2 bg-primary/10 rounded-xl">
-            <Key className="w-4 h-4 text-primary group-hover:rotate-12 transition-transform" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">{t('accessKey')}</span>
-            <div className="flex items-center gap-3">
-              <span className="text-lg font-black text-white tracking-[0.2em] font-mono leading-none">
-                {(!mounted || !lastSync) ? "••••••••" : currentDailyKey}
-              </span>
-              {mounted && lastSync && (
-                <button 
-                  onClick={() => copyToClipboard(currentDailyKey, t('accessKey'))}
-                  className="text-slate-600 hover:text-primary transition-colors"
-                >
-                  <Copy className="w-3 h-3" />
-                </button>
-              )}
+        <div className="flex flex-wrap items-center gap-4 bg-slate-900 p-4 rounded-[1.5rem] shadow-xl border border-white/5 group">
+          <div className="flex items-center gap-4">
+            <div className="p-2 bg-primary/10 rounded-xl">
+              <Key className="w-4 h-4 text-primary group-hover:rotate-12 transition-transform" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">{t('accessKey')}</span>
+              <div className="flex items-center gap-3">
+                <span className="text-lg font-black text-white tracking-[0.2em] font-mono leading-none">
+                  {(!mounted || !lastSync) ? "••••••••" : currentDailyKey}
+                </span>
+                {mounted && lastSync && (
+                  <button 
+                    onClick={() => copyToClipboard(currentDailyKey, t('accessKey'))}
+                    className="text-slate-600 hover:text-primary transition-colors"
+                  >
+                    <Copy className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="ml-4 pl-4 border-l border-white/10 flex items-center gap-3">
+          <div className="sm:ml-4 sm:pl-4 sm:border-l border-white/10 flex items-center gap-3">
             <Switch 
               id="protection-toggle"
-              checked={isProtectionEnabled} 
-              onCheckedChange={(checked) => onSaveSetting('access_key_protection_enabled', String(checked))}
+              checked={localProtectionEnabled} 
+              onCheckedChange={(checked) => {
+                setLocalProtectionEnabled(checked);
+                onSaveSetting('access_key_protection_enabled', String(checked));
+              }}
               className="data-[state=checked]:bg-primary"
             />
-            <Label htmlFor="protection-toggle" className="text-[9px] font-black uppercase tracking-widest text-slate-500 cursor-pointer">
-              {isProtectionEnabled ? "Protected" : "Open Access"}
+            <Label htmlFor="protection-toggle" className="text-[9px] font-black uppercase tracking-widest text-slate-500 cursor-pointer whitespace-nowrap">
+              {localProtectionEnabled ? "Protected" : "Open Access"}
             </Label>
           </div>
           
-          <div className="ml-4 pl-4 border-l border-white/10 flex items-center gap-2">
+          <div className="sm:ml-4 sm:pl-4 sm:border-l border-white/10 flex items-center gap-2">
             <Dialog open={isSaltDialogOpen} onOpenChange={setIsSaltDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-primary">
                   <Settings2 className="w-4 h-4" />
                 </Button>
               </DialogTrigger>
-              <DialogContent className="rounded-[2.5rem] p-10 border-none shadow-2xl">
+              <DialogContent className="rounded-[2.5rem] p-10 border-none shadow-2xl dark:bg-slate-900">
                 <DialogHeader>
                   <DialogTitle className="text-2xl font-black uppercase tracking-tight">Configure Protocol Secret</DialogTitle>
                   <DialogDescription className="text-slate-500 font-medium">
@@ -204,7 +218,7 @@ export function OverviewTab({ data, lastSync, settings, onNewTest, onManageConte
                       value={newSalt} 
                       onChange={(e) => setNewSalt(e.target.value)} 
                       placeholder="e.g. MY-PRIVATE-PROTOCOL-2025" 
-                      className="h-12 rounded-xl bg-slate-50 border-none ring-1 ring-slate-200 font-bold"
+                      className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold"
                     />
                   </div>
                   <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
@@ -237,25 +251,25 @@ export function OverviewTab({ data, lastSync, settings, onNewTest, onManageConte
                   <h4 className="font-black uppercase tracking-tight text-lg">Key Schedule</h4>
                   <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Next 7 Days</p>
                 </div>
-                <div className="bg-white p-2 max-h-[400px] overflow-y-auto">
+                <div className="bg-white dark:bg-slate-900 p-2 max-h-[400px] overflow-y-auto">
                   {mounted && lastSync ? (
                     protocolSchedule.map((item, idx) => (
                       <div 
                         key={idx} 
                         className={cn(
                           "p-4 rounded-2xl flex items-center justify-between group transition-colors",
-                          item.isToday ? "bg-primary/5 ring-1 ring-primary/10" : "hover:bg-slate-50"
+                          item.isToday ? "bg-primary/5 ring-1 ring-primary/10" : "hover:bg-slate-50 dark:hover:bg-slate-800"
                         )}
                       >
                         <div>
                           <p className={cn("text-[10px] font-black uppercase tracking-widest", item.isToday ? "text-primary" : "text-slate-400")}>
                             {item.isToday ? "Today" : item.date}
                           </p>
-                          <p className="text-sm font-mono font-black text-slate-900 tracking-widest mt-0.5">{item.key}</p>
+                          <p className="text-sm font-mono font-black text-slate-900 dark:text-white tracking-widest mt-0.5">{item.key}</p>
                         </div>
                         <button 
                           onClick={() => copyToClipboard(item.key, `${item.date} Key`)}
-                          className="p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-slate-100"
+                          className="p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-slate-100 dark:hover:bg-slate-700"
                         >
                           <Copy className="w-3.5 h-3.5 text-slate-400" />
                         </button>
@@ -268,7 +282,7 @@ export function OverviewTab({ data, lastSync, settings, onNewTest, onManageConte
                     </div>
                   )}
                 </div>
-                <div className="bg-slate-50 p-4 border-t text-center">
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 border-t dark:border-slate-800 text-center">
                   <p className="text-[9px] font-medium text-slate-400">{t('weeklyKeys')}</p>
                 </div>
               </PopoverContent>
@@ -285,12 +299,12 @@ export function OverviewTab({ data, lastSync, settings, onNewTest, onManageConte
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <Card className="lg:col-span-8 border-none shadow-sm overflow-hidden bg-white">
-          <CardHeader className="border-b bg-slate-50/50">
+        <Card className="lg:col-span-8 border-none shadow-sm overflow-hidden bg-white dark:bg-slate-900 border dark:border-slate-800">
+          <CardHeader className="border-b bg-slate-50/50 dark:bg-slate-800/50 dark:border-slate-800">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-lg font-black text-slate-900">{t('activityTrend')}</CardTitle>
-                <CardDescription>Number of tests completed this week</CardDescription>
+                <CardTitle className="text-lg font-black text-slate-900 dark:text-white">{t('activityTrend')}</CardTitle>
+                <CardDescription className="dark:text-slate-400">Number of tests completed this week</CardDescription>
               </div>
               <Badge variant="secondary" className="px-3 py-1 font-bold">LIVE</Badge>
             </div>
@@ -321,32 +335,32 @@ export function OverviewTab({ data, lastSync, settings, onNewTest, onManageConte
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-4 border-none shadow-sm flex flex-col bg-white">
-          <CardHeader className="border-b bg-slate-50/50">
-            <CardTitle className="text-lg font-black text-slate-900">{t('recentResults')}</CardTitle>
-            <CardDescription>{t('recentSubmissions')}</CardDescription>
+        <Card className="lg:col-span-4 border-none shadow-sm flex flex-col bg-white dark:bg-slate-900 border dark:border-slate-800">
+          <CardHeader className="border-b bg-slate-50/50 dark:bg-slate-800/50 dark:border-slate-800">
+            <CardTitle className="text-lg font-black text-slate-900 dark:text-white">{t('recentResults')}</CardTitle>
+            <CardDescription className="dark:text-slate-400">{t('recentSubmissions')}</CardDescription>
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto p-0">
-            <div className="divide-y">
+            <div className="divide-y dark:divide-slate-800">
               {data.responses.slice(0, 6).map((resp, i) => (
-                <div key={i} className="p-4 flex items-center gap-4 hover:bg-slate-50 transition-colors">
+                <div key={i} className="p-4 flex items-center gap-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                   <div className={cn(
                     "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-black text-xs",
-                    (Number(resp.Score) / Number(resp.Total)) >= 0.7 ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
+                    (Number(resp.Score) / Number(resp.Total)) >= 0.7 ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
                   )}>
                     {resp.Score}/{resp.Total}
                   </div>
-                  <div className="flex-1 min-w-0 text-slate-700">
+                  <div className="flex-1 min-w-0 text-slate-700 dark:text-slate-300">
                     <p className="font-bold text-sm truncate">{resp['Test ID']}</p>
                     <p className="text-[10px] text-muted-foreground font-medium">{new Date(resp.Timestamp).toLocaleDateString()}</p>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-slate-300" />
+                  <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600" />
                 </div>
               ))}
             </div>
           </CardContent>
-          <CardFooter className="border-t p-4">
-            <Button variant="ghost" className="w-full font-bold text-xs rounded-xl" onClick={() => setActiveTab('responses')}>
+          <CardFooter className="border-t dark:border-slate-800 p-4">
+            <Button variant="ghost" className="w-full font-bold text-xs rounded-xl dark:hover:bg-slate-800" onClick={() => setActiveTab('responses')}>
               {t('seeAllResults')}
             </Button>
           </CardFooter>
@@ -366,18 +380,18 @@ export function OverviewTab({ data, lastSync, settings, onNewTest, onManageConte
 
 function StatCard({ icon: Icon, label, value, color }: any) {
   const colors: Record<string, string> = {
-    blue: "bg-blue-50 text-blue-600",
-    green: "bg-green-50 text-green-600",
-    purple: "bg-purple-50 text-purple-600",
-    orange: "bg-orange-50 text-orange-600"
+    blue: "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400",
+    green: "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400",
+    purple: "bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400",
+    orange: "bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400"
   };
   return (
-    <Card className="border-none shadow-sm hover:shadow-md transition-shadow bg-white">
+    <Card className="border-none shadow-sm hover:shadow-md transition-shadow bg-white dark:bg-slate-900 border dark:border-slate-800">
       <CardContent className="pt-6 flex items-center gap-4">
         <div className={cn("p-4 rounded-2xl", colors[color])}><Icon className="w-6 h-6" /></div>
         <div>
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{label}</p>
-          <p className="text-3xl font-black text-slate-900">{value}</p>
+          <p className="text-3xl font-black text-slate-900 dark:text-white">{value}</p>
         </div>
       </CardContent>
     </Card>
@@ -387,18 +401,18 @@ function StatCard({ icon: Icon, label, value, color }: any) {
 function QuickActionCard({ title, description, icon: Icon, onClick, theme }: any) {
   const themes: Record<string, string> = {
     primary: "bg-gradient-to-br from-primary to-blue-600 text-white",
-    dark: "bg-slate-900 text-white",
+    dark: "bg-slate-900 text-white border dark:border-slate-800",
     accent: "bg-accent text-white shadow-lg shadow-accent/20",
-    light: "bg-white border-2 border-slate-100 text-slate-900",
+    light: "bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 text-slate-900 dark:text-white",
     warning: "bg-orange-500 text-white shadow-lg shadow-orange-500/20"
   };
   return (
     <Card className={cn("border-none shadow-sm cursor-pointer hover:scale-[1.02] transition-transform", themes[theme])} onClick={onClick}>
       <CardContent className="pt-6 flex items-center gap-4">
-        <div className={cn("p-3 rounded-xl", (theme === 'light') ? 'bg-slate-100' : 'bg-white/20')}><Icon className="w-6 h-6" /></div>
+        <div className={cn("p-3 rounded-xl", (theme === 'light') ? 'bg-slate-100 dark:bg-slate-800' : 'bg-white/20')}><Icon className="w-6 h-6" /></div>
         <div>
           <p className="font-black text-base lg:text-lg">{title}</p>
-          <p className={cn("text-[10px] font-medium opacity-80", theme === 'light' && 'text-muted-foreground')}>
+          <p className={cn("text-[10px] font-medium opacity-80", theme === 'light' && 'text-muted-foreground dark:text-slate-400')}>
             {description}
           </p>
         </div>

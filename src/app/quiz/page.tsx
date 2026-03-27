@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, Suspense, useMemo } from 'react';
@@ -93,7 +92,8 @@ function QuizContent() {
         }
         
         salt = sData.daily_key_salt || "";
-        protection = sData.access_key_protection_enabled !== "false";
+        // Normalize boolean check from spreadsheet registry
+        protection = String(sData.access_key_protection_enabled ?? "true") !== "false";
       } else {
         fetched = DEMO_QUESTIONS;
       }
@@ -270,7 +270,7 @@ function QuizContent() {
   };
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50 dark:bg-slate-950">
       <AILoader />
     </div>
   );
@@ -328,7 +328,7 @@ function QuizContent() {
 export default function QuizPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50 dark:bg-slate-950">
         <AILoader />
       </div>
     }>
