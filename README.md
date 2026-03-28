@@ -20,14 +20,20 @@
 
 ## 🖥️ Desktop Deployment (Electron)
 
-To run the DNTRNG™ Desktop Application locally:
+To run or build the DNTRNG™ Desktop Application on your local machine:
 
-1.  **Clone Source**: Download or clone this repository to your local machine.
+### 1. Development Mode
+Runs the app in a standalone window for testing.
+1.  **Clone Source**: Download this repository to your local machine.
 2.  **Install Dependencies**: Run `npm install` in your terminal.
-3.  **Launch Desktop Node**: Execute `npm run electron:dev`.
-    *   This starts the Next.js server on port `9005`.
-    *   The DNTRNG™ Desktop window will open automatically once the server is ready.
-4.  **Build Binary**: To create a standalone executable (.exe or .app), run `npm run electron:build`.
+3.  **Launch Node**: Execute `npm run electron:dev`.
+    *   Starts the engine on port `9005`.
+    *   The DNTRNG™ window opens automatically.
+
+### 2. Building the Installer (.exe / .app)
+Creates a file you can send to others to install the app.
+1.  **Run Build**: Execute `npm run electron:build`.
+2.  **Get Installer**: Look in the `dist/` folder for your `.exe` (Windows) or `.dmg` (Mac).
 
 ---
 
@@ -47,32 +53,6 @@ Create a new Google Sheet and provision the following core tabs (Case-Sensitive)
 3. **Deploy > New Deployment > Web App**.
 4. Execute as: **Me**, Access: **Anyone**.
 5. Copy the **Web App URL** and update `src/lib/api-config.ts`.
-
-### Phase 03: Deployment
-- **Vercel**: Push to GitHub and connect your project. No extra config needed.
-- **Firebase**: App Hosting is pre-configured. Use `firebase deploy`.
-
----
-
-## 🇻🇳 Quy Trình Vận Hành (Tiếng Việt)
-
-### Giai đoạn 01: Kiến Trúc Bảng Tính
-Tạo Google Sheet mới và thiết lập các tab sau (Phân biệt chữ hoa/thường).
-
-1.  **`Tests` (Danh Mục)**: Danh sách các bài kiểm tra.
-2.  **`Users` (Người Dùng)**: Quản lý danh tính và quyền truy cập.
-3.  **`Responses` (Nhật Ký)**: Lưu trữ kết quả và điểm số.
-4.  **Tab Câu Hỏi**: Tạo tab riêng cho mỗi `id` bài test với các tiêu đề cột tiêu chuẩn.
-
-### Giai đoạn 02: Triển Khai Backend
-1. Vào Google Sheet > **Tiện ích mở rộng > Apps Script**.
-2. Dán mã nguồn từ `src/app/lib/gas-template.ts`.
-3. **Triển khai > Ứng dụng Web**. Cấu hình "Truy cập: Mọi người".
-4. Sao chép URL vào `src/lib/api-config.ts`.
-
-### Giai đoạn 03: Triển Khai Frontend
-- **Vercel**: Đẩy mã nguồn lên GitHub và kết nối với dự án Vercel.
-- **Firebase**: Sử dụng lệnh `firebase deploy` để triển khai qua App Hosting.
 
 ---
 
