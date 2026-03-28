@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users as UsersIcon, UserPlus, Mail, Lock } from "lucide-react";
+import { Users as UsersIcon, UserPlus, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface UserDialogProps {
@@ -25,6 +25,8 @@ interface UserDialogProps {
 
 export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatch }: UserDialogProps) {
   const [activeTab, setActiveTab] = useState<"single" | "batch">("single");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showBatchPassword, setShowBatchPassword] = useState(false);
 
   const handleSingleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -141,12 +143,19 @@ export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatc
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
                   <Input 
                     name="password" 
-                    type="text" 
+                    type={showPassword ? "text" : "password"} 
                     defaultValue={editingItem?.password}
                     placeholder={editingItem ? "Leave blank to keep current" : "Set password"} 
                     required={!editingItem} 
-                    className="h-12 pl-11 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold focus:ring-primary/40" 
+                    className="h-12 pl-11 pr-11 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold focus:ring-primary/40" 
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
 
@@ -195,7 +204,22 @@ export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatc
 
               <div className="space-y-2">
                 <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">Shared Password</Label>
-                <Input name="password" type="password" required defaultValue="admin123" className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold" />
+                <div className="relative">
+                  <Input 
+                    name="password" 
+                    type={showBatchPassword ? "text" : "password"} 
+                    required 
+                    defaultValue="admin123" 
+                    className="h-12 pr-11 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold" 
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowBatchPassword(!showBatchPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                  >
+                    {showBatchPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <DialogFooter className="pt-6">
