@@ -18,6 +18,19 @@
 
 ---
 
+## 🖥️ Desktop Deployment (Electron)
+
+To run the DNTRNG™ Desktop Application locally:
+
+1.  **Clone Source**: Download or clone this repository to your local machine.
+2.  **Install Dependencies**: Run `npm install` in your terminal.
+3.  **Launch Desktop Node**: Execute `npm run electron:dev`.
+    *   This starts the Next.js server on port `9005`.
+    *   The DNTRNG™ Desktop window will open automatically once the server is ready.
+4.  **Build Binary**: To create a standalone executable (.exe or .app), run `npm run electron:build`.
+
+---
+
 ## 🇺🇸 Operational Protocol (English)
 
 ### Phase 01: Sheet Architecture
@@ -38,11 +51,6 @@ Create a new Google Sheet and provision the following core tabs (Case-Sensitive)
 ### Phase 03: Deployment
 - **Vercel**: Push to GitHub and connect your project. No extra config needed.
 - **Firebase**: App Hosting is pre-configured. Use `firebase deploy`.
-
-### Phase 04: Usage Workflow
-1. **Admin Console**: Login at `/login` (default: `admin@dntrng.com` / `admin123`).
-2. **Security**: Copy the **Hashed Daily Key** from the Dashboard header and share it with students.
-3. **Content**: Use the **Intelligence Zone Mapper** in the Question Bank to create visual hotspot tests.
 
 ---
 
@@ -65,11 +73,6 @@ Tạo Google Sheet mới và thiết lập các tab sau (Phân biệt chữ hoa/
 ### Giai đoạn 03: Triển Khai Frontend
 - **Vercel**: Đẩy mã nguồn lên GitHub và kết nối với dự án Vercel.
 - **Firebase**: Sử dụng lệnh `firebase deploy` để triển khai qua App Hosting.
-
-### Giai đoạn 04: Quy Trình Sử Dụng
-1. **Quản Trị**: Đăng nhập tại `/login` để quản lý nội dung.
-2. **Bảo Mật**: Lấy **Mã Truy Cập Hàng Ngày** từ trang Dashboard và gửi cho học sinh.
-3. **Nội Dung**: Sử dụng công cụ **Intelligence Zone Mapper** để vẽ các vùng chọn cho câu hỏi hình ảnh.
 
 ---
 
