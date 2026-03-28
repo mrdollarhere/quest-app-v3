@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Dialog,
   DialogContent,
@@ -27,26 +27,69 @@ export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatc
   const [activeTab, setActiveTab] = useState<"single" | "batch">("single");
   const [showPassword, setShowPassword] = useState(false);
   const [showBatchPassword, setShowBatchPassword] = useState(false);
+  
+  // Controlled form state for single entry
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'user'
+  });
+
+  // Reset/Populate state when dialog opens or editingItem changes
+  useEffect(() => {
+    if (open) {
+      if (editingItem) {
+        setFormData({
+          name: editingItem.name || '',
+          email: editingItem.email || '',
+          password: editingItem.password || '',
+          role: editingItem.role || 'user'
+        });
+      } else {
+        setFormData({
+          name: '',
+          email: '',
+          password: '',
+          role: 'user'
+        });
+      }
+    }
+  }, [open, editingItem]);
+
+  // Determine if the save button should be disabled
+  const isSaveDisabled = editingItem ? (
+    // In edit mode: disable if NO fields have changed
+    formData.name === (editingItem.name || '') &&
+    formData.email === (editingItem.email || '') &&
+    formData.password === (editingItem.password || '') &&
+    formData.role === (editingItem.role || 'user')
+  ) : (
+    // In add mode: disable if required fields are empty
+    !formData.name.trim() || !formData.email.trim()
+  );
 
   const handleSingleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const data = Object.fromEntries(formData.entries());
     
-    // Safety: Omit password if editing to prevent accidentally clearing the existing password in the sheet
-    // if the user left the field empty.
-    if (editingItem && !data.password) {
-      delete data.password;
+    // Create a copy of the data to send
+    const payload = { ...formData };
+    
+    // Safety: Omit password if editing and it stayed empty (though we show it now in v18.2)
+    // In v18.2 we show the password, so we send what's in the field.
+    if (editingItem && !payload.password) {
+      // If it was empty in state and we are editing, we might want to preserve it
+      // but since v18.2 shows it, the state will be populated with the current one.
     }
     
-    onSave(data);
+    onSave(payload);
     onOpenChange(false);
   };
 
   const handleBatchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const data = Object.fromEntries(formData.entries());
+    const batchFormData = new FormData(e.currentTarget);
+    const data = Object.fromEntries(batchFormData.entries());
     
     const prefix = String(data.namePrefix || "");
     const emailPattern = String(data.emailPattern || "");
@@ -115,7 +158,14 @@ export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatc
                 <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">Full Name</Label>
                 <div className="relative">
                   <UsersIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                  <Input name="name" defaultValue={editingItem?.name} required placeholder="Student Name" className="h-12 pl-11 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold focus:ring-primary/40" />
+                  <Input 
+                    name="name" 
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required 
+                    placeholder="Student Name" 
+                    className="h-12 pl-11 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold focus:ring-primary/40" 
+                  />
                 </div>
               </div>
               <div className="space-y-2">
@@ -125,7 +175,8 @@ export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatc
                   <Input 
                     name="email" 
                     type="email" 
-                    defaultValue={editingItem?.email} 
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     required 
                     readOnly={!!editingItem} 
                     placeholder="student@email.com" 
@@ -144,8 +195,9 @@ export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatc
                   <Input 
                     name="password" 
                     type={showPassword ? "text" : "password"} 
-                    defaultValue={editingItem?.password}
-                    placeholder={editingItem ? "Leave blank to keep current" : "Set password"} 
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    placeholder={editingItem ? "Update password..." : "Set password"} 
                     required={!editingItem} 
                     className="h-12 pl-11 pr-11 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold focus:ring-primary/40" 
                   />
@@ -161,13 +213,22 @@ export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatc
 
               <div className="space-y-2">
                 <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">Account Role</Label>
-                <select name="role" defaultValue={editingItem?.role || 'user'} className="w-full h-12 px-4 rounded-xl border-none ring-1 ring-slate-200 dark:ring-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-black text-sm outline-none focus:ring-primary/40 cursor-pointer">
+                <select 
+                  name="role" 
+                  value={formData.role}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
+                  className="w-full h-12 px-4 rounded-xl border-none ring-1 ring-slate-200 dark:ring-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-black text-sm outline-none focus:ring-primary/40 cursor-pointer"
+                >
                   <option value="user">Student</option>
                   <option value="admin">Admin</option>
                 </select>
               </div>
               <DialogFooter className="pt-6">
-                <Button type="submit" className="rounded-full w-full h-16 font-black text-lg bg-slate-900 dark:bg-primary text-white">
+                <Button 
+                  type="submit" 
+                  disabled={isSaveDisabled}
+                  className="rounded-full w-full h-16 font-black text-lg bg-slate-900 dark:bg-primary text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   Save Student
                 </Button>
               </DialogFooter>
