@@ -1,5 +1,5 @@
 export const GAS_CODE = `/**
- * QUESTFLOW BACKEND v18.1 - REGISTRY SYNC ENABLED
+ * QUESTFLOW BACKEND v18.2 - REGISTRY SYNC ENABLED
  * 
  * ACTIONS SUPPORTED:
  * - GET: login, getTests, getUsers, getResponses, getQuestions, getActivity, getSettings
@@ -38,7 +38,8 @@ function doGet(e) {
     if (action === 'getUsers') {
       const sheet = ss.getSheetByName('Users');
       if (!sheet) return createResponse([]);
-      return createResponse(getRowsAsObjects(sheet, ['password']));
+      // v18.2: Included passwords for admin visibility
+      return createResponse(getRowsAsObjects(sheet));
     }
 
     if (action === 'getResponses') {
@@ -255,7 +256,7 @@ function upsertRow(sheet, idKey, idValue, data) {
   }
   
   const rowData = headers.map((h, i) => {
-    // Check if the property exists in the data object
+    // v18.1: Logic to preserve existing value if the key is missing from the payload
     if (h in data) {
       const val = data[h];
       return (val !== undefined && val !== null) ? val : "";

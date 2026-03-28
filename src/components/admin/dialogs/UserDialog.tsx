@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users as UsersIcon, Zap, ShieldCheck, UserPlus, ListOrdered, Mail, Lock, AlertCircle, Info } from "lucide-react";
+import { Users as UsersIcon, UserPlus, Mail, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface UserDialogProps {
@@ -30,8 +30,6 @@ export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatc
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData.entries());
-    
-    // Note: On edit, email is readOnly so it's included in FormData.
     
     // Safety: Omit password if editing to prevent accidentally clearing the existing password in the sheet
     // if the user left the field empty.
@@ -143,7 +141,8 @@ export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatc
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
                   <Input 
                     name="password" 
-                    type="password" 
+                    type="text" 
+                    defaultValue={editingItem?.password}
                     placeholder={editingItem ? "Leave blank to keep current" : "Set password"} 
                     required={!editingItem} 
                     className="h-12 pl-11 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold focus:ring-primary/40" 

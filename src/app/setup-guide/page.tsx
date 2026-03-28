@@ -3,34 +3,26 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { 
   ArrowLeft, 
   Copy, 
-  FileSpreadsheet, 
-  Code2, 
-  Rocket, 
-  Info, 
   Table as TableIcon, 
   Users, 
   Database, 
   LayoutGrid,
   Zap,
   CheckCircle2,
-  ExternalLink,
   ChevronRight,
-  Globe,
-  Languages,
   ShieldCheck,
-  Cpu,
-  Server,
-  Cloud,
   Terminal,
   FlaskConical,
   History,
   Settings,
   Github,
-  Monitor
+  Monitor,
+  Cloud,
+  Code2
 } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -86,7 +78,7 @@ export default function SetupGuide() {
         num: "02",
         title: "Intelligence Bridge",
         desc: "Deploy the Google Apps Script backend to connect the UI to your Sheet.",
-        codeTitle: "GAS Template v18.1",
+        codeTitle: "GAS Template v18.2",
         codeDesc: "Navigate to Extensions > Apps Script in your sheet and inject the template below.",
         deployTitle: "Cloud Deployment",
         deploy1: "Type: Web App",
@@ -141,7 +133,7 @@ export default function SetupGuide() {
         num: "02",
         title: "Cầu Nối Đám Mây",
         desc: "Triển khai Google Apps Script để đồng bộ hóa dữ liệu.",
-        codeTitle: "Mã Nguồn GAS v18.1",
+        codeTitle: "Mã Nguồn GAS v18.2",
         codeDesc: "Vào Tiện ích mở rộng > Apps Script và dán mã nguồn từ nút bên dưới.",
         deployTitle: "Triển Khai Web",
         deploy1: "Loại: Ứng dụng Web",
@@ -324,7 +316,7 @@ export default function SetupGuide() {
             </Card>
 
             <Card className="border-none shadow-2xl rounded-[4rem] p-12 bg-slate-900 text-white relative overflow-hidden group">
-              <Rocket className="w-12 h-12 text-primary mb-8 animate-pulse" />
+              <Zap className="w-12 h-12 text-primary mb-8 animate-pulse" />
               <h3 className="text-2xl font-black uppercase mb-6 tracking-tight">{t.step2.deployTitle}</h3>
               <div className="space-y-5 mb-10 text-sm font-bold text-slate-400">
                 <div className="flex items-center gap-4"><CheckCircle2 className="w-5 h-5 text-primary" /> {t.step2.deploy1}</div>
