@@ -241,7 +241,7 @@ export function UsersTab({ users, responses, onEdit, onDelete, onAdd }: UsersTab
                       </div>
                     </TableCell>
                     <TableCell className="px-8 text-right">
-                      <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                      <div className="flex justify-end gap-2 transition-all duration-300">
                         <Link href={`/admin/users/detail?email=${encodeURIComponent(u.email)}`}>
                           <Button variant="ghost" size="icon" title="View Profile" className="rounded-full h-10 w-10 hover:bg-primary/5 text-primary">
                             <Eye className="w-4 h-4" />
