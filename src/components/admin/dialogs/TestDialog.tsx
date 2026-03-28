@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Save, Settings2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface TestDialogProps {
   open: boolean;
@@ -26,13 +27,14 @@ export function TestDialog({ open, onOpenChange, editingItem, onSave }: TestDial
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    onSave(Object.fromEntries(formData.entries()));
+    const data = Object.fromEntries(formData.entries());
+    onSave(data);
     onOpenChange(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px] rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl bg-white">
+      <DialogContent className="sm:max-w-[480px] rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl bg-white dark:bg-slate-900">
         <div className="bg-primary p-10 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 p-8 opacity-10">
             <Settings2 className="w-24 h-24" />
@@ -49,32 +51,41 @@ export function TestDialog({ open, onOpenChange, editingItem, onSave }: TestDial
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">ID</Label>
-              <Input name="id" defaultValue={editingItem?.id} placeholder="auto-id" disabled={!!editingItem} className="rounded-xl h-12 bg-slate-50 border-none ring-1 ring-slate-200 font-mono text-xs" />
+              <Input 
+                name="id" 
+                defaultValue={editingItem?.id} 
+                placeholder="auto-id" 
+                readOnly={!!editingItem} 
+                className={cn(
+                  "rounded-xl h-12 bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-mono text-xs",
+                  !!editingItem && "opacity-60 cursor-not-allowed select-none"
+                )} 
+              />
             </div>
             <div className="space-y-2">
               <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">Category</Label>
-              <Input name="category" defaultValue={editingItem?.category} placeholder="e.g. Science" className="rounded-xl h-12 bg-slate-50 border-none ring-1 ring-slate-200 font-bold" />
+              <Input name="category" defaultValue={editingItem?.category} placeholder="e.g. Science" className="rounded-xl h-12 bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold" />
             </div>
           </div>
           
           <div className="space-y-2">
             <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">Title</Label>
-            <Input name="title" required placeholder="Name of the test" className="rounded-xl h-14 bg-slate-50 border-none ring-1 ring-slate-200 font-black text-lg" />
+            <Input name="title" defaultValue={editingItem?.title} required placeholder="Name of the test" className="rounded-xl h-14 bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-black text-lg" />
           </div>
 
           <div className="space-y-2">
             <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">Description</Label>
-            <Textarea name="description" defaultValue={editingItem?.description} placeholder="What is this test about?" className="rounded-2xl min-h-[100px] bg-slate-50 border-none ring-1 ring-slate-200" />
+            <Textarea name="description" defaultValue={editingItem?.description} placeholder="What is this test about?" className="rounded-2xl min-h-[100px] bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700" />
           </div>
 
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">Difficulty</Label>
-              <Input name="difficulty" defaultValue={editingItem?.difficulty} placeholder="Easy / Hard" className="rounded-xl h-12 bg-slate-50 border-none ring-1 ring-slate-200 font-bold" />
+              <Input name="difficulty" defaultValue={editingItem?.difficulty} placeholder="Easy / Hard" className="rounded-xl h-12 bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold" />
             </div>
             <div className="space-y-2">
               <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">Time Limit</Label>
-              <Input name="duration" defaultValue={editingItem?.duration} placeholder="e.g. 15m" className="rounded-xl h-12 bg-slate-50 border-none ring-1 ring-slate-200 font-bold" />
+              <Input name="duration" defaultValue={editingItem?.duration} placeholder="e.g. 15m" className="rounded-xl h-12 bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold" />
             </div>
           </div>
 
