@@ -371,7 +371,7 @@ export function OverviewTab({ data, lastSync, settings, onNewTest, onManageConte
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <QuickActionCard title={t('createTest')} description="Add assessment" icon={Plus} onClick={() => router.push('/admin/tests/new')} theme="primary" />
         <QuickActionCard title={t('manageTests')} description="Edit library" icon={Zap} onClick={onManageContent} theme="dark" />
-        <QuickActionCard title={t('gsCode')} description="GS Protocol v18.0" icon={Code2} onClick={() => copyToClipboard(GAS_CODE, t('gsCode'))} theme="accent" />
+        <QuickActionCard title={t('gsCode')} description="GS Protocol v18.1" icon={Code2} onClick={() => copyToClipboard(GAS_CODE, t('gsCode'))} theme="accent" />
         <QuickActionCard title={t('syncData')} description="Refresh from Sheets" icon={RefreshCcw} onClick={onSync} theme="light" />
         <QuickActionCard title={t('seedData')} description="Initialize demo content" icon={Database} onClick={onSeed} theme="warning" />
       </div>

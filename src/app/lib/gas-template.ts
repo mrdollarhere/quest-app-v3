@@ -1,5 +1,5 @@
 export const GAS_CODE = `/**
- * QUESTFLOW BACKEND v18.0 - REGISTRY SYNC ENABLED
+ * QUESTFLOW BACKEND v18.1 - REGISTRY SYNC ENABLED
  * 
  * ACTIONS SUPPORTED:
  * - GET: login, getTests, getUsers, getResponses, getQuestions, getActivity, getSettings
@@ -245,16 +245,23 @@ function upsertRow(sheet, idKey, idValue, data) {
   if (idIdx === -1) return;
 
   let rowIndex = -1;
+  let existingRow = null;
   for (let i = 1; i < values.length; i++) {
     if (String(values[i][idIdx]).trim().toLowerCase() === String(idValue).trim().toLowerCase()) {
       rowIndex = i + 1;
+      existingRow = values[i];
       break;
     }
   }
   
-  const rowData = headers.map(h => {
-    const val = data[h];
-    return (val !== undefined && val !== null) ? val : "";
+  const rowData = headers.map((h, i) => {
+    // Check if the property exists in the data object
+    if (h in data) {
+      const val = data[h];
+      return (val !== undefined && val !== null) ? val : "";
+    }
+    // If key is missing from payload, preserve existing value if it's an update
+    return (rowIndex > -1) ? existingRow[i] : "";
   });
 
   if (rowIndex > -1) {
