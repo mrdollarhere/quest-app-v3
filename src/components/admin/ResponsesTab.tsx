@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -24,7 +24,8 @@ import {
   Cell,
   PieChart, 
   Pie,
-  Legend
+  Legend,
+  LabelList
 } from "recharts";
 import { cn } from "@/lib/utils";
 import { 
@@ -38,7 +39,9 @@ import {
   ChevronUp,
   ChevronDown,
   ArrowUpDown,
-  Trash2
+  Trash2,
+  Download,
+  RefreshCcw
 } from "lucide-react";
 import { useLanguage } from '@/context/language-context';
 import {
@@ -52,9 +55,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Pagination } from './Pagination';
 
 interface ResponsesTabProps {
   responses: any[];
+  tests: any[];
+  loading?: boolean;
+  onRefresh: () => void;
   onDelete: (timestamp: string, email: string) => void;
 }
 
@@ -63,11 +70,20 @@ type SortConfig = {
   direction: 'asc' | 'desc' | null;
 };
 
-export function ResponsesTab({ responses, onDelete }: ResponsesTabProps) {
+const CHART_COLORS = ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#0ea5e9', '#ec4899', '#f43f5e'];
+
+export function ResponsesTab({ responses, tests, loading, onRefresh, onDelete }: ResponsesTabProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'Timestamp', direction: 'desc' });
   const [deleteConfirm, setDeleteConfirm] = useState<{ timestamp: string, email: string } | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
   const { t } = useLanguage();
+
+  const getTestTitle = (id: string) => {
+    const test = tests.find(t => t.id === id);
+    return test?.title || id;
+  };
 
   // --- DATA ANALYSIS LOGIC ---
   
@@ -112,8 +128,8 @@ export function ResponsesTab({ responses, onDelete }: ResponsesTabProps) {
       { name: 'Fail (<50%)', value: gradeCounts.Fail, color: '#ef4444' }
     ];
 
-    const testPerformanceData = Object.entries(testStats).map(([name, data]) => ({
-      name,
+    const testPerformanceData = Object.entries(testStats).map(([id, data]) => ({
+      name: getTestTitle(id),
       avg: Math.round(data.totalScore / data.count),
       submissions: data.count
     })).sort((a, b) => b.avg - a.avg);
@@ -125,7 +141,7 @@ export function ResponsesTab({ responses, onDelete }: ResponsesTabProps) {
       gradeData,
       testPerformanceData
     };
-  }, [responses]);
+  }, [responses, tests]);
 
   // --- TABLE LOGIC (SEARCH & SORT) ---
 
@@ -147,7 +163,7 @@ export function ResponsesTab({ responses, onDelete }: ResponsesTabProps) {
       result = result.filter(r => 
         String(r['User Name'] || '').toLowerCase().includes(term) ||
         String(r['User Email'] || '').toLowerCase().includes(term) ||
-        String(r['Test ID'] || '').toLowerCase().includes(term)
+        String(getTestTitle(r['Test ID'])).toLowerCase().includes(term)
       );
     }
 
@@ -157,16 +173,9 @@ export function ResponsesTab({ responses, onDelete }: ResponsesTabProps) {
         let valA = a[sortConfig.key];
         let valB = b[sortConfig.key];
 
-        // Custom handling for scores/numeric strings
         if (sortConfig.key === 'Score' || sortConfig.key === 'Total') {
           valA = Number(valA) || 0;
           valB = Number(valB) || 0;
-        }
-
-        // Custom handling for Percentage/Grade
-        if (sortConfig.key === 'Grade') {
-          valA = (Number(a.Score) / (Number(a.Total) || 1)) * 100;
-          valB = (Number(b.Score) / (Number(b.Total) || 1)) * 100;
         }
 
         if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
@@ -176,7 +185,43 @@ export function ResponsesTab({ responses, onDelete }: ResponsesTabProps) {
     }
 
     return result;
-  }, [responses, searchTerm, sortConfig]);
+  }, [responses, searchTerm, sortConfig, tests]);
+
+  // Reset to page 1 on search
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  const paginatedResponses = processedResponses.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const exportToCSV = () => {
+    const headers = ["Timestamp", "User Name", "User Email", "Test ID", "Test Name", "Score", "Total", "Percentage"];
+    const rows = processedResponses.map(r => {
+      const score = Number(r.Score) || 0;
+      const total = Number(r.Total) || 1;
+      return [
+        new Date(r.Timestamp).toLocaleString(),
+        r['User Name'] || 'Guest',
+        r['User Email'] || 'N/A',
+        r['Test ID'],
+        getTestTitle(r['Test ID']),
+        score,
+        total,
+        `${Math.round((score/total)*100)}%`
+      ];
+    });
+    
+    const csvContent = [headers, ...rows].map(e => e.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `dntrng_results_${new Date().toISOString().slice(0,10)}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const SortIcon = ({ column }: { column: string }) => {
     if (sortConfig.key !== column) return <ArrowUpDown className="ml-2 h-3 w-3 opacity-30" />;
@@ -203,114 +248,131 @@ export function ResponsesTab({ responses, onDelete }: ResponsesTabProps) {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
+    <div className="space-y-8 animate-in fade-in duration-700 pb-20">
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <AnalysisCard 
-          icon={Users} 
-          label="Total Results" 
-          value={stats.total} 
-          subValue="All tests"
-          color="blue"
-        />
-        <AnalysisCard 
-          icon={Target} 
-          label={t('avgScore')} 
-          value={`${stats.avgScore}%`} 
-          subValue="Global average"
-          color="green"
-        />
-        <AnalysisCard 
-          icon={Trophy} 
-          label={t('passRate')} 
-          value={`${stats.passRate}%`} 
-          subValue="Students above 50%"
-          color="purple"
-        />
+        <AnalysisCard icon={Users} label="Total Results" value={stats.total} subValue="All synchronized tests" color="blue" />
+        <AnalysisCard icon={Target} label={t('avgScore')} value={`${stats.avgScore}%`} subValue="Global mastery average" color="green" />
+        <AnalysisCard icon={Trophy} label={t('passRate')} value={`${stats.passRate}%`} subValue="Students exceeding 50% target" color="purple" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Grade Distribution */}
-        <Card className="border-none shadow-sm bg-white dark:bg-slate-900 overflow-hidden border dark:border-slate-800">
-          <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b dark:border-slate-800">
-            <CardTitle className="text-lg font-black flex items-center gap-2 text-slate-900 dark:text-white">
+        <Card className="border-none shadow-sm bg-white dark:bg-slate-900 overflow-hidden border dark:border-slate-800 rounded-[2.5rem]">
+          <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b dark:border-slate-800 p-8">
+            <CardTitle className="text-xl font-black flex items-center gap-3 text-slate-900 dark:text-white uppercase tracking-tight">
               <TrendingUp className="w-5 h-5 text-primary" />
-              Score Range
+              Score Distribution
             </CardTitle>
-            <CardDescription className="dark:text-slate-400">Breakdown of student performance</CardDescription>
+            <CardDescription className="dark:text-slate-400 font-medium">Population density across performance tiers</CardDescription>
           </CardHeader>
-          <CardContent className="pt-8 h-[300px]">
+          <CardContent className="pt-10 h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats.gradeData} layout="vertical">
+              <BarChart data={stats.gradeData} layout="vertical" margin={{ right: 60 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="hsl(var(--muted))" />
                 <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={120} style={{ fontSize: '12px', fontWeight: 600, fill: 'hsl(var(--muted-foreground))' }} />
+                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={140} style={{ fontSize: '11px', fontWeight: 800, fill: '#94a3b8' }} />
                 <Tooltip 
                   cursor={{ fill: 'hsl(var(--muted) / 0.2)' }}
-                  contentStyle={{ borderRadius: '12px', border: 'none', backgroundColor: 'hsl(var(--card))', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                  contentStyle={{ borderRadius: '16px', border: 'none', backgroundColor: '#0f172a', color: '#fff', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }}
                 />
-                <Bar dataKey="value" radius={[0, 8, 8, 0]} barSize={40}>
+                <Bar dataKey="value" radius={[0, 12, 12, 0]} barSize={45}>
                   {stats.gradeData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
+                  <LabelList 
+                    dataKey="value" 
+                    position="right" 
+                    style={{ fill: '#94a3b8', fontSize: '12px', fontWeight: 900 }}
+                    formatter={(val: number) => `${val} operators`}
+                  />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* Test Popularity & Performance */}
-        <Card className="border-none shadow-sm bg-white dark:bg-slate-900 overflow-hidden border dark:border-slate-800">
-          <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b dark:border-slate-800">
-            <CardTitle className="text-lg font-black flex items-center gap-2 text-slate-900 dark:text-white">
+        {/* Test Performance Donut */}
+        <Card className="border-none shadow-sm bg-white dark:bg-slate-900 overflow-hidden border dark:border-slate-800 rounded-[2.5rem]">
+          <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b dark:border-slate-800 p-8">
+            <CardTitle className="text-xl font-black flex items-center gap-3 text-slate-900 dark:text-white uppercase tracking-tight">
               <FileText className="w-5 h-5 text-primary" />
-              Best Scores by Test
+              Efficiency by Module
             </CardTitle>
-            <CardDescription className="dark:text-slate-400">Average score per test ID</CardDescription>
+            <CardDescription className="dark:text-slate-400 font-medium">Mean alignment percentage per assessment</CardDescription>
           </CardHeader>
-          <CardContent className="pt-8 h-[300px]">
+          <CardContent className="pt-10 h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={stats.testPerformanceData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
+                  innerRadius={70}
+                  outerRadius={100}
+                  paddingAngle={8}
                   dataKey="avg"
                   nameKey="name"
-                  label={({ name, avg }) => `${name}: ${avg}%`}
+                  stroke="none"
                 >
                   {stats.testPerformanceData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={`hsl(var(--primary), ${1 - (index * 0.2)})`} />
+                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', backgroundColor: 'hsl(var(--card))' }} />
-                <Legend iconType="circle" />
+                <Tooltip 
+                  contentStyle={{ borderRadius: '16px', border: 'none', backgroundColor: '#0f172a', color: '#fff' }}
+                  formatter={(value: number) => [`${value}% Avg`, 'Alignment']}
+                />
+                <Legend 
+                  iconType="circle" 
+                  layout="vertical" 
+                  align="right" 
+                  verticalAlign="middle"
+                  formatter={(value) => <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">{value}</span>}
+                />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
 
-      {/* Detailed Log Table */}
-      <Card className="border-none shadow-sm bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden border dark:border-slate-800">
-        <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b dark:border-slate-800 p-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div>
-              <CardTitle className="font-black text-2xl text-slate-900 dark:text-white uppercase tracking-tight">{t('fullResultHistory')}</CardTitle>
-              <CardDescription className="font-medium dark:text-slate-400">Every test attempt recorded in the system</CardDescription>
+      {/* Result History Table */}
+      <Card className="border-none shadow-sm bg-white dark:bg-slate-900 rounded-[3rem] overflow-hidden border dark:border-slate-800">
+        <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b dark:border-slate-800 p-10">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+            <div className="flex items-center gap-6">
+              <div>
+                <CardTitle className="font-black text-3xl text-slate-900 dark:text-white uppercase tracking-tighter">Result History</CardTitle>
+                <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">Live Telemetry Feed</p>
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={exportToCSV}
+                className="rounded-full h-12 px-6 border-2 font-black uppercase text-[10px] tracking-[0.2em] gap-2 hover:bg-primary hover:text-white transition-all"
+              >
+                <Download className="w-4 h-4" />
+                Export CSV
+              </Button>
             </div>
             
-            <div className="relative w-full md:w-80">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <Input 
-                placeholder="Find student or test..." 
-                className="h-12 pl-12 rounded-full bg-white dark:bg-slate-900 border-none ring-1 ring-slate-100 dark:ring-slate-800 focus:ring-primary/40 text-sm font-bold shadow-sm"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+            <div className="flex items-center gap-3">
+              <div className="relative w-full md:w-80">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Input 
+                  placeholder="Find operator or module..." 
+                  className="h-12 pl-12 rounded-full bg-white dark:bg-slate-900 border-none ring-1 ring-slate-100 dark:ring-slate-800 focus:ring-primary/40 text-sm font-bold shadow-sm"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={onRefresh} 
+                className="rounded-full h-12 w-12 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm"
+              >
+                <RefreshCcw className={cn("w-4 h-4 text-slate-400", loading && "animate-spin text-primary")} />
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -318,70 +380,58 @@ export function ResponsesTab({ responses, onDelete }: ResponsesTabProps) {
           <Table>
             <TableHeader>
               <TableRow className="bg-slate-50/50 dark:bg-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 border-none">
-                <TableHead 
-                  className="font-black uppercase text-[10px] tracking-widest px-8 py-5 cursor-pointer hover:text-primary transition-colors text-slate-400"
-                  onClick={() => handleSort('Timestamp')}
-                >
+                <TableHead className="font-black uppercase text-[10px] tracking-widest px-10 py-6 text-slate-400 cursor-pointer hover:text-primary" onClick={() => handleSort('Timestamp')}>
                   <div className="flex items-center">{t('date')} <SortIcon column="Timestamp" /></div>
                 </TableHead>
-                <TableHead 
-                  className="font-black uppercase text-[10px] tracking-widest px-4 cursor-pointer hover:text-primary transition-colors text-slate-400"
-                  onClick={() => handleSort('User Name')}
-                >
+                <TableHead className="font-black uppercase text-[10px] tracking-widest px-4 text-slate-400 cursor-pointer hover:text-primary" onClick={() => handleSort('User Name')}>
                   <div className="flex items-center">{t('student')} <SortIcon column="User Name" /></div>
                 </TableHead>
                 <TableHead className="font-black uppercase text-[10px] tracking-widest px-4 text-slate-400">{t('email')}</TableHead>
-                <TableHead 
-                  className="font-black uppercase text-[10px] tracking-widest px-4 cursor-pointer hover:text-primary transition-colors text-slate-400"
-                  onClick={() => handleSort('Test ID')}
-                >
-                  <div className="flex items-center">Test ID <SortIcon column="Test ID" /></div>
+                <TableHead className="font-black uppercase text-[10px] tracking-widest px-4 text-slate-400 cursor-pointer hover:text-primary" onClick={() => handleSort('Test ID')}>
+                  <div className="flex items-center">Assessment <SortIcon column="Test ID" /></div>
                 </TableHead>
-                <TableHead 
-                  className="font-black uppercase text-[10px] tracking-widest px-4 cursor-pointer hover:text-primary transition-colors text-slate-400"
-                  onClick={() => handleSort('Score')}
-                >
+                <TableHead className="font-black uppercase text-[10px] tracking-widest px-4 text-slate-400 cursor-pointer hover:text-primary" onClick={() => handleSort('Score')}>
                   <div className="flex items-center">{t('score')} <SortIcon column="Score" /></div>
                 </TableHead>
-                <TableHead 
-                  className="font-black uppercase text-[10px] tracking-widest px-4 text-center text-slate-400"
-                >
-                  {t('result')}
-                </TableHead>
-                <TableHead className="px-8 text-right font-black uppercase text-[10px] tracking-widest text-slate-400">{t('actions')}</TableHead>
+                <TableHead className="font-black uppercase text-[10px] tracking-widest px-4 text-center text-slate-400">Result</TableHead>
+                <TableHead className="px-10 text-right font-black uppercase text-[10px] tracking-widest text-slate-400">{t('actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {processedResponses.map((r, i) => {
+              {paginatedResponses.map((r, i) => {
                 const score = Number(r.Score) || 0;
                 const total = Number(r.Total) || 1;
                 const pct = (score / total) * 100;
+                const email = String(r['User Email'] || '');
+                const displayEmail = (!email || email.toLowerCase() === 'anonymous' || email.toLowerCase() === 'n/a') ? "—" : email;
+                
                 return (
                   <TableRow key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 group border-b border-slate-50 dark:border-slate-800 last:border-none">
-                    <TableCell className="px-8 py-5 text-[10px] font-medium text-slate-400">
+                    <TableCell className="px-10 py-6 text-[11px] font-bold text-slate-400 tabular-nums">
                       {new Date(r.Timestamp).toLocaleDateString()}
                     </TableCell>
-                    <TableCell className="px-4 font-black text-slate-900 dark:text-white truncate max-w-[150px]">{String(r['User Name'] || 'Guest')}</TableCell>
-                    <TableCell className="px-4 font-medium text-slate-500 truncate max-w-[150px]">{String(r['User Email'] || 'N/A')}</TableCell>
-                    <TableCell className="px-4 font-bold text-slate-700 dark:text-slate-300">
-                      <Badge variant="outline" className="font-mono text-[10px] rounded-md bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-                        {String(r['Test ID'])}
-                      </Badge>
+                    <TableCell className="px-4 font-black text-slate-900 dark:text-white truncate max-w-[150px] uppercase tracking-tight">{String(r['User Name'] || 'Guest')}</TableCell>
+                    <TableCell className="px-4 font-medium text-slate-400 truncate max-w-[150px] italic">{displayEmail}</TableCell>
+                    <TableCell className="px-4 font-black text-slate-700 dark:text-white truncate max-w-[200px]">
+                      <div className="flex flex-col">
+                        <span className="truncate">{getTestTitle(String(r['Test ID']))}</span>
+                        <span className="text-[9px] font-mono text-slate-400 uppercase tracking-tighter opacity-60">ID: {String(r['Test ID'])}</span>
+                      </div>
                     </TableCell>
-                    <TableCell className="px-4 font-black text-slate-700 dark:text-slate-300">{score} / {total}</TableCell>
+                    <TableCell className="px-4 font-black text-slate-700 dark:text-slate-300 tabular-nums">{score} / {total}</TableCell>
                     <TableCell className="px-4 text-center">
                       <Badge className={cn(
-                        "font-black px-4 py-1.5 rounded-full border-none shadow-sm text-[9px] uppercase tracking-widest",
-                        pct >= 80 ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : pct >= 50 ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                        "font-black px-4 py-1.5 rounded-full border-none shadow-sm text-[9px] uppercase tracking-[0.2em]",
+                        pct >= 80 ? "bg-green-100 text-green-700" : pct >= 50 ? "bg-orange-100 text-orange-700" : "bg-red-100 text-red-700"
                       )}>
                         {pct >= 80 ? t('excellent') : pct >= 50 ? t('pass') : t('fail')}
                       </Badge>
                     </TableCell>
-                    <TableCell className="px-8 text-right">
+                    <TableCell className="px-10 text-right">
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="rounded-full h-10 w-10 text-destructive hover:bg-destructive/5 transition-all"
+                        className="rounded-full h-10 w-10 text-destructive hover:bg-destructive/10 transition-all opacity-0 group-hover:opacity-100"
                         onClick={() => setDeleteConfirm({ timestamp: r.Timestamp, email: r['User Email'] })}
                       >
                         <Trash2 className="w-4 h-4" />
@@ -392,16 +442,24 @@ export function ResponsesTab({ responses, onDelete }: ResponsesTabProps) {
               })}
               {processedResponses.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-24 bg-slate-50/20 dark:bg-slate-900/20">
-                    <div className="flex flex-col items-center gap-2 opacity-30">
-                      <Search className="w-10 h-10" />
-                      <p className="font-black uppercase tracking-widest text-xs">No matching results found</p>
+                  <TableCell colSpan={7} className="text-center py-32 bg-slate-50/20 dark:bg-slate-900/20">
+                    <div className="flex flex-col items-center gap-4 opacity-20">
+                      <Search className="w-12 h-12" />
+                      <p className="font-black uppercase tracking-[0.3em] text-xs">No matching results in registry</p>
                     </div>
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
+          {processedResponses.length > 0 && (
+            <Pagination 
+              currentPage={currentPage}
+              totalItems={processedResponses.length}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+            />
+          )}
         </CardContent>
       </Card>
 
@@ -409,19 +467,17 @@ export function ResponsesTab({ responses, onDelete }: ResponsesTabProps) {
         <AlertDialogContent className="rounded-[3rem] p-10 border-none shadow-2xl dark:bg-slate-900">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-3xl font-black uppercase tracking-tight text-slate-900 dark:text-white">
-              Purge Result Entry?
+              Purge Assessment Log?
             </AlertDialogTitle>
             <AlertDialogDescription className="text-lg font-medium text-slate-500 dark:text-slate-400 leading-relaxed">
-              This will permanently remove this assessment log from the registry. This action cannot be reversed.
+              This will permanently remove this entry from the historical registry. This action is irreversible.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-8 flex flex-col sm:flex-row gap-4">
-            <AlertDialogCancel className="h-14 rounded-full border-2 font-black uppercase text-xs tracking-widest flex-1 dark:border-slate-700 dark:text-slate-400">
-              {t('cancel')}
-            </AlertDialogCancel>
+            <AlertDialogCancel className="h-14 rounded-full border-2 font-black uppercase text-xs tracking-widest flex-1 dark:border-slate-700 dark:text-slate-400">Abort</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDelete}
-              className="h-14 rounded-full bg-destructive hover:bg-destructive/90 text-white font-black uppercase text-xs tracking-widest flex-1 shadow-xl shadow-destructive/20 border-none"
+              className="h-14 rounded-full bg-destructive hover:bg-destructive/90 text-white font-black uppercase text-xs tracking-widest flex-1 shadow-xl border-none"
             >
               Confirm Purge
             </AlertDialogAction>
@@ -440,17 +496,15 @@ function AnalysisCard({ icon: Icon, label, value, subValue, color }: any) {
   };
   
   return (
-    <Card className="border-none shadow-sm bg-white dark:bg-slate-900 overflow-hidden group hover:shadow-xl transition-all rounded-[2rem] border dark:border-slate-800">
-      <CardContent className="pt-6 flex items-center gap-6">
-        <div className={cn("p-5 rounded-[1.5rem] border-2 transition-transform group-hover:scale-110", colors[color])}>
+    <Card className="border-none shadow-sm bg-white dark:bg-slate-900 overflow-hidden group hover:shadow-xl transition-all rounded-[2.5rem] border dark:border-slate-800">
+      <CardContent className="pt-8 flex items-center gap-8 px-8">
+        <div className={cn("p-6 rounded-[2rem] border-2 transition-transform group-hover:scale-110", colors[color])}>
           <Icon className="w-8 h-8" />
         </div>
         <div>
-          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-1">{label}</p>
-          <div className="flex items-baseline gap-2">
-            <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">{value}</p>
-          </div>
-          <p className="text-xs font-medium text-muted-foreground/60 dark:text-slate-500">{subValue}</p>
+          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] mb-1">{label}</p>
+          <p className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">{value}</p>
+          <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">{subValue}</p>
         </div>
       </CardContent>
     </Card>

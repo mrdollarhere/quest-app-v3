@@ -10,15 +10,22 @@ import { AILoader } from '@/components/ui/ai-loader';
 export default function AdminResponsesPage() {
   const [loading, setLoading] = useState(false);
   const [responses, setResponses] = useState<any[]>([]);
+  const [tests, setTests] = useState<any[]>([]);
   const { toast } = useToast();
 
-  const fetchResponses = async () => {
+  const fetchData = async () => {
     if (!API_URL) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}?action=getResponses`);
-      const data = await res.json();
-      setResponses(Array.isArray(data) ? data : []);
+      const [resRes, testsRes] = await Promise.all([
+        fetch(`${API_URL}?action=getResponses`),
+        fetch(`${API_URL}?action=getTests`)
+      ]);
+      const resData = await resRes.json();
+      const testsData = await testsRes.json();
+      
+      setResponses(Array.isArray(resData) ? resData : []);
+      setTests(Array.isArray(testsData) ? testsData : []);
     } catch (err) {
       toast({ variant: "destructive", title: "Error", description: "Could not fetch responses." });
     } finally {
@@ -27,7 +34,7 @@ export default function AdminResponsesPage() {
   };
 
   useEffect(() => {
-    fetchResponses();
+    fetchData();
   }, []);
 
   const handlePost = async (action: string, payload: any) => {
@@ -40,7 +47,7 @@ export default function AdminResponsesPage() {
         body: JSON.stringify({ action, ...payload })
       });
       toast({ title: "Success", description: "Registry updated." });
-      setTimeout(fetchResponses, 1500);
+      setTimeout(fetchData, 1500);
     } catch (err) {
       toast({ variant: "destructive", title: "Error" });
     } finally {
@@ -60,6 +67,9 @@ export default function AdminResponsesPage() {
     <div className="space-y-6">
       <ResponsesTab 
         responses={responses} 
+        tests={tests}
+        loading={loading}
+        onRefresh={fetchData}
         onDelete={(timestamp, email) => handlePost('deleteResponse', { timestamp, email })}
       />
     </div>
