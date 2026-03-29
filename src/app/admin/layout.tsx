@@ -1,19 +1,27 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ShieldAlert } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from '@/context/auth-context';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { LanguageProvider } from '@/context/language-context';
 import { AILoader } from '@/components/ui/ai-loader';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading, logout } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
+
+  // Redirection Protocol: Force unauthenticated users to the identity registry
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, authLoading, router]);
 
   // Determine active tab from pathname
   const activeTab = pathname === '/admin' ? 'overview' : 
@@ -30,14 +38,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  if (!user || user.role !== 'admin') {
+  // Prevent flash of content during redirect
+  if (!user) {
+    return null;
+  }
+
+  // Authorization Protocol: Restrict access to authenticated non-admins
+  if (user.role !== 'admin') {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center bg-slate-50 dark:bg-slate-950">
         <ShieldAlert className="w-20 h-20 text-red-500 mb-4" />
-        <h1 className="text-2xl font-black text-slate-900 dark:text-white">Access Denied</h1>
-        <p className="text-muted-foreground mt-2">Only administrators can access this control panel.</p>
-        <Link href="/" className="mt-6">
-          <Button className="rounded-full">Return Home</Button>
+        <h1 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Access Denied</h1>
+        <p className="text-muted-foreground mt-2 font-medium">Your identity role does not permit access to the administrative console.</p>
+        <Link href="/" className="mt-8">
+          <Button className="rounded-full h-12 px-8 font-black uppercase text-xs tracking-widest bg-slate-900 shadow-xl">Return Home</Button>
         </Link>
       </div>
     );
