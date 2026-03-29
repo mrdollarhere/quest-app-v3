@@ -99,6 +99,11 @@ const translations: Record<Language, Record<string, string>> = {
     noLogsDetected: "No Logs Detected",
     exploreLibrary: "Explore Library",
     historicalInteraction: "Your historical interaction with the DNTRNG Registry",
+    // Health Indicators
+    systemStatus: "System",
+    optimal: "Optimal",
+    degraded: "Degraded",
+    offline: "Offline",
     // Landing Page
     library: "Library",
     setupGuide: "Setup Guide",
@@ -216,6 +221,11 @@ const translations: Record<Language, Record<string, string>> = {
     noLogsDetected: "Không phát hiện nhật ký",
     exploreLibrary: "Khám phá thư viện",
     historicalInteraction: "Lịch sử tương tác của bạn với Hệ thống DNTRNG",
+    // Health Indicators
+    systemStatus: "Hệ thống",
+    optimal: "Tốt",
+    degraded: "Suy giảm",
+    offline: "Ngoại tuyến",
     // Landing Page
     library: "Thư viện",
     setupGuide: "Hướng dẫn",
@@ -333,6 +343,11 @@ const translations: Record<Language, Record<string, string>> = {
     noLogsDetected: "No se detectaron registros",
     exploreLibrary: "Explorar Biblioteca",
     historicalInteraction: "Su interacción histórica con el Registro DNTRNG",
+    // Health Indicators
+    systemStatus: "Sistema",
+    optimal: "Óptimo",
+    degraded: "Degradado",
+    offline: "Fuera de línea",
     // Landing Page
     library: "Biblioteca",
     setupGuide: "Guía de configuración",

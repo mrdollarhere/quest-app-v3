@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { 
@@ -27,8 +27,25 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ModeToggle } from '@/components/ModeToggle';
 
+type SystemStatus = 'Optimal' | 'Degraded' | 'Offline';
+
 export default function LandingPage() {
   const { t, language, setLanguage } = useLanguage();
+  const [systemStatus, setSystemStatus] = useState<SystemStatus>('Optimal');
+
+  useEffect(() => {
+    const checkHealth = async () => {
+      try {
+        const res = await fetch('/api/health');
+        if (!res.ok) throw new Error('Health check failed');
+        const data = await res.json();
+        setSystemStatus(data.status as SystemStatus);
+      } catch (err) {
+        setSystemStatus('Offline');
+      }
+    };
+    checkHealth();
+  }, []);
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col selection:bg-primary selection:text-white">
@@ -225,8 +242,14 @@ export default function LandingPage() {
             </p>
             <div className="flex items-center gap-8">
               <div className="flex items-center gap-3 px-4 py-2 bg-slate-50 dark:bg-slate-900 rounded-full border border-slate-100 dark:border-slate-800">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">{t('systemOptimal')}</span>
+                <div className={cn(
+                  "w-2 h-2 rounded-full animate-pulse",
+                  systemStatus === 'Optimal' ? "bg-emerald-500" :
+                  systemStatus === 'Degraded' ? "bg-amber-500" : "bg-red-500"
+                )} />
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                  {t('systemStatus')}: {t(systemStatus.toLowerCase())}
+                </span>
               </div>
             </div>
           </div>
