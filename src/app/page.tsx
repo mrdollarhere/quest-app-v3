@@ -81,7 +81,7 @@ export default function LandingPage() {
           </div>
 
           <div className="container max-w-6xl mx-auto px-6 text-center">
-            <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-[0.25em] mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
               <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse" />
               {t('heroBadge')}
             </div>
@@ -212,8 +212,8 @@ export default function LandingPage() {
               <div className="space-y-6">
                 <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-900 dark:text-white">{t('resources')}</h4>
                 <nav className="flex flex-col gap-4 text-sm font-bold text-slate-400 dark:text-slate-500">
-                  <span className="cursor-pointer hover:text-primary transition-colors">{t('identityGuide')}</span>
-                  <span className="cursor-pointer hover:text-primary transition-colors">{t('cloudSync')}</span>
+                  <Link href="/setup-guide" className="hover:text-primary transition-colors">{t('identityGuide')}</Link>
+                  <Link href="/admin" className="hover:text-primary transition-colors">{t('cloudSync')}</Link>
                 </nav>
               </div>
             </div>
