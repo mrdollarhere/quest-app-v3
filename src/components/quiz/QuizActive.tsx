@@ -36,6 +36,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface QuizActiveProps {
   quiz: QuizState;
@@ -98,6 +99,11 @@ export function QuizActive({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const truncateText = (text: string, length: number) => {
+    if (text.length <= length) return text;
+    return text.substring(0, length) + '...';
+  };
+
   // Circular timer calculation
   const totalSessionTime = 900; // Assuming 15m as base for visual progress
   const dashArray = 2 * Math.PI * 18;
@@ -150,31 +156,72 @@ export function QuizActive({
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="icon" className="rounded-full h-10 w-10 hover:bg-slate-50 dark:hover:bg-slate-800"><ListOrdered className="w-5 h-5" /></Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-[300px] sm:w-[450px] rounded-l-[3rem] dark:bg-slate-900 border-slate-100 dark:border-slate-800">
-                  <SheetHeader className="mb-10 pt-10 px-4">
-                    <SheetTitle className="text-3xl font-black tracking-tighter uppercase text-slate-900 dark:text-white">Protocol Flow</SheetTitle>
+                <SheetContent side="right" className="w-[320px] sm:w-[450px] p-0 flex flex-col dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800">
+                  <SheetHeader className="p-8 border-b dark:border-slate-800 shrink-0">
+                    <div className="flex items-center justify-between">
+                      <SheetTitle className="text-2xl font-black tracking-tighter uppercase text-slate-900 dark:text-white">Questions</SheetTitle>
+                    </div>
+                    
+                    {/* Status Legend */}
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 rounded-full bg-slate-200 dark:bg-slate-700" />
+                        <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Unread</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 rounded-full bg-green-500" />
+                        <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Answered</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 rounded-full bg-orange-500" />
+                        <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Marked</span>
+                      </div>
+                    </div>
                   </SheetHeader>
-                  <div className="grid grid-cols-4 gap-4 px-4">
-                    {quiz.questions.map((q, idx) => (
-                      <Button
-                        key={q.id}
-                        variant={quiz.currentQuestionIndex === idx ? "default" : "outline"}
-                        className={cn(
-                          "h-16 rounded-2xl font-black text-lg transition-all relative",
-                          isAnswered(q.id) && quiz.currentQuestionIndex !== idx && "bg-primary/5 dark:bg-primary/10 text-primary border-primary/20",
-                          quiz.currentQuestionIndex !== idx && "dark:border-slate-700 dark:text-slate-400"
-                        )}
-                        onClick={() => { onJump(idx); setIsSidebarOpen(false); }}
-                      >
-                        {idx + 1}
-                        {quiz.flaggedQuestionIds?.includes(q.id) && (
-                          <div className="absolute top-1.5 right-1.5">
-                            <Flag className="w-3 h-3 text-orange-500 fill-current" />
-                          </div>
-                        )}
-                      </Button>
-                    ))}
-                  </div>
+
+                  <ScrollArea className="flex-1">
+                    <div className="p-2 pb-24">
+                      {quiz.questions.map((q, idx) => {
+                        const answered = isAnswered(q.id);
+                        const flagged = quiz.flaggedQuestionIds?.includes(q.id);
+                        const active = quiz.currentQuestionIndex === idx;
+
+                        return (
+                          <button
+                            key={q.id}
+                            onClick={() => { onJump(idx); setIsSidebarOpen(false); }}
+                            className={cn(
+                              "w-full flex items-center gap-4 p-4 rounded-2xl text-left transition-all group mb-1",
+                              active 
+                                ? "bg-primary/5 dark:bg-primary/10 ring-1 ring-primary/20" 
+                                : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                            )}
+                          >
+                            <span className={cn(
+                              "text-xs font-black w-7 text-right shrink-0",
+                              active ? "text-primary" : "text-slate-300 dark:text-slate-600"
+                            )}>
+                              {idx + 1}
+                            </span>
+                            
+                            <div className="flex-1 min-w-0">
+                              <p className={cn(
+                                "text-[13px] font-medium truncate",
+                                active ? "text-slate-900 dark:text-white" : "text-slate-500 dark:text-slate-400"
+                              )}>
+                                {truncateText(q.question_text, 45)}
+                              </p>
+                            </div>
+
+                            <div className={cn(
+                              "w-2.5 h-2.5 rounded-full shrink-0 transition-all",
+                              flagged ? "bg-orange-500" : (answered ? "bg-green-500" : "bg-slate-200 dark:bg-slate-700")
+                            )} />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
                 </SheetContent>
               </Sheet>
               <Button variant="ghost" size="icon" className="rounded-full h-10 w-10 hidden sm:flex hover:bg-slate-50 dark:hover:bg-slate-800"><Type className="w-5 h-5" /></Button>
