@@ -10,7 +10,8 @@ import {
   ArrowUpDown,
   ChevronUp,
   ChevronDown,
-  Eye
+  Eye,
+  RefreshCcw
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,9 +43,11 @@ import { Pagination } from './Pagination';
 interface UsersTabProps {
   users: any[];
   responses: any[];
+  loading?: boolean;
   onEdit: (user: any) => void;
   onDelete: (email: string) => void;
   onAdd: () => void;
+  onRefresh: () => void;
 }
 
 type SortConfig = {
@@ -52,7 +55,7 @@ type SortConfig = {
   direction: 'asc' | 'desc' | null;
 };
 
-export function UsersTab({ users, responses, onEdit, onDelete, onAdd }: UsersTabProps) {
+export function UsersTab({ users, responses, loading, onEdit, onDelete, onAdd, onRefresh }: UsersTabProps) {
   const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'name', direction: 'asc' });
@@ -174,14 +177,24 @@ export function UsersTab({ users, responses, onEdit, onDelete, onAdd }: UsersTab
         </div>
         
         <div className="flex flex-wrap items-center gap-4">
-          <div className="relative w-full md:w-80">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <Input 
-              placeholder="Search by name or email..." 
-              className="h-12 pl-12 rounded-full bg-white dark:bg-slate-900 border-none ring-1 ring-slate-100 dark:ring-slate-800 focus:ring-primary/40 text-sm font-bold shadow-sm"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="relative w-full md:w-80 flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input 
+                placeholder="Search by name or email..." 
+                className="h-12 pl-12 rounded-full bg-white dark:bg-slate-900 border-none ring-1 ring-slate-100 dark:ring-slate-800 focus:ring-primary/40 text-sm font-bold shadow-sm"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={onRefresh} 
+              className="rounded-full h-12 w-12 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm"
+            >
+              <RefreshCcw className={cn("w-4 h-4 text-slate-400", loading && "animate-spin text-primary")} />
+            </Button>
           </div>
           <Button onClick={onAdd} className="rounded-full gap-2 font-black h-12 px-8 shadow-xl bg-primary">
             <Plus className="w-4 h-4" /> {t('addStudent')}

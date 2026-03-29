@@ -60,6 +60,7 @@ export default function AdminTestsPage() {
         onDelete={(id) => handlePost('deleteTest', { id })}
         onManageQuestions={(id) => router.push(`/admin/tests/${id}`)}
         onAdd={() => router.push('/admin/tests/new')}
+        onRefresh={fetchTests}
       />
 
       <AdminDialogs 

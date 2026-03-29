@@ -6,15 +6,14 @@ import {
   Search, 
   Edit, 
   Trash2, 
-  FileText,
   LayoutGrid,
   List,
   MoreVertical,
   ChevronRight,
   Clock,
   ListChecks,
-  CheckCircle2,
-  FileEdit
+  FileEdit,
+  RefreshCcw
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,9 +55,10 @@ interface TestsTabProps {
   onDelete: (id: string) => void;
   onManageQuestions: (id: string) => void;
   onAdd: () => void;
+  onRefresh: () => void;
 }
 
-export function TestsTab({ tests, loading, onEdit, onDelete, onManageQuestions, onAdd }: TestsTabProps) {
+export function TestsTab({ tests, loading, onEdit, onDelete, onManageQuestions, onAdd, onRefresh }: TestsTabProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -93,14 +93,24 @@ export function TestsTab({ tests, loading, onEdit, onDelete, onManageQuestions, 
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
-          <div className="relative w-full md:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input 
-              placeholder={t('searchTests')} 
-              className="pl-10 rounded-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 h-11" 
-              value={searchTerm} 
-              onChange={(e) => setSearchTerm(e.target.value)} 
-            />
+          <div className="relative w-full md:w-64 flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input 
+                placeholder={t('searchTests')} 
+                className="pl-10 rounded-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 h-11" 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)} 
+              />
+            </div>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={onRefresh} 
+              className="rounded-full h-11 w-11 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+            >
+              <RefreshCcw className={cn("w-4 h-4 text-slate-400", loading && "animate-spin text-primary")} />
+            </Button>
           </div>
 
           <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-full border dark:border-slate-700">
@@ -144,7 +154,7 @@ export function TestsTab({ tests, loading, onEdit, onDelete, onManageQuestions, 
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {loading ? (
+                  {loading && tests.length === 0 ? (
                     Array.from({ length: 5 }).map((_, i) => (
                       <TableRow key={i} className="border-b border-slate-50 dark:border-slate-800 last:border-none">
                         <TableCell className="px-8 py-6"><Skeleton className="h-4 w-12 rounded" /></TableCell>
@@ -204,7 +214,7 @@ export function TestsTab({ tests, loading, onEdit, onDelete, onManageQuestions, 
                   <p className="font-black text-slate-300 dark:text-slate-700 uppercase tracking-widest">{t('noTests')}</p>
                 </div>
               )}
-              {!loading && filtered.length > 0 && (
+              {filtered.length > 0 && (
                 <Pagination 
                   currentPage={currentPage}
                   totalItems={filtered.length}
@@ -218,7 +228,7 @@ export function TestsTab({ tests, loading, onEdit, onDelete, onManageQuestions, 
       ) : (
         <div className="space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {loading ? (
+            {loading && tests.length === 0 ? (
               Array.from({ length: 6 }).map((_, i) => (
                 <Card key={i} className="overflow-hidden border-none shadow-sm rounded-[2.5rem] bg-white dark:bg-slate-900 flex flex-col border dark:border-slate-800">
                   <Skeleton className="aspect-video w-full" />
@@ -309,7 +319,7 @@ export function TestsTab({ tests, loading, onEdit, onDelete, onManageQuestions, 
               </Card>
             ))}
           </div>
-          {!loading && filtered.length > 0 && (
+          {filtered.length > 0 && (
             <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden border dark:border-slate-800">
               <Pagination 
                 currentPage={currentPage}

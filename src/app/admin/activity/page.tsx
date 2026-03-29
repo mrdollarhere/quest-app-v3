@@ -32,29 +32,27 @@ export default function AdminActivityPage() {
     fetchActivities();
   }, []);
 
-  if (loading && activities.length === 0) {
-    return (
-      <div className="py-40">
-        <AILoader />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <div className="flex items-center justify-between mb-2">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tight">{t('systemActivity')}</h1>
+          <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{t('systemActivity')}</h1>
           <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2">{t('monitorAccess')}</p>
         </div>
-        <div className="p-4 bg-white rounded-2xl shadow-sm border flex items-center gap-3">
+        <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border dark:border-slate-800 flex items-center gap-3">
           <History className="w-5 h-5 text-primary" />
-          <span className="text-xl font-black text-slate-900">{activities.length}</span>
+          <span className="text-xl font-black text-slate-900 dark:text-white">{activities.length}</span>
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Events</span>
         </div>
       </div>
       
-      <ActivityTab activities={activities} />
+      {loading && activities.length === 0 ? (
+        <div className="py-40">
+          <AILoader />
+        </div>
+      ) : (
+        <ActivityTab activities={activities} loading={loading} onRefresh={fetchActivities} />
+      )}
     </div>
   );
 }

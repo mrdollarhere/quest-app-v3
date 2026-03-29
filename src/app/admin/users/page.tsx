@@ -56,23 +56,23 @@ export default function AdminUsersPage() {
     }
   };
 
-  if (loading && users.length === 0) {
-    return (
-      <div className="py-20">
-        <AILoader />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
-      <UsersTab 
-        users={users}
-        responses={responses}
-        onEdit={(item) => { setEditingItem(item); setDialogs({ ...dialogs, user: true }); }}
-        onDelete={(email) => handlePost('deleteUser', { email })}
-        onAdd={() => { setEditingItem(null); setDialogs({ ...dialogs, user: true }); }}
-      />
+      {loading && users.length === 0 ? (
+        <div className="py-20">
+          <AILoader />
+        </div>
+      ) : (
+        <UsersTab 
+          users={users}
+          responses={responses}
+          loading={loading}
+          onEdit={(item) => { setEditingItem(item); setDialogs({ ...dialogs, user: true }); }}
+          onDelete={(email) => handlePost('deleteUser', { email })}
+          onAdd={() => { setEditingItem(null); setDialogs({ ...dialogs, user: true }); }}
+          onRefresh={fetchData}
+        />
+      )}
 
       <AdminDialogs 
         dialogs={dialogs} 
