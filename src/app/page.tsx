@@ -215,19 +215,19 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="py-20 border-t border-slate-200 bg-white">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row justify-between items-start gap-12 mb-16">
-            <div className="space-y-6">
+          <div className="flex flex-col md:flex-row items-start gap-12 md:gap-32 mb-16">
+            <div className="space-y-6 max-w-sm">
               <Link href="/" className="flex items-center space-x-2">
                 <h1 className="text-2xl font-black tracking-tighter text-slate-900 uppercase flex items-center">
                   DNTRNG<span className="w-2 h-2 rounded-full bg-[#2563EB] ml-1" />
                 </h1>
               </Link>
-              <p className="text-slate-400 font-medium max-w-sm text-sm leading-relaxed">
+              <p className="text-slate-400 font-medium text-sm leading-relaxed">
                 {t('footerDesc')}
               </p>
             </div>
             
-            <div className="grid grid-cols-2 gap-20">
+            <div className="flex flex-1 gap-12 md:gap-24">
               <div className="space-y-6">
                 <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-900">{t('platform')}</h4>
                 <nav className="flex flex-col gap-4 text-xs font-bold text-slate-400">

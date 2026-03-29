@@ -50,6 +50,14 @@ const translations: Record<Language, Record<string, string>> = {
     // Final CTA
     finalCtaTitle: "Ready to find your weak spots?",
     finalCtaDesc: "Jump straight into a test. No signup, no waiting.",
+    // Footer
+    footerDesc: "Empowering students with smart assessments and real-time results.",
+    platform: "Platform",
+    resources: "Resources",
+    adminConsole: "Admin Console",
+    setupProtocol: "Setup Guide",
+    identityGuide: "Identity Guide",
+    cloudSync: "Cloud Sync",
     // Admin & General
     dashboard: "Dashboard",
     testLibrary: "Test Library",
@@ -57,7 +65,7 @@ const translations: Record<Language, Record<string, string>> = {
     results: "Results",
     activity: "Activity Logs",
     logout: "Log out",
-    adminConsole: "Admin Console",
+    adminConsoleLabel: "Admin Console",
     statusActive: "Status: Active",
     lastSync: "Last Sync",
     accessKey: "Access Key",
@@ -178,6 +186,14 @@ const translations: Record<Language, Record<string, string>> = {
     // Final CTA
     finalCtaTitle: "Sẵn sàng tìm ra điểm yếu của bạn?",
     finalCtaDesc: "Vào thi ngay thôi. Không cần đăng ký, không cần chờ.",
+    // Footer
+    footerDesc: "Hỗ trợ học sinh với bài kiểm tra thông minh và kết quả tức thì.",
+    platform: "Nền tảng",
+    resources: "Tài nguyên",
+    adminConsole: "Quản trị",
+    setupProtocol: "Hướng dẫn cài đặt",
+    identityGuide: "Hướng dẫn định danh",
+    cloudSync: "Đồng bộ đám mây",
     // Admin & General
     dashboard: "Bảng điều khiển",
     testLibrary: "Thư viện bài thi",
@@ -185,7 +201,7 @@ const translations: Record<Language, Record<string, string>> = {
     results: "Kết quả",
     activity: "Lịch sử hoạt động",
     logout: "Đăng xuất",
-    adminConsole: "Quản trị",
+    adminConsoleLabel: "Quản trị",
     statusActive: "Trạng thái: Hoạt động",
     lastSync: "Đồng bộ cuối",
     accessKey: "Mã truy cập",
@@ -302,10 +318,18 @@ const translations: Record<Language, Record<string, string>> = {
     step2: "Responde las preguntas",
     step2Desc: "Interactúa con módulos diseñados para desafiar tus habilidades.",
     step3: "Mira tus resultados",
-    step3Desc: "Obtén comentarios instantáneos y analiza tu historial de rendimiento.",
+    step3Desc: "Obtén comentarios instanténeos y analiza tu historial de rendimiento.",
     // Final CTA
     finalCtaTitle: "¿Listo para descubrir tus puntos débiles?",
     finalCtaDesc: "Empieza directamente. Sin registro, sin esperas.",
+    // Footer
+    footerDesc: "Apoyando a los estudiantes con evaluaciones inteligentes y resultados en tiempo real.",
+    platform: "Plataforma",
+    resources: "Recursos",
+    adminConsole: "Panel de control",
+    setupProtocol: "Guía de configuración",
+    identityGuide: "Guía de identidad",
+    cloudSync: "Sincronización",
     // Admin & General
     dashboard: "Panel",
     testLibrary: "Biblioteca de pruebas",
@@ -313,7 +337,7 @@ const translations: Record<Language, Record<string, string>> = {
     results: "Resultados",
     activity: "Registro de actividad",
     logout: "Cerrar sesión",
-    adminConsole: "Panel de control",
+    adminConsoleLabel: "Panel de control",
     statusActive: "Estado: Activo",
     lastSync: "Última sincronización",
     accessKey: "Clave de acceso",
