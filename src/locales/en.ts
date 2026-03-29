@@ -47,7 +47,7 @@ export const en = {
   cloudSync: "Cloud Sync",
   // Admin & General
   dashboard: "Dashboard",
-  testLibrary: "Library",
+  testLibrary: "Test Library",
   students: "Students",
   results: "Results",
   activity: "Logs",
