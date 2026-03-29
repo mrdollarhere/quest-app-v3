@@ -145,7 +145,16 @@ const translations: Record<Language, Record<string, string>> = {
     systemStatus: "System",
     optimal: "Optimal",
     degraded: "Degraded",
-    offline: "Offline"
+    offline: "Offline",
+    // Library Redesign
+    chooseTest: "Choose a Test",
+    testSubtitle: "Pick any test below and start immediately — no account needed.",
+    searchPlaceholder: "Search by test name...",
+    all: "All",
+    beginner: "Beginner",
+    easy: "Easy",
+    medium: "Medium",
+    hard: "Hard"
   },
   vi: {
     // Theme
@@ -281,7 +290,16 @@ const translations: Record<Language, Record<string, string>> = {
     systemStatus: "Hệ thống",
     optimal: "Tốt",
     degraded: "Suy giảm",
-    offline: "Ngoại tuyến"
+    offline: "Ngoại tuyến",
+    // Library Redesign
+    chooseTest: "Chọn đề thi",
+    testSubtitle: "Chọn đề thi bên dưới và bắt đầu ngay — không cần tài khoản.",
+    searchPlaceholder: "Tìm theo tên đề thi...",
+    all: "Tất cả",
+    beginner: "Cơ bản",
+    easy: "Dễ",
+    medium: "Trung bình",
+    hard: "Khó"
   },
   es: {
     // Theme
@@ -417,7 +435,16 @@ const translations: Record<Language, Record<string, string>> = {
     systemStatus: "Sistema",
     optimal: "Óptimo",
     degraded: "Degradado",
-    offline: "Fuera de línea"
+    offline: "Fuera de línea",
+    // Library Redesign
+    chooseTest: "Elige un examen",
+    testSubtitle: "Elige cualquier examen y empieza de inmediato — sin cuenta.",
+    searchPlaceholder: "Buscar por nombre...",
+    all: "Todos",
+    beginner: "Principiante",
+    easy: "Fácil",
+    medium: "Intermedio",
+    hard: "Difícil"
   }
 };
 

@@ -6,6 +6,7 @@ import { Search, LayoutGrid, List, Loader2, ArrowLeft, Clock } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { useLanguage } from '@/context/language-context';
 
 interface LibraryHeaderProps {
   search: string;
@@ -26,6 +27,8 @@ export function LibraryHeader({
   onRefresh,
   lastSync
 }: LibraryHeaderProps) {
+  const { t } = useLanguage();
+
   return (
     <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-100 dark:border-slate-800 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-6 py-6">
@@ -37,7 +40,7 @@ export function LibraryHeader({
               </Button>
             </Link>
             <div>
-              <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">Intelligence Library</h1>
+              <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">{t('chooseTest')}</h1>
               <div className="flex items-center gap-4 mt-2">
                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
@@ -57,7 +60,7 @@ export function LibraryHeader({
             <div className="relative flex-1 min-w-[300px]">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-600" />
               <Input 
-                placeholder="Query by name, classification or description..." 
+                placeholder={t('searchPlaceholder')}
                 className="pl-11 h-12 rounded-full bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-100 dark:ring-slate-700 focus:ring-primary/40 font-bold text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}

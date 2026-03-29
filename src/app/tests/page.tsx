@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { API_URL } from '@/lib/api-config';
 import { AVAILABLE_TESTS as DEMO_TESTS } from '@/app/lib/demo-data';
 import { LibraryHeader } from '@/components/library/LibraryHeader';
@@ -10,6 +10,8 @@ import { EmptyState } from '@/components/library/EmptyState';
 import { AILoader } from '@/components/ui/ai-loader';
 import { Sparkles, AlertCircle, RefreshCcw, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useLanguage } from '@/context/language-context';
+import { cn } from '@/lib/utils';
 
 /**
  * INTELLIGENCE LIBRARY PROTOCOL
@@ -18,7 +20,9 @@ import { Button } from '@/components/ui/button';
  * Includes high-availability error handling and a 8s synchronization timeout.
  */
 export default function TestsLibrary() {
+  const { t } = useLanguage();
   const [search, setSearch] = useState("");
+  const [difficultyFilter, setDifficultyFilter] = useState("all");
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
   const [tests, setTests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,11 +77,21 @@ export default function TestsLibrary() {
     }
   };
 
-  const filteredTests = tests.filter(t => 
-    (t.title?.toLowerCase() || "").includes(search.toLowerCase()) || 
-    (t.category?.toLowerCase() || "").includes(search.toLowerCase()) ||
-    (t.description?.toLowerCase() || "").includes(search.toLowerCase())
-  );
+  const filteredTests = useMemo(() => {
+    return tests.filter(t_item => {
+      const matchesSearch = 
+        (t_item.title?.toLowerCase() || "").includes(search.toLowerCase()) || 
+        (t_item.category?.toLowerCase() || "").includes(search.toLowerCase()) ||
+        (t_item.description?.toLowerCase() || "").includes(search.toLowerCase());
+      
+      const matchesDifficulty = difficultyFilter === "all" || 
+        (t_item.difficulty?.toLowerCase() || "") === difficultyFilter.toLowerCase();
+      
+      return matchesSearch && matchesDifficulty;
+    });
+  }, [tests, search, difficultyFilter]);
+
+  const difficultyOptions = ["all", "beginner", "easy", "medium", "hard"];
 
   return (
     <div className="min-h-screen bg-slate-50/30 dark:bg-slate-950 selection:bg-primary selection:text-white flex flex-col transition-colors duration-300">
@@ -91,7 +105,7 @@ export default function TestsLibrary() {
         lastSync={lastSync}
       />
 
-      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-16 md:py-24">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-12 md:py-16">
         {loading ? (
           <div className="py-40">
             <AILoader />
@@ -115,20 +129,32 @@ export default function TestsLibrary() {
               Re-initialize Connection
             </Button>
           </div>
-        ) : tests.length === 0 ? (
-          <div className="text-center py-40 animate-in fade-in slide-in-from-bottom-4 duration-1000 bg-white dark:bg-slate-900/50 rounded-[4rem] border-4 border-dashed border-slate-100 dark:border-slate-800 mx-4">
-            <div className="bg-slate-100 dark:bg-slate-800 w-24 h-24 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-xl">
-              <Database className="w-10 h-10 text-slate-200 dark:text-slate-700" />
-            </div>
-            <h3 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Registry Clean</h3>
-            <p className="text-slate-500 dark:text-slate-400 mt-4 font-medium text-lg">No assessments available yet.</p>
-          </div>
         ) : (
           <div className="space-y-12">
             {!search && (
-              <div className="px-4">
-                <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase mb-2">Available Modules</h2>
-                <p className="text-slate-400 dark:text-slate-500 font-bold tracking-widest text-[10px] uppercase">Select a protocol to begin your session</p>
+              <div className="space-y-10">
+                <div className="px-4">
+                  <h2 className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase mb-4">{t('chooseTest')}</h2>
+                  <p className="text-slate-500 dark:text-slate-400 font-medium text-lg max-w-2xl">{t('testSubtitle')}</p>
+                </div>
+
+                {/* Filter Tabs */}
+                <div className="flex flex-wrap items-center gap-3 px-4">
+                  {difficultyOptions.map((opt) => (
+                    <button
+                      key={opt}
+                      onClick={() => setDifficultyFilter(opt)}
+                      className={cn(
+                        "px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] transition-all border-2",
+                        difficultyFilter === opt 
+                          ? "bg-primary border-primary text-white shadow-lg shadow-primary/20 scale-105" 
+                          : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-400 hover:border-slate-200"
+                      )}
+                    >
+                      {t(opt)}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
             
@@ -139,7 +165,7 @@ export default function TestsLibrary() {
                 <ListView tests={filteredTests} />
               )
             ) : (
-              <EmptyState onClear={() => setSearch("")} />
+              <EmptyState onClear={() => { setSearch(""); setDifficultyFilter("all"); }} />
             )}
           </div>
         )}
