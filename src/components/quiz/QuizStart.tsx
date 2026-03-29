@@ -14,10 +14,8 @@ import {
   Gamepad2, 
   Target, 
   Flame,
-  CheckCircle2,
   Lock,
-  ShieldCheck,
-  AlertCircle
+  ShieldCheck
 } from "lucide-react";
 import { QuizMode } from '@/types/quiz';
 import { cn } from "@/lib/utils";
@@ -78,19 +76,28 @@ export function QuizStart({
       id: 'training' as QuizMode,
       title: 'Practice',
       icon: Gamepad2,
-      desc: 'No time limit, instant feedback'
+      desc: 'No time limit, instant feedback',
+      colorClass: 'bg-green-500 shadow-green-500/20',
+      textClass: 'text-green-600',
+      btnClass: 'bg-green-500 hover:bg-green-600'
     },
     {
       id: 'test' as QuizMode,
       title: 'Test',
       icon: Target,
-      desc: 'Timed, score revealed at the end'
+      desc: 'Timed, score revealed at the end',
+      colorClass: 'bg-primary shadow-primary/20',
+      textClass: 'text-primary',
+      btnClass: 'bg-primary hover:bg-primary/90'
     },
     {
       id: 'race' as QuizMode,
       title: 'Race',
       icon: Flame,
-      desc: 'Speed & accuracy, one attempt'
+      desc: 'Speed & accuracy, one attempt',
+      colorClass: 'bg-orange-500 shadow-orange-500/20',
+      textClass: 'text-orange-600',
+      btnClass: 'bg-orange-500 hover:bg-orange-600'
     }
   ];
 
@@ -202,7 +209,7 @@ export function QuizStart({
                     className={cn(
                       "flex-1 flex items-center justify-center gap-3 py-4 px-2 rounded-full transition-all duration-300",
                       selectedMode === mode.id 
-                        ? "bg-primary text-white shadow-xl shadow-primary/20 scale-100" 
+                        ? cn(mode.colorClass, "text-white shadow-xl scale-100") 
                         : "text-slate-400 hover:text-slate-600 hover:bg-slate-200/50"
                     )}
                   >
@@ -213,7 +220,7 @@ export function QuizStart({
               </div>
 
               <div className="text-center min-h-[20px] animate-in fade-in duration-500">
-                <p className="text-lg font-bold text-slate-600 italic">
+                <p className={cn("text-lg font-bold italic transition-colors duration-300", currentModeInfo?.textClass)}>
                   {currentModeInfo?.desc}
                 </p>
               </div>
@@ -221,7 +228,10 @@ export function QuizStart({
               <div className="pt-4">
                 <Button 
                   onClick={() => onStart(selectedMode)}
-                  className="w-full h-20 rounded-full bg-primary font-black text-2xl shadow-2xl hover:scale-[1.02] transition-all uppercase tracking-tighter"
+                  className={cn(
+                    "w-full h-20 rounded-full font-black text-2xl shadow-2xl hover:scale-[1.02] transition-all uppercase tracking-tighter border-none",
+                    currentModeInfo?.btnClass
+                  )}
                 >
                   Start Assessment
                   <Play className="w-6 h-6 ml-3 fill-current" />
