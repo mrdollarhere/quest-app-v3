@@ -1,51 +1,63 @@
-# DNTRNG™ - Technical Standard & Protocols
+# DNTRNG™ - Technical Standard & Protocols (v18.2)
 
-## 🛠️ Stack Overview
-- **Framework**: Next.js 15 (App Router) with React 19.
-- **Desktop Node**: Electron with `electron-builder` for cross-platform distribution.
-- **Registry (Database)**: Google Sheets™ via **Registry Bridge Protocol v18.2** (GAS).
-- **Styling**: Tailwind CSS with Shadcn UI components.
-- **AI Engine**: Genkit with Google AI (Gemini 2.5 Flash).
-- **Language**: TypeScript (Strict Mode).
+## 1. Stack Overview
+*   **Framework**: Next.js 15 (App Router) with React 19 for high-performance rendering.
+*   **Desktop Node**: Electron with `electron-builder` for cross-platform distribution.
+*   **Language**: TypeScript (Strict Mode) for type safety across assessment modules.
+*   **Registry (Database)**: Google Sheets™ via the **Registry Bridge Protocol v18.2** (Google Apps Script).
+*   **Styling**: Tailwind CSS with Shadcn UI for a premium, professional interface.
+*   **AI Engine**: Genkit with Google AI (Gemini 2.5 Flash) for intelligent assessment parsing.
+*   **State Management**: React Context (`auth-context`, `language-context`) for global identity and region settings.
 
-## 📁 Folder Structure
-- `src/app`: Routing, layouts, and page-level logic.
-- `src/components/ui`: Atomic Shadcn components.
-- `src/components/admin`: Administrative modules and dialogs.
-- `src/components/quiz`: Interaction modules and assessment logic.
-- `src/context`: Global state (Auth, Language).
-- `src/lib`: Core utilities, security hashing, and API configuration.
-- `src/types`: Shared TypeScript interfaces.
-- `docs`: Technical specifications and deployment guides.
-- `main.js`: Electron engine and background server boot logic.
+## 2. Folder Structure Rules
+*   `src/app`: Routing and page-level logic. Folders use **kebab-case**; page files are `page.tsx`.
+*   `src/components/[category]`: React components. Files use **PascalCase** (e.g., `UserDialog.tsx`).
+    *   `/ui`: Atomic Shadcn components.
+    *   `/admin`: Administrative control modules.
+    *   `/quiz`: Assessment interaction modules.
+*   `src/context`: Global React Context providers.
+*   `src/lib`: Core utilities, security hashing, and `api-config.ts`.
+*   `src/types`: Shared TypeScript interfaces (`quiz.ts`).
+*   `src/ai`: Genkit flows and AI prompt engineering templates.
+*   **Naming**: Files and variables use `camelCase`; Components use `PascalCase`; Constants use `SCREAMING_SNAKE_CASE`.
 
-## 💻 Code Style
-- **Components**: Use functional components with TypeScript interfaces.
-- **Directives**: Always include `'use client';` for components using state or hooks.
-- **Icons**: Use `lucide-react`. Ensure icons are available in the installed library version.
-- **Safety**: Use `cn()` utility for conditional Tailwind classes.
-- **Persistence**: When editing registry items, always ensure current values are preserved if input fields are left blank.
+## 3. Component Rules
+*   **Max Size**: Components exceeding 250 lines must be decomposed into smaller sub-components.
+*   **Directives**: Every interactive component must include the `'use client';` directive.
+*   **Props**: Define interfaces directly above the component or in `src/types/`.
+*   **Logic Extraction**: Complex validation or data mapping must be extracted to `src/lib/` or custom hooks.
+*   **State**: Prefer local state for UI (dialogs, toggles). Use Context only for Identity (Auth) and Localization (Language).
 
-## 📊 Registry (Google Sheets) Protocols
-- **Sync**: All data must flow through the `API_URL` defined in `src/lib/api-config.ts`.
-- **Versioning**: Current standard is **Protocol v18.2**. Any changes to the GAS script must be synchronized across all `SetupGuide` and `README` references.
-- **Stability**: Prefer `fetch` with `mode: 'no-cors'` for POST actions to avoid bridge handshake blocks.
+## 4. Code Style Rules
+*   **Async Patterns**: Use `async/await` exclusively. Raw `.then()` chains are prohibited unless used in standard Firestore-style background syncs.
+*   **Error Handling**: Use `try/catch` blocks. Errors MUST be surfaced to the user via the `useToast` hook. Never swallow errors silently.
+*   **Cleanliness**: No magic numbers. Use `api-config.ts` or local constants. Remove all `console.log` and commented-out code before pushing to the registry.
+*   **Icons**: Use `lucide-react`. Ensure icons exist in the library (e.g., use `Target` for goals, `Zap` for energy/status).
 
-## 🖥️ Desktop (Electron) Rules
-- **Ports**: 
-  - Web Development: `9002`
-  - Electron Development: `9005`
-- **Boot Protocol**: In production builds, `main.js` must spawn a background Next.js server (`next start`) and wait for the node to be live before showing the window.
-- **Packaging**: Use `npm run electron:build`. Ensure `.next` and `node_modules` are included in the `files` array in `package.json`.
+## 5. Registry (Database) Rules
+*   **Centralization**: All data mutations MUST flow through the `API_URL` defined in `src/lib/api-config.ts`.
+*   **Queries**: Never write raw fetch calls inside components. Use the established `handlePost` pattern in page handlers.
+*   **Integrity**: When editing a registry item (e.g., student password), always preserve existing values if fields are left blank.
+*   **Transparency**: Admin visibility of credentials is required per **Protocol v18.2**.
 
-## 🎨 UI/UX Standards
-- **Theme**: Support Light/Dark modes via `next-themes`.
-- **Feedback**: Use the `AILoader` for all registry synchronization events.
-- **Dialogs**: All administrative dialogs must include a "Change-Aware Guard" (disable save button if no changes are detected).
-- **Security**: Use the "Eye" toggle pattern for all sensitive identity fields (passwords/keys).
+## 6. API Rules
+*   **Stability**: Use `mode: 'no-cors'` for POST actions to the Google Apps Script bridge to avoid handshake blocks.
+*   **Validation**: Sanitize all input (especially emails and IDs) before sending to the Registry Bridge.
+*   **Versioning**: Any change to the GAS backend must increment the Protocol version in `README.md` and `RULES.md`.
 
-## ⚠️ General Rules
-1. **Zero Breakage**: Never modify the core `API_URL` or Auth logic without a full registry audit.
-2. **Transparency**: Administrative visibility of student credentials is required per Protocol v18.2.
-3. **No New Packages**: Ask before adding dependencies to keep the Electron bundle size optimal.
-4. **Local Testing**: Always test Electron builds locally before committing changes to documentation.
+## 7. UI/UX Rules
+*   **Feedback**: All registry sync events must display the `AILoader`.
+*   **Transitions**: Use `tailwindcss-animate` for "fade-in" and "slide-in" effects on page loads.
+*   **Safety**: All administrative dialogs must include a "Change-Aware Guard" (disable the Save button if no changes are detected).
+*   **Security**: Use the "Eye" toggle pattern for all sensitive identity fields.
+*   **Theme**: Support Light/Dark modes via `next-themes` and the `ModeToggle`.
+
+## 8. Protocol for Changes
+*   **Audit**: Before changing a shared component (e.g., `QuestionRenderer`), check all quiz modes (`training`, `test`, `race`) for breakage.
+*   **Sync**: If the `API_URL` changes, update `src/lib/api-config.ts` and the `SetupGuide` simultaneously.
+*   **Build**: After UI changes, verify the Electron build works locally (`npm run electron:dev`) to ensure no desktop-specific crashes.
+
+## 9. General Rules
+*   **No New Packages**: Ask before adding dependencies to keep the Electron bundle size optimal.
+*   **Self-Documentation**: Use clear naming (e.g., `isProtectionEnabled`) instead of excessive comments.
+*   **Zero Breakage**: Never modify the core authentication logic without a full registry audit.
