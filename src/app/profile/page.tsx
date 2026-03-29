@@ -110,7 +110,7 @@ export default function ProfilePage() {
             </Link>
             <div>
               <h1 className="text-xl font-black tracking-tighter text-slate-900 dark:text-white uppercase">{t('identityRegistry')}</h1>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">DNTRNG™ Node: Active</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">{t('accountOverview')}</p>
             </div>
           </div>
           <UserNav />
@@ -154,7 +154,7 @@ export default function ProfilePage() {
                     <div className="p-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm"><Shield className="w-4 h-4 text-slate-400 dark:text-slate-500" /></div>
                     <div className="min-w-0">
                       <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none mb-1">{t('accessProtocol')}</p>
-                      <p className="text-sm font-bold text-slate-700 dark:text-slate-300 truncate">{user.role === 'admin' ? 'Elevated Oversight' : 'Standard Student'}</p>
+                      <p className="text-sm font-bold text-slate-700 dark:text-slate-300 truncate">{user.role === 'admin' ? 'Admin' : 'Student'}</p>
                     </div>
                   </div>
                 </div>
@@ -162,7 +162,7 @@ export default function ProfilePage() {
                 <Button 
                   onClick={logout}
                   variant="ghost" 
-                  className="w-full mt-10 rounded-full font-black text-xs uppercase tracking-[0.2em] text-destructive hover:bg-destructive/5 h-12"
+                  className="w-full mt-10 text-destructive hover:text-destructive hover:bg-destructive/5 font-bold"
                 >
                   <LogOut className="w-4 h-4 mr-2" />
                   {t('terminateSession')}
@@ -261,7 +261,7 @@ export default function ProfilePage() {
                       <Database className="w-10 h-10 text-slate-200 dark:text-slate-700" />
                     </div>
                     <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{t('noLogsDetected')}</h3>
-                    <p className="text-slate-500 dark:text-slate-400 font-medium max-w-xs mt-2">You haven't initialized any intelligence modules yet. Your history will appear here once you complete a test.</p>
+                    <p className="text-slate-500 dark:text-slate-400 font-medium max-w-xs mt-2">{t('noTestsMessage')}</p>
                     <Link href="/tests" className="mt-8">
                       <Button className="rounded-full bg-primary font-black px-8 h-12 shadow-xl shadow-primary/20">
                         {t('exploreLibrary')}
