@@ -1,7 +1,6 @@
-
 "use client";
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -24,6 +23,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLanguage } from '@/context/language-context';
+import { Pagination } from './Pagination';
 
 interface ActivityTabProps {
   activities: any[];
@@ -32,6 +32,8 @@ interface ActivityTabProps {
 export function ActivityTab({ activities }: ActivityTabProps) {
   const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
   const filtered = useMemo(() => {
     return activities.filter(a => 
@@ -41,8 +43,15 @@ export function ActivityTab({ activities }: ActivityTabProps) {
     );
   }, [activities, searchTerm]);
 
+  // Reset to page 1 on search
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  const paginatedActivities = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-700">
+    <div className="space-y-6 animate-in fade-in duration-700 pb-20">
       <div className="flex justify-end px-2">
         <div className="relative w-full md:w-80">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -69,7 +78,7 @@ export function ActivityTab({ activities }: ActivityTabProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((a, i) => {
+              {paginatedActivities.map((a, i) => {
                 const isLogin = String(a.Event).toLowerCase() === 'login';
                 
                 return (
@@ -138,6 +147,14 @@ export function ActivityTab({ activities }: ActivityTabProps) {
               )}
             </TableBody>
           </Table>
+          {filtered.length > 0 && (
+            <Pagination 
+              currentPage={currentPage}
+              totalItems={filtered.length}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+            />
+          )}
         </CardContent>
       </Card>
     </div>

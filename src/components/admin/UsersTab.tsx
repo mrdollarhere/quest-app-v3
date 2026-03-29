@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { 
   Plus, 
   Edit, 
@@ -37,6 +37,7 @@ import {
 import Link from 'next/link';
 import { cn } from "@/lib/utils";
 import { useLanguage } from '@/context/language-context';
+import { Pagination } from './Pagination';
 
 interface UsersTabProps {
   users: any[];
@@ -56,6 +57,8 @@ export function UsersTab({ users, responses, onEdit, onDelete, onAdd }: UsersTab
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'name', direction: 'asc' });
   const [deleteConfirmEmail, setDeleteConfirmEmail] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
   
   const userStats = useMemo(() => {
     const stats: Record<string, { count: number, passed: number, avg: number }> = {};
@@ -141,6 +144,13 @@ export function UsersTab({ users, responses, onEdit, onDelete, onAdd }: UsersTab
     return result;
   }, [users, searchTerm, sortConfig, userStats]);
 
+  // Reset to page 1 on search
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  const paginatedUsers = processedUsers.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
   const SortIcon = ({ column }: { column: SortConfig['key'] }) => {
     if (sortConfig.key !== column) return <ArrowUpDown className="ml-2 h-3 w-3 opacity-30" />;
     return sortConfig.direction === 'asc' 
@@ -156,7 +166,7 @@ export function UsersTab({ users, responses, onEdit, onDelete, onAdd }: UsersTab
   };
 
   return (
-    <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
         <div>
           <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{t('studentList')}</h2>
@@ -212,7 +222,7 @@ export function UsersTab({ users, responses, onEdit, onDelete, onAdd }: UsersTab
               </TableRow>
             </TableHeader>
             <TableBody>
-              {processedUsers.map((u, i) => {
+              {paginatedUsers.map((u, i) => {
                 const email = String(u.email || '').toLowerCase();
                 const s = userStats[email] || { count: 0, passed: 0, avg: 0 };
                 
@@ -288,6 +298,14 @@ export function UsersTab({ users, responses, onEdit, onDelete, onAdd }: UsersTab
               )}
             </TableBody>
           </Table>
+          {processedUsers.length > 0 && (
+            <Pagination 
+              currentPage={currentPage}
+              totalItems={processedUsers.length}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+            />
+          )}
         </CardContent>
       </Card>
 
