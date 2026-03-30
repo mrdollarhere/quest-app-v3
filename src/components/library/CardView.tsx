@@ -95,10 +95,12 @@ export function CardView({ tests }: CardViewProps) {
             <CardFooter className="px-8 pb-8 pt-0 mt-auto">
               <Button 
                 variant="outline"
-                className="rounded-full font-black text-[10px] uppercase tracking-widest border-2 border-primary/20 text-primary hover:bg-primary hover:text-white transition-all gap-2"
+                className="rounded-full font-black text-[10px] uppercase tracking-widest border-2 border-primary/20 text-primary hover:bg-primary hover:text-white transition-all duration-500 w-28 hover:w-40 group relative overflow-hidden flex items-center justify-center px-0"
               >
-                Start
-                <ChevronRight className="w-3.5 h-3.5" />
+                <span className="transition-all duration-500 group-hover:-translate-x-3 flex items-center">
+                  Start
+                </span>
+                <ChevronRight className="w-3.5 h-3.5 absolute right-6 translate-x-10 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-500" />
               </Button>
             </CardFooter>
           </Card>
