@@ -31,22 +31,28 @@ export const MultipleChoiceModule: React.FC<Props> = ({ question, value, onChang
   };
 
   return (
-    <div className="space-y-3">
-      {options.map((option, idx) => (
-        <div key={idx} className={cn(
-          "flex items-center space-x-3 p-4 rounded-xl border-2 transition-all",
-          selected.includes(option) ? 'bg-primary/5 border-primary shadow-sm' : 'hover:bg-muted border-transparent bg-muted/30'
-        )}>
-          <Checkbox 
-            id={`q-${question.id}-${idx}`} 
-            checked={selected.includes(option)} 
-            onCheckedChange={() => toggle(option)}
-            disabled={reviewMode}
-          />
-          <Label htmlFor={`q-${question.id}-${idx}`} className="option-text flex-1 cursor-pointer font-normal text-base">{option}</Label>
-          {reviewMode && correctArr.includes(option) && <CheckCircle2 className="w-6 h-6 text-green-500" />}
-        </div>
-      ))}
+    <div className="flex flex-col gap-[10px]">
+      {options.map((option, idx) => {
+        const isSelected = selected.includes(option);
+        
+        return (
+          <div key={idx} className={cn(
+            "flex items-center space-x-3 px-[18px] py-[14px] rounded-[12px] border transition-all cursor-pointer",
+            isSelected 
+              ? "bg-[#EFF6FF] border-[#2563EB] shadow-sm" 
+              : "bg-white border-[#E5E7EB] hover:bg-[#EFF6FF] hover:border-[#2563EB]"
+          )}>
+            <Checkbox 
+              id={`q-${question.id}-${idx}`} 
+              checked={isSelected} 
+              onCheckedChange={() => toggle(option)}
+              disabled={reviewMode}
+            />
+            <Label htmlFor={`q-${question.id}-${idx}`} className="option-text flex-1 cursor-pointer font-normal text-base text-slate-700">{option}</Label>
+            {reviewMode && correctArr.includes(option) && <CheckCircle2 className="w-6 h-6 text-green-500" />}
+          </div>
+        );
+      })}
     </div>
   );
 };

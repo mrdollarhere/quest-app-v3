@@ -28,18 +28,24 @@ export const SingleChoiceModule: React.FC<Props> = ({ question, value, onChange,
       value={value || ""} 
       onValueChange={onChange}
       disabled={reviewMode}
-      className="space-y-3"
+      className="flex flex-col gap-[10px]"
     >
-      {options.map((option, idx) => (
-        <div key={idx} className={cn(
-          "flex items-center space-x-3 p-4 rounded-xl border-2 transition-all",
-          value === option ? 'bg-primary/5 border-primary shadow-sm' : 'hover:bg-muted border-transparent bg-muted/30'
-        )}>
-          <RadioGroupItem value={option} id={`q-${question.id}-${idx}`} />
-          <Label htmlFor={`q-${question.id}-${idx}`} className="option-text flex-1 cursor-pointer font-normal text-base">{option}</Label>
-          {reviewMode && option === correctAnswer && <CheckCircle2 className="w-6 h-6 text-green-500" />}
-        </div>
-      ))}
+      {options.map((option, idx) => {
+        const isSelected = value === option;
+        
+        return (
+          <div key={idx} className={cn(
+            "flex items-center space-x-3 px-[18px] py-[14px] rounded-[12px] border transition-all cursor-pointer",
+            isSelected 
+              ? "bg-[#EFF6FF] border-[#2563EB] shadow-sm" 
+              : "bg-white border-[#E5E7EB] hover:bg-[#EFF6FF] hover:border-[#2563EB]"
+          )}>
+            <RadioGroupItem value={option} id={`q-${question.id}-${idx}`} />
+            <Label htmlFor={`q-${question.id}-${idx}`} className="option-text flex-1 cursor-pointer font-normal text-base text-slate-700">{option}</Label>
+            {reviewMode && option === correctAnswer && <CheckCircle2 className="w-6 h-6 text-green-500" />}
+          </div>
+        );
+      })}
     </RadioGroup>
   );
 };

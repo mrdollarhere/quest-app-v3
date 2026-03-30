@@ -78,7 +78,7 @@ export function QuizActive({
   const answeredCount = quiz.questions.filter(q => isAnswered(q.id)).length;
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center transition-colors duration-300">
+    <div className="min-h-screen bg-[#F4F5F7] flex flex-col items-center transition-colors duration-300">
       <header className="w-full bg-white border-b border-slate-100 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto h-20 px-4 md:px-8 flex items-center justify-between">
           <div className="flex items-center gap-2 md:gap-6">
@@ -121,9 +121,9 @@ export function QuizActive({
         </div>
       </header>
 
-      <main className="flex-1 w-full max-w-5xl py-12 md:py-24 px-6 md:px-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <main className="flex-1 w-full max-w-5xl py-12 md:py-20 px-6 md:px-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
         {quiz.mode === 'training' && (
-          <div className="mb-12 p-6 bg-blue-50/50 border-2 border-blue-100 rounded-[2.5rem] flex items-center gap-6">
+          <div className="mb-8 p-6 bg-blue-50/50 border-2 border-blue-100 rounded-[2.5rem] flex items-center gap-6 max-w-4xl mx-auto">
             <div className="bg-white p-3 rounded-2xl shadow-sm"><RotateCcw className="w-6 h-6 text-primary" /></div>
             <div><h4 className="text-lg font-black text-slate-900 uppercase tracking-tight">Practice Registry Active</h4><p className="text-sm font-medium text-slate-500">Real-time validation is enabled.</p></div>
           </div>
@@ -135,7 +135,7 @@ export function QuizActive({
             </div>
           </div>
         )}
-        <div className="max-w-4xl mx-auto" data-textsize={textSize}>
+        <div className="max-w-4xl mx-auto bg-white shadow-[0_2px_12px_rgba(0,0,0,0.08)] rounded-[16px] p-8 md:p-12" data-textsize={textSize}>
           {currentQuestion && <QuestionRenderer question={currentQuestion} value={currentResponse} onChange={onResponseChange} reviewMode={quiz.mode === 'training' && isAnswered(currentQuestion.id)} />}
         </div>
       </main>
