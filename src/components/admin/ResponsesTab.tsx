@@ -160,8 +160,8 @@ export function ResponsesTab({ responses, tests, loading, onRefresh, onDelete }:
     return (
       <div className="flex flex-col items-center justify-center py-24 bg-white dark:bg-slate-900 rounded-[2rem] border-2 border-dashed border-slate-100 dark:border-slate-800">
         <AlertCircle className="w-12 h-12 text-slate-200 dark:text-slate-700 mb-4" />
-        <h3 className="text-xl font-black text-slate-400 dark:text-slate-600">{t('noResults')}</h3>
-        <p className="text-slate-400 dark:text-slate-600 text-sm">{t('waitingFirst')}</p>
+        <h3 className="text-xl font-black text-slate-400 dark:text-600">{t('noResults')}</h3>
+        <p className="text-slate-400 dark:text-600 text-sm">{t('waitingFirst')}</p>
       </div>
     );
   }
