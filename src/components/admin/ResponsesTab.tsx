@@ -1,7 +1,6 @@
-
 "use client";
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -56,6 +55,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Pagination } from './Pagination';
+import { useRegistryFilter } from '@/hooks/useRegistryFilter';
+import { calculateResponseStats } from '@/lib/analytics-utils';
 
 interface ResponsesTabProps {
   responses: any[];
@@ -65,138 +66,56 @@ interface ResponsesTabProps {
   onDelete: (timestamp: string, email: string) => void;
 }
 
-type SortConfig = {
-  key: string;
-  direction: 'asc' | 'desc' | null;
-};
-
 const CHART_COLORS = ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#0ea5e9', '#ec4899', '#f43f5e'];
 
 export function ResponsesTab({ responses, tests, loading, onRefresh, onDelete }: ResponsesTabProps) {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'Timestamp', direction: 'desc' });
-  const [deleteConfirm, setDeleteConfirm] = useState<{ timestamp: string, email: string } | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
   const { t } = useLanguage();
+  const [deleteConfirm, setDeleteConfirm] = React.useState<{ timestamp: string, email: string } | null>(null);
 
   const getTestTitle = (id: string) => {
     const test = tests.find(t => t.id === id);
     return test?.title || id;
   };
 
-  // --- DATA ANALYSIS LOGIC ---
-  
-  const stats = useMemo(() => {
-    if (!responses || responses.length === 0) return null;
+  // Extract analytics logic to centralized utility
+  const stats = useMemo(() => calculateResponseStats(responses, tests), [responses, tests]);
 
-    const total = responses.length;
-    let totalScorePct = 0;
-    let passes = 0;
+  const {
+    searchTerm,
+    setSearchTerm,
+    sortConfig,
+    handleSort,
+    currentPage,
+    setCurrentPage,
+    paginatedData,
+    totalItems,
+    pageSize
+  } = useRegistryFilter({
+    data: responses,
+    searchFields: (r) => [
+      String(r['User Name'] || ''),
+      String(r['User Email'] || ''),
+      String(getTestTitle(r['Test ID']))
+    ],
+    initialSort: { key: 'Timestamp', direction: 'desc' },
+    customSort: (a, b, key, direction) => {
+      let valA = a[key];
+      let valB = b[key];
 
-    const gradeCounts = {
-      Excellent: 0,
-      Pass: 0,
-      Fail: 0
-    };
+      if (key === 'Score' || key === 'Total') {
+        valA = Number(valA) || 0;
+        valB = Number(valB) || 0;
+      }
 
-    const testStats: Record<string, { count: number; totalScore: number }> = {};
-
-    responses.forEach(r => {
-      const score = Number(r.Score) || 0;
-      const totalQ = Number(r.Total) || 1;
-      const pct = (score / totalQ) * 100;
-      
-      totalScorePct += pct;
-      
-      if (pct >= 50) passes++;
-      
-      if (pct >= 80) gradeCounts.Excellent++;
-      else if (pct >= 50) gradeCounts.Pass++;
-      else gradeCounts.Fail++;
-
-      // Per test stats
-      const testId = String(r['Test ID'] || 'Unknown');
-      if (!testStats[testId]) testStats[testId] = { count: 0, totalScore: 0 };
-      testStats[testId].count++;
-      testStats[testId].totalScore += pct;
-    });
-
-    const gradeData = [
-      { name: 'Excellent (80%+)', value: gradeCounts.Excellent, color: '#22c55e' },
-      { name: 'Pass (50-79%)', value: gradeCounts.Pass, color: '#f59e0b' },
-      { name: 'Fail (<50%)', value: gradeCounts.Fail, color: '#ef4444' }
-    ];
-
-    const testPerformanceData = Object.entries(testStats).map(([id, data]) => ({
-      name: getTestTitle(id),
-      avg: Math.round(data.totalScore / data.count),
-      submissions: data.count
-    })).sort((a, b) => b.avg - a.avg);
-
-    return {
-      total,
-      avgScore: Math.round(totalScorePct / total),
-      passRate: Math.round((passes / total) * 100),
-      gradeData,
-      testPerformanceData
-    };
-  }, [responses, tests]);
-
-  // --- TABLE LOGIC (SEARCH & SORT) ---
-
-  const handleSort = (key: string) => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
+      if (valA < valB) return direction === 'asc' ? -1 : 1;
+      if (valA > valB) return direction === 'asc' ? 1 : -1;
+      return 0;
     }
-    setSortConfig({ key, direction });
-  };
-
-  const processedResponses = useMemo(() => {
-    if (!responses) return [];
-    let result = [...responses];
-
-    // Search Filtering
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      result = result.filter(r => 
-        String(r['User Name'] || '').toLowerCase().includes(term) ||
-        String(r['User Email'] || '').toLowerCase().includes(term) ||
-        String(getTestTitle(r['Test ID'])).toLowerCase().includes(term)
-      );
-    }
-
-    // Sorting
-    if (sortConfig.key && sortConfig.direction) {
-      result.sort((a, b) => {
-        let valA = a[sortConfig.key];
-        let valB = b[sortConfig.key];
-
-        if (sortConfig.key === 'Score' || sortConfig.key === 'Total') {
-          valA = Number(valA) || 0;
-          valB = Number(valB) || 0;
-        }
-
-        if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
-        if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
-        return 0;
-      });
-    }
-
-    return result;
-  }, [responses, searchTerm, sortConfig, tests]);
-
-  // Reset to page 1 on search
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm]);
-
-  const paginatedResponses = processedResponses.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  });
 
   const exportToCSV = () => {
     const headers = ["Timestamp", "User Name", "User Email", "Test ID", "Test Name", "Score", "Total", "Percentage"];
-    const rows = processedResponses.map(r => {
+    const rows = responses.map(r => {
       const score = Number(r.Score) || 0;
       const total = Number(r.Total) || 1;
       return [
@@ -249,7 +168,6 @@ export function ResponsesTab({ responses, tests, loading, onRefresh, onDelete }:
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700 pb-20">
-      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <AnalysisCard icon={Users} label="Total Results" value={stats.total} subValue="All synchronized tests" color="blue" />
         <AnalysisCard icon={Target} label={t('avgScore')} value={`${stats.avgScore}%`} subValue="Global mastery average" color="green" />
@@ -257,7 +175,6 @@ export function ResponsesTab({ responses, tests, loading, onRefresh, onDelete }:
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Grade Distribution */}
         <Card className="border-none shadow-sm bg-white dark:bg-slate-900 overflow-hidden border dark:border-slate-800 rounded-[2.5rem]">
           <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b dark:border-slate-800 p-8">
             <CardTitle className="text-xl font-black flex items-center gap-3 text-slate-900 dark:text-white uppercase tracking-tight">
@@ -292,7 +209,6 @@ export function ResponsesTab({ responses, tests, loading, onRefresh, onDelete }:
           </CardContent>
         </Card>
 
-        {/* Test Performance Donut */}
         <Card className="border-none shadow-sm bg-white dark:bg-slate-900 overflow-hidden border dark:border-slate-800 rounded-[2.5rem]">
           <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b dark:border-slate-800 p-8">
             <CardTitle className="text-xl font-black flex items-center gap-3 text-slate-900 dark:text-white uppercase tracking-tight">
@@ -336,7 +252,6 @@ export function ResponsesTab({ responses, tests, loading, onRefresh, onDelete }:
         </Card>
       </div>
 
-      {/* Result History Table */}
       <Card className="border-none shadow-sm bg-white dark:bg-slate-900 rounded-[3rem] overflow-hidden border dark:border-slate-800">
         <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b dark:border-slate-800 p-10">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
@@ -398,7 +313,7 @@ export function ResponsesTab({ responses, tests, loading, onRefresh, onDelete }:
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedResponses.map((r, i) => {
+              {paginatedData.map((r, i) => {
                 const score = Number(r.Score) || 0;
                 const total = Number(r.Total) || 1;
                 const pct = (score / total) * 100;
@@ -440,7 +355,7 @@ export function ResponsesTab({ responses, tests, loading, onRefresh, onDelete }:
                   </TableRow>
                 );
               })}
-              {processedResponses.length === 0 && (
+              {totalItems === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-32 bg-slate-50/20 dark:bg-slate-900/20">
                     <div className="flex flex-col items-center gap-4 opacity-20">
@@ -452,10 +367,10 @@ export function ResponsesTab({ responses, tests, loading, onRefresh, onDelete }:
               )}
             </TableBody>
           </Table>
-          {processedResponses.length > 0 && (
+          {totalItems > 0 && (
             <Pagination 
               currentPage={currentPage}
-              totalItems={processedResponses.length}
+              totalItems={totalItems}
               pageSize={pageSize}
               onPageChange={setCurrentPage}
             />

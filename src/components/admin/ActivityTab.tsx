@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -13,19 +13,20 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { 
-  History, 
   Search, 
   LogIn, 
   LogOut, 
   Clock,
   Globe,
   Smartphone,
-  RefreshCcw
+  RefreshCcw,
+  History
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLanguage } from '@/context/language-context';
 import { Pagination } from './Pagination';
 import { Button } from "@/components/ui/button";
+import { useRegistryFilter } from '@/hooks/useRegistryFilter';
 
 interface ActivityTabProps {
   activities: any[];
@@ -35,24 +36,24 @@ interface ActivityTabProps {
 
 export function ActivityTab({ activities, loading, onRefresh }: ActivityTabProps) {
   const { t } = useLanguage();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
-
-  const filtered = useMemo(() => {
-    return activities.filter(a => 
-      String(a['User Name'] || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      String(a['User Email'] || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      String(a['IP Address'] || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [activities, searchTerm]);
-
-  // Reset to page 1 on search
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm]);
-
-  const paginatedActivities = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  
+  const {
+    searchTerm,
+    setSearchTerm,
+    currentPage,
+    setCurrentPage,
+    paginatedData,
+    totalItems,
+    pageSize
+  } = useRegistryFilter({
+    data: activities,
+    searchFields: (a) => [
+      String(a['User Name'] || ''),
+      String(a['User Email'] || ''),
+      String(a['IP Address'] || ''),
+      String(a.Event || '')
+    ]
+  });
 
   return (
     <div className="space-y-6 animate-in fade-in duration-700 pb-20">
@@ -92,7 +93,7 @@ export function ActivityTab({ activities, loading, onRefresh }: ActivityTabProps
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedActivities.map((a, i) => {
+              {paginatedData.map((a, i) => {
                 const isLogin = String(a.Event).toLowerCase() === 'login';
                 
                 return (
@@ -149,7 +150,7 @@ export function ActivityTab({ activities, loading, onRefresh }: ActivityTabProps
                   </TableRow>
                 );
               })}
-              {filtered.length === 0 && (
+              {totalItems === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="py-32 text-center bg-slate-50/20 dark:bg-slate-900/20">
                     <div className="flex flex-col items-center gap-4 opacity-20">
@@ -161,10 +162,10 @@ export function ActivityTab({ activities, loading, onRefresh }: ActivityTabProps
               )}
             </TableBody>
           </Table>
-          {filtered.length > 0 && (
+          {totalItems > 0 && (
             <Pagination 
               currentPage={currentPage}
-              totalItems={filtered.length}
+              totalItems={totalItems}
               pageSize={pageSize}
               onPageChange={setCurrentPage}
             />

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { 
   Plus, 
   Search, 
@@ -47,6 +47,7 @@ import { cn } from "@/lib/utils";
 import { useLanguage } from '@/context/language-context';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Pagination } from './Pagination';
+import { useRegistryFilter } from '@/hooks/useRegistryFilter';
 
 interface TestsTabProps {
   tests: any[];
@@ -59,24 +60,27 @@ interface TestsTabProps {
 }
 
 export function TestsTab({ tests, loading, onEdit, onDelete, onManageQuestions, onAdd, onRefresh }: TestsTabProps) {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
   const { t } = useLanguage();
+  const [viewMode, setViewMode] = React.useState<'list' | 'card'>('list');
+  const [deleteConfirmId, setDeleteConfirmId] = React.useState<string | null>(null);
 
-  const filtered = tests.filter(t => 
-    (String(t.title || "")).toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (String(t.id || "")).toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // Reset to first page when search changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm]);
-
-  const paginatedTests = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const {
+    searchTerm,
+    setSearchTerm,
+    currentPage,
+    setCurrentPage,
+    paginatedData,
+    totalItems,
+    pageSize
+  } = useRegistryFilter({
+    data: tests,
+    searchFields: (test) => [
+      String(test.title || ""),
+      String(test.id || ""),
+      String(test.category || ""),
+      String(test.description || "")
+    ]
+  });
 
   const handleDelete = () => {
     if (deleteConfirmId) {
@@ -171,7 +175,7 @@ export function TestsTab({ tests, loading, onEdit, onDelete, onManageQuestions, 
                         </TableCell>
                       </TableRow>
                     ))
-                  ) : paginatedTests.map((t_item, i) => (
+                  ) : paginatedData.map((t_item, i) => (
                     <TableRow key={i} className="group hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors border-b border-slate-50 dark:border-slate-800 last:border-none">
                       <TableCell className="px-8 py-5">
                         <Badge variant="outline" className="font-mono text-[10px] bg-slate-50 dark:bg-slate-800 rounded-md border-slate-200 dark:border-slate-700">
@@ -209,15 +213,15 @@ export function TestsTab({ tests, loading, onEdit, onDelete, onManageQuestions, 
                   ))}
                 </TableBody>
               </Table>
-              {!loading && filtered.length === 0 && (
+              {!loading && totalItems === 0 && (
                 <div className="py-24 text-center">
                   <p className="font-black text-slate-300 dark:text-slate-700 uppercase tracking-widest">{t('noTests')}</p>
                 </div>
               )}
-              {filtered.length > 0 && (
+              {totalItems > 0 && (
                 <Pagination 
                   currentPage={currentPage}
-                  totalItems={filtered.length}
+                  totalItems={totalItems}
                   pageSize={pageSize}
                   onPageChange={setCurrentPage}
                 />
@@ -246,7 +250,7 @@ export function TestsTab({ tests, loading, onEdit, onDelete, onManageQuestions, 
                   </CardFooter>
                 </Card>
               ))
-            ) : paginatedTests.map((t_item, i) => (
+            ) : paginatedData.map((t_item, i) => (
               <Card key={i} className="group overflow-hidden border-none shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 rounded-[2.5rem] bg-white dark:bg-slate-900 flex flex-col border dark:border-slate-800">
                 <div className="relative aspect-video overflow-hidden bg-slate-100 dark:bg-slate-800">
                   <img 
@@ -319,17 +323,17 @@ export function TestsTab({ tests, loading, onEdit, onDelete, onManageQuestions, 
               </Card>
             ))}
           </div>
-          {filtered.length > 0 && (
+          {totalItems > 0 && (
             <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden border dark:border-slate-800">
               <Pagination 
                 currentPage={currentPage}
-                totalItems={filtered.length}
+                totalItems={totalItems}
                 pageSize={pageSize}
                 onPageChange={setCurrentPage}
               />
             </Card>
           )}
-          {!loading && filtered.length === 0 && (
+          {!loading && totalItems === 0 && (
             <div className="col-span-full py-24 text-center">
               <p className="font-black text-slate-300 dark:text-slate-700 uppercase tracking-widest">{t('noTests')}</p>
             </div>

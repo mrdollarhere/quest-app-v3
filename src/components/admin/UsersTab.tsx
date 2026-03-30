@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { 
   Plus, 
   Edit, 
@@ -13,7 +13,7 @@ import {
   Eye,
   RefreshCcw
 } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -39,6 +39,7 @@ import Link from 'next/link';
 import { cn } from "@/lib/utils";
 import { useLanguage } from '@/context/language-context';
 import { Pagination } from './Pagination';
+import { useRegistryFilter } from '@/hooks/useRegistryFilter';
 
 interface UsersTabProps {
   users: any[];
@@ -50,18 +51,9 @@ interface UsersTabProps {
   onRefresh: () => void;
 }
 
-type SortConfig = {
-  key: 'name' | 'role' | 'count' | 'avg';
-  direction: 'asc' | 'desc' | null;
-};
-
 export function UsersTab({ users, responses, loading, onEdit, onDelete, onAdd, onRefresh }: UsersTabProps) {
   const { t } = useLanguage();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'name', direction: 'asc' });
-  const [deleteConfirmEmail, setDeleteConfirmEmail] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
+  const [deleteConfirmEmail, setDeleteConfirmEmail] = React.useState<string | null>(null);
   
   const userStats = useMemo(() => {
     const stats: Record<string, { count: number, passed: number, avg: number }> = {};
@@ -86,75 +78,62 @@ export function UsersTab({ users, responses, loading, onEdit, onDelete, onAdd, o
     return stats;
   }, [responses]);
 
-  const handleSort = (key: SortConfig['key']) => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
+  const {
+    searchTerm,
+    setSearchTerm,
+    sortConfig,
+    handleSort,
+    currentPage,
+    setCurrentPage,
+    paginatedData,
+    totalItems,
+    pageSize
+  } = useRegistryFilter({
+    data: users,
+    searchFields: (u) => [
+      String(u.name || ''),
+      String(u.email || ''),
+      String(u.role || '')
+    ],
+    initialSort: { key: 'name', direction: 'asc' },
+    customSort: (a, b, key, direction) => {
+      let valA: any;
+      let valB: any;
+
+      const emailA = String(a.email || '').toLowerCase();
+      const emailB = String(b.email || '').toLowerCase();
+      const statsA = userStats[emailA] || { count: 0, avg: 0 };
+      const statsB = userStats[emailB] || { count: 0, avg: 0 };
+
+      switch (key) {
+        case 'name':
+          valA = String(a.name || '').toLowerCase();
+          valB = String(b.name || '').toLowerCase();
+          break;
+        case 'role':
+          valA = String(a.role || '').toLowerCase();
+          valB = String(b.role || '').toLowerCase();
+          break;
+        case 'count':
+          valA = statsA.count;
+          valB = statsB.count;
+          break;
+        case 'avg':
+          valA = statsA.avg;
+          valB = statsB.avg;
+          break;
+        default:
+          valA = (a as any)[key];
+          valB = (b as any)[key];
+      }
+
+      if (valA < valB) return direction === 'asc' ? -1 : 1;
+      if (valA > valB) return direction === 'asc' ? 1 : -1;
+      return 0;
     }
-    setSortConfig({ key, direction });
-  };
+  });
 
-  const processedUsers = useMemo(() => {
-    let result = [...users];
-
-    // Search Filtering
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      result = result.filter(u => 
-        String(u.name || '').toLowerCase().includes(term) ||
-        String(u.email || '').toLowerCase().includes(term)
-      );
-    }
-
-    // Sorting Logic
-    if (sortConfig.key && sortConfig.direction) {
-      result.sort((a, b) => {
-        let valA: any;
-        let valB: any;
-
-        const emailA = String(a.email || '').toLowerCase();
-        const emailB = String(b.email || '').toLowerCase();
-        const statsA = userStats[emailA] || { count: 0, avg: 0 };
-        const statsB = userStats[emailB] || { count: 0, avg: 0 };
-
-        switch (sortConfig.key) {
-          case 'name':
-            valA = String(a.name || '').toLowerCase();
-            valB = String(b.name || '').toLowerCase();
-            break;
-          case 'role':
-            valA = String(a.role || '').toLowerCase();
-            valB = String(b.role || '').toLowerCase();
-            break;
-          case 'count':
-            valA = statsA.count;
-            valB = statsB.count;
-            break;
-          case 'avg':
-            valA = statsA.avg;
-            valB = statsB.avg;
-            break;
-          default:
-            return 0;
-        }
-
-        if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
-        if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
-        return 0;
-      });
-    }
-
-    return result;
-  }, [users, searchTerm, sortConfig, userStats]);
-
-  // Reset to page 1 on search
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm]);
-
-  const paginatedUsers = processedUsers.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-
-  const SortIcon = ({ column }: { column: SortConfig['key'] }) => {
+  const SortIcon = ({ column }: { column: string }) => {
     if (sortConfig.key !== column) return <ArrowUpDown className="ml-2 h-3 w-3 opacity-30" />;
     return sortConfig.direction === 'asc' 
       ? <ChevronUp className="ml-2 h-4 w-4 text-primary" /> 
@@ -235,7 +214,7 @@ export function UsersTab({ users, responses, loading, onEdit, onDelete, onAdd, o
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedUsers.map((u, i) => {
+              {paginatedData.map((u, i) => {
                 const email = String(u.email || '').toLowerCase();
                 const s = userStats[email] || { count: 0, passed: 0, avg: 0 };
                 
@@ -299,7 +278,7 @@ export function UsersTab({ users, responses, loading, onEdit, onDelete, onAdd, o
                   </TableRow>
                 );
               })}
-              {processedUsers.length === 0 && (
+              {totalItems === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} className="py-32 text-center bg-slate-50/20">
                     <div className="flex flex-col items-center gap-4 opacity-20">
@@ -311,10 +290,10 @@ export function UsersTab({ users, responses, loading, onEdit, onDelete, onAdd, o
               )}
             </TableBody>
           </Table>
-          {processedUsers.length > 0 && (
+          {totalItems > 0 && (
             <Pagination 
               currentPage={currentPage}
-              totalItems={processedUsers.length}
+              totalItems={totalItems}
               pageSize={pageSize}
               onPageChange={setCurrentPage}
             />
