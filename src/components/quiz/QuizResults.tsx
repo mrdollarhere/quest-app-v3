@@ -72,10 +72,10 @@ export function QuizResults({
   const isPass = percentage >= 50;
   
   const statusColor = isMastery 
-    ? "text-emerald-400" 
+    ? "text-emerald-600" 
     : isPass 
-      ? "text-amber-400" 
-      : "text-rose-400";
+      ? "text-amber-600" 
+      : "text-rose-600";
 
   const ringColor = isMastery 
     ? "stroke-emerald-500" 
@@ -117,42 +117,42 @@ export function QuizResults({
     if (pct >= 95) return { 
       message: "Elite status verified. Perfect cognitive execution.", 
       highlight: "Elite",
-      color: "text-emerald-400",
+      color: "text-emerald-600",
       border: "border-l-emerald-500",
-      bg: "bg-emerald-500/10",
-      icon: <Trophy className="w-5 h-5 text-emerald-400" />
+      bg: "bg-emerald-50",
+      icon: <Trophy className="w-5 h-5 text-emerald-600" />
     };
     if (pct >= 80) return { 
       message: "Outstanding performance. High-precision synchronization achieved.", 
       highlight: "Precision",
       color: "text-primary",
       border: "border-l-primary",
-      bg: "bg-primary/10",
+      bg: "bg-primary/5",
       icon: <Zap className="w-5 h-5 text-primary" />
     };
     if (pct >= 60) return { 
       message: "Alignment success. Functional mastery established.", 
       highlight: "Mastery",
-      color: "text-amber-400",
+      color: "text-amber-600",
       border: "border-l-amber-500",
-      bg: "bg-amber-500/10",
-      icon: <Target className="w-5 h-5 text-amber-400" />
+      bg: "bg-amber-50",
+      icon: <Target className="w-5 h-5 text-amber-600" />
     };
     if (pct >= 40) return { 
       message: "Optimization recommended. Foundational gaps identified.", 
       highlight: "Optimization",
-      color: "text-orange-400",
+      color: "text-orange-600",
       border: "border-l-orange-500",
-      bg: "bg-orange-500/10",
-      icon: <AlertCircle className="w-5 h-5 text-orange-400" />
+      bg: "bg-orange-50",
+      icon: <AlertCircle className="w-5 h-5 text-orange-600" />
     };
     return { 
       message: "Critical realignment required. Baseline protocols not met.", 
       highlight: "Critical",
-      color: "text-rose-400",
+      color: "text-rose-600",
       border: "border-l-rose-500",
-      bg: "bg-rose-500/10",
-      icon: <XCircle className="w-5 h-5 text-rose-400" />
+      bg: "bg-rose-50",
+      icon: <XCircle className="w-5 h-5 text-rose-600" />
     };
   };
 
@@ -163,7 +163,7 @@ export function QuizResults({
     return (
       <>
         {parts[0]}
-        <span className={colorClass}>{highlight}</span>
+        <span className={cn("font-black", colorClass)}>{highlight}</span>
         {parts[1]}
       </>
     );
@@ -184,24 +184,24 @@ export function QuizResults({
   const offset = circumference - (percentage / 100) * circumference;
 
   return (
-    <div className="min-h-screen bg-[#0F1117] flex flex-col items-center py-12 px-4 md:px-8 selection:bg-primary selection:text-white pb-32">
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center py-12 px-4 md:px-8 selection:bg-primary selection:text-white pb-32 transition-colors duration-500">
       <div className="w-full max-w-6xl space-y-12 animate-in fade-in duration-700">
         
         {/* Header: Identity Bar */}
         <div className="flex flex-col items-center text-center space-y-6">
-          <div className="inline-flex items-center gap-4 px-10 py-5 rounded-full bg-[#1E2130] border border-white/10 shadow-2xl">
+          <div className="inline-flex items-center gap-4 px-10 py-5 rounded-full bg-white border border-slate-200 shadow-xl">
             <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-primary to-blue-400 flex items-center justify-center shadow-lg shadow-primary/20">
               <User className="w-7 h-7 text-white fill-white/20" />
             </div>
             <div className="text-left">
-              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#94A3B8] leading-none mb-1.5">Assessment Operator</p>
-              <h1 className="text-3xl font-black tracking-tight text-white uppercase">{userName}</h1>
+              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 leading-none mb-1.5">Assessment Operator</p>
+              <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase">{userName}</h1>
             </div>
           </div>
           
           <div className="space-y-2">
-            <h2 className="text-xl font-black text-[#94A3B8] uppercase tracking-[0.5em]">{title}</h2>
-            <div className="h-1 w-32 bg-primary/40 mx-auto rounded-full" />
+            <h2 className="text-xl font-black text-slate-400 uppercase tracking-[0.5em]">{title}</h2>
+            <div className="h-1 w-32 bg-primary/20 mx-auto rounded-full" />
           </div>
         </div>
 
@@ -209,7 +209,7 @@ export function QuizResults({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
           {/* Left: Animated Radial Gauge */}
-          <Card className="lg:col-span-5 border-none shadow-2xl rounded-[3rem] bg-[#1E2130] border border-white/[0.08] overflow-hidden flex flex-col items-center justify-center p-12 relative group">
+          <Card className="lg:col-span-5 border-none shadow-2xl rounded-[3rem] bg-white border-slate-100 overflow-hidden flex flex-col items-center justify-center p-12 relative group transition-all duration-500">
             <div className="relative w-72 h-72 flex items-center justify-center">
               <div className={cn(
                 "absolute inset-0 rounded-full blur-[40px] opacity-10 transition-all duration-1000",
@@ -224,7 +224,7 @@ export function QuizResults({
                   stroke="currentColor"
                   strokeWidth="14"
                   fill="transparent"
-                  className="text-white/5"
+                  className="text-slate-100"
                 />
                 <circle
                   cx="144"
@@ -236,28 +236,28 @@ export function QuizResults({
                   strokeDashoffset={offset}
                   strokeLinecap="round"
                   fill="transparent"
-                  className={cn("transition-all duration-1000 ease-out drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]", ringColor)}
+                  className={cn("transition-all duration-1000 ease-out drop-shadow-[0_0_8px_rgba(0,0,0,0.05)]", ringColor)}
                 />
               </svg>
               <div className="absolute flex flex-col items-center text-center">
-                <span className="text-8xl font-black text-white tracking-tighter tabular-nums">{percentage}%</span>
-                <span className="text-[11px] font-black uppercase tracking-[0.4em] text-[#94A3B8]">Alignment</span>
+                <span className="text-8xl font-black text-slate-900 tracking-tighter tabular-nums">{percentage}%</span>
+                <span className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400">Alignment</span>
               </div>
             </div>
 
-            <div className="mt-12 grid grid-cols-2 gap-10 w-full border-t border-white/[0.08] pt-12">
+            <div className="mt-12 grid grid-cols-2 gap-10 w-full border-t border-slate-100 pt-12">
               <div className="text-center group/stat">
-                <p className="text-4xl font-black text-emerald-400">{score}</p>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 mt-2 border border-emerald-500/20">
+                <p className="text-4xl font-black text-emerald-600">{score}</p>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 mt-2 border border-emerald-100">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500/80">Correct</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600/80">Correct</span>
                 </div>
               </div>
-              <div className="text-center border-l border-white/[0.08] group/stat">
-                <p className="text-4xl font-black text-rose-400">{totalQuestions - score}</p>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 mt-2 border border-rose-500/20">
+              <div className="text-center border-l border-slate-100 group/stat">
+                <p className="text-4xl font-black text-rose-600">{totalQuestions - score}</p>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 mt-2 border border-rose-100">
                   <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-rose-500/80">Errors</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-rose-600/80">Errors</span>
                 </div>
               </div>
             </div>
@@ -265,10 +265,10 @@ export function QuizResults({
 
           {/* Right: Diagnostics & Metrics */}
           <div className="lg:col-span-7 space-y-8 flex flex-col">
-            <Card className="flex-1 border-none shadow-2xl rounded-[3rem] bg-[#1E2130] border border-white/[0.08] p-12 flex flex-col justify-center relative overflow-hidden">
+            <Card className="flex-1 border-none shadow-2xl rounded-[3rem] bg-white border-slate-100 p-12 flex flex-col justify-center relative overflow-hidden transition-all duration-500">
               {/* Refined System Verdict Card */}
               <div className={cn(
-                "p-8 rounded-2xl border-l-4 mb-10 transition-all duration-500",
+                "p-8 rounded-[2rem] border-l-4 mb-10 transition-all duration-500 shadow-sm",
                 verdict.border,
                 verdict.bg
               )}>
@@ -276,29 +276,29 @@ export function QuizResults({
                   {verdict.icon}
                   <h4 className={cn("text-[10px] font-black uppercase tracking-[0.3em]", verdict.color)}>System Verdict</h4>
                 </div>
-                <p className="text-white font-black text-2xl leading-tight tracking-tight">
+                <p className="text-slate-900 font-black text-2xl leading-tight tracking-tight">
                   "{renderVerdictMessage(verdict.message, verdict.highlight, verdict.color)}"
                 </p>
               </div>
 
               {/* Enhanced Percentile Comparison */}
               {percentile !== null && !comparativeLoading && (
-                <div className="p-8 bg-white/5 rounded-[2rem] border border-white/10 flex flex-col gap-6 mb-10">
+                <div className="p-8 bg-slate-50 rounded-[2rem] border border-slate-100 flex flex-col gap-6 mb-10">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
                       <TrendingUp className="w-6 h-6 text-primary" />
                     </div>
                     <div>
                       <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mb-0.5">Global Benchmarking</p>
-                      <p className="text-xl font-bold text-slate-200">System Percentile: <span className="text-primary">{percentile}%</span></p>
+                      <p className="text-xl font-bold text-slate-700">System Percentile: <span className="text-primary">{percentile}%</span></p>
                     </div>
                   </div>
                   <div className="space-y-3">
                     <div className="flex justify-between items-center px-1">
-                      <span className="text-[9px] font-black text-[#94A3B8] uppercase tracking-widest">Entry</span>
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Entry</span>
                       <span className="text-[9px] font-black text-primary uppercase tracking-widest">Mastery</span>
                     </div>
-                    <div className="h-3 w-full bg-slate-800 rounded-full overflow-hidden p-0.5 border border-white/5">
+                    <div className="h-3 w-full bg-slate-200 rounded-full overflow-hidden p-0.5 border border-white">
                       <div 
                         className="h-full bg-primary rounded-full transition-all duration-1000 ease-out" 
                         style={{ width: `${percentile}%` }}
@@ -309,7 +309,7 @@ export function QuizResults({
               )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <Button onClick={onRestart} variant="outline" className="h-18 rounded-full font-black border-2 border-white/10 bg-transparent text-white text-xs uppercase tracking-widest hover:bg-white/10 transition-all py-8">
+                <Button onClick={onRestart} variant="outline" className="h-18 rounded-full font-black border-2 border-slate-200 bg-transparent text-slate-600 text-xs uppercase tracking-widest hover:bg-slate-50 transition-all py-8">
                   <RotateCcw className="w-5 h-5 mr-3" />
                   Restart Module
                 </Button>
@@ -323,23 +323,23 @@ export function QuizResults({
             </Card>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-              <StatMetric icon={History} label="Attempts" value="01" color="blue" />
-              <StatMetric icon={Target} label="Precision" value={isMastery ? "High" : isPass ? "Med" : "Low"} color={isMastery ? "green" : isPass ? "amber" : "rose"} />
-              <StatMetric icon={Clock} label="Session" value={formattedDuration} color="purple" />
-              <StatMetric icon={Activity} label="Telemetry" value="Live" color="cyan" />
+              <StatMetric icon={History} label="Attempts" value="01" />
+              <StatMetric icon={Target} label="Precision" value={isMastery ? "High" : isPass ? "Med" : "Low"} />
+              <StatMetric icon={Clock} label="Session" value={formattedDuration} />
+              <StatMetric icon={Activity} label="Telemetry" value="Live" />
             </div>
           </div>
         </div>
 
         {/* Step Analytics Section */}
-        <div className="space-y-10 pt-16 border-t border-white/[0.08]">
+        <div className="space-y-10 pt-16 border-t border-slate-200">
           <div className="flex items-center gap-5 px-4">
-            <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center ring-1 ring-primary/20">
+            <div className="w-14 h-14 bg-primary/5 rounded-[1.5rem] flex items-center justify-center border border-primary/10">
               <History className="w-7 h-7 text-primary" />
             </div>
             <div>
-              <h3 className="text-4xl font-black tracking-tight text-white uppercase leading-none">Step Analytics</h3>
-              <p className="text-[11px] font-bold text-[#94A3B8] uppercase tracking-[0.4em] mt-3">Registry Calibration Audit</p>
+              <h3 className="text-4xl font-black tracking-tight text-slate-900 uppercase leading-none">Step Analytics</h3>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.4em] mt-3">Registry Calibration Audit</p>
             </div>
           </div>
 
@@ -354,38 +354,38 @@ export function QuizResults({
                   key={q.id} 
                   value={`item-${idx}`}
                   className={cn(
-                    "border-none rounded-[2rem] overflow-hidden bg-[#1E2130] border border-white/[0.08] transition-all hover:bg-[#25293a] group/acc shadow-xl",
-                    isCorrect ? "border-l-[6px] border-l-emerald-500" : (hasAnswered ? "border-l-[6px] border-l-[#FF4D4D]" : "border-l-[6px] border-l-slate-700")
+                    "border-none rounded-[2rem] overflow-hidden bg-white border border-slate-100 transition-all hover:bg-slate-50/50 group/acc shadow-sm",
+                    isCorrect ? "border-l-[6px] border-l-emerald-500" : (hasAnswered ? "border-l-[6px] border-l-rose-500" : "border-l-[6px] border-l-slate-300")
                   )}
                 >
                   <AccordionTrigger className="px-10 py-8 hover:no-underline group">
                     <div className="flex items-center gap-10 text-left w-full">
                       <div className={cn(
                         "w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border-2 transition-all",
-                        !q.correct_answer ? "bg-slate-800 border-white/10 text-slate-500" : 
-                        (isCorrect ? "bg-emerald-500 border-emerald-400 text-white" : "bg-[#FF4D4D] border-[#FF6B6B] text-white")
+                        !q.correct_answer ? "bg-slate-100 border-slate-200 text-slate-400" : 
+                        (isCorrect ? "bg-emerald-500 border-emerald-400 text-white" : "bg-rose-500 border-rose-400 text-white")
                       )}>
                         {!q.correct_answer ? <AlertCircle className="w-6 h-6" /> : (isCorrect ? <CheckCircle2 className="w-6 h-6" /> : <X className="w-6 h-6" />)}
                       </div>
                       <div className="flex flex-col min-w-0 flex-1">
                         <div className="flex items-center gap-4 mb-2">
-                          <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#94A3B8]">Step {idx + 1}</span>
+                          <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Step {idx + 1}</span>
                           <div className={cn(
                             "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest",
-                            isCorrect ? "bg-emerald-500 text-white" : "bg-[#FF4D4D] text-white"
+                            isCorrect ? "bg-emerald-500 text-white" : "bg-rose-500 text-white"
                           )}>
                             {isCorrect ? "Correct Alignment" : "Alignment Gap"}
                           </div>
                         </div>
-                        <h4 className="font-semibold text-white text-xl tracking-tight line-clamp-1 group-hover:text-primary transition-colors">
+                        <h4 className="font-semibold text-slate-900 text-xl tracking-tight line-clamp-1 group-hover:text-primary transition-colors">
                           {q.question_text}
                         </h4>
                       </div>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="px-10 pb-10 pt-0">
-                    <div className="h-px w-full bg-white/5 mb-8" />
-                    <div className="max-w-4xl mx-auto rounded-[1.5rem] bg-black/20 p-8 border border-white/5">
+                    <div className="h-px w-full bg-slate-100 mb-8" />
+                    <div className="max-w-4xl mx-auto rounded-[2rem] bg-slate-50 p-8 border border-slate-100 shadow-inner">
                       <QuestionRenderer 
                         question={q} 
                         value={userResp} 
@@ -403,7 +403,7 @@ export function QuizResults({
         {/* Bottom Navigation */}
         <div className="flex justify-center pt-12">
           <Link href="/">
-            <Button variant="ghost" className="rounded-full font-black text-[#94A3B8] hover:text-white transition-all uppercase tracking-[0.6em] text-[11px] h-14 px-12 group">
+            <Button variant="ghost" className="rounded-full font-black text-slate-400 hover:text-slate-900 transition-all uppercase tracking-[0.6em] text-[11px] h-14 px-12 group">
               <Home className="w-5 h-5 mr-4" />
               Terminate Session
             </Button>
@@ -414,13 +414,13 @@ export function QuizResults({
   );
 }
 
-function StatMetric({ icon: Icon, label, value, color }: { icon: any, label: string, value: string, color: string }) {
+function StatMetric({ icon: Icon, label, value }: { icon: any, label: string, value: string }) {
   return (
-    <div className="p-8 rounded-[2rem] border bg-[#1E2130] border-white/[0.08] shadow-2xl flex flex-col items-center text-center gap-3 group transition-all hover:bg-[#25293a]">
-      <Icon className="w-5 h-5 text-primary opacity-60" />
+    <div className="p-8 rounded-[2rem] border bg-white border-slate-100 shadow-sm flex flex-col items-center text-center gap-3 group transition-all hover:shadow-md hover:-translate-y-1">
+      <Icon className="w-5 h-5 text-primary opacity-40 group-hover:opacity-100 transition-opacity" />
       <div className="space-y-1">
-        <p className="text-xl font-black text-white leading-none tracking-tight">{value}</p>
-        <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[#94A3B8]">{label}</p>
+        <p className="text-xl font-black text-slate-900 leading-none tracking-tight">{value}</p>
+        <p className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-400">{label}</p>
       </div>
     </div>
   );
