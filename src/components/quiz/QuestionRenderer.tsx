@@ -40,14 +40,14 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
 
   const renderModule = () => {
     const props = { question, value, onChange, reviewMode };
-    // Protocol: Normalize type strings to handle spaces, underscores, and case sensitivity
-    const qType = String(question.question_type || '').toLowerCase().replace(/\s+/g, '_');
+    // Protocol: Normalize type strings by removing spaces/underscores for robust matching
+    const qType = String(question.question_type || '').toLowerCase().replace(/[\s_]/g, '');
 
-    if (qType === 'multiple_choice' || qType === 'many_answers') {
+    if (qType === 'multiple_choice' || qType === 'multiplechoice' || qType === 'manyanswers' || qType === 'many_answers') {
       return <MultipleChoiceModule {...props} />;
     }
     
-    if (qType === 'single_choice' || qType === 'one_answer') {
+    if (qType === 'single_choice' || qType === 'singlechoice' || qType === 'oneanswer' || qType === 'one_answer') {
       return <SingleChoiceModule {...props} />;
     }
 
@@ -56,11 +56,15 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
       case 'ordering': return <OrderingModule {...props} />;
       case 'matching': return <MatchingModule {...props} />;
       case 'hotspot': return <HotspotModule {...props} />;
-      case 'multiple_true_false': return <MultipleTrueFalseModule {...props} />;
-      case 'matrix_choice': return <MatrixChoiceModule {...props} />;
-      case 'short_text': return <ShortTextModule {...props} />;
+      case 'multiple_true_false': 
+      case 'multipletruefalse': return <MultipleTrueFalseModule {...props} />;
+      case 'matrix_choice': 
+      case 'matrixchoice': return <MatrixChoiceModule {...props} />;
+      case 'short_text': 
+      case 'shorttext': return <ShortTextModule {...props} />;
       case 'dropdown': return <DropdownModule {...props} />;
-      case 'true_false': return <TrueFalseModule {...props} />;
+      case 'true_false': 
+      case 'truefalse': return <TrueFalseModule {...props} />;
       default: return null;
     }
   };

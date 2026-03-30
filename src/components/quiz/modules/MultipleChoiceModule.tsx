@@ -18,7 +18,7 @@ interface Props {
 /**
  * Multiple Choice Interaction Module
  * 
- * Renders high-fidelity checkboxes for many-to-many response mapping.
+ * Renders high-fidelity checkbox cards for multi-select responses.
  */
 export const MultipleChoiceModule: React.FC<Props> = ({ question, value, onChange, reviewMode }) => {
   const options = useMemo(() => {
@@ -26,7 +26,7 @@ export const MultipleChoiceModule: React.FC<Props> = ({ question, value, onChang
     return reviewMode ? rawOptions : shuffleArray(rawOptions);
   }, [question.id, question.options, reviewMode]);
 
-  // Protocol: Ensure value is parsed as a string array for inclusion checking
+  // Protocol: Robust parsing of current selection state
   const selected = useMemo(() => parseRegistryArray(value), [value]);
   const correctArr = useMemo(() => parseRegistryArray(question.correct_answer), [question.correct_answer]);
 
@@ -61,12 +61,12 @@ export const MultipleChoiceModule: React.FC<Props> = ({ question, value, onChang
               onCheckedChange={() => toggle(option)}
               disabled={reviewMode}
               className="transition-transform group-active:scale-95"
-              onClick={(e) => e.stopPropagation()} // Let the parent div handle the main click
+              onClick={(e) => e.stopPropagation()} // Prevent bubble conflicts
             />
             <Label 
               htmlFor={inputId} 
-              className="option-text flex-1 cursor-pointer font-normal text-base text-slate-700"
-              onClick={(e) => e.preventDefault()} // Prevent double-toggle from label/checkbox relationship
+              className="option-text flex-1 cursor-pointer font-normal text-base text-slate-700 select-none"
+              onClick={(e) => e.preventDefault()} // Standardize card-only interaction
             >
               {option}
             </Label>

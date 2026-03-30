@@ -18,7 +18,7 @@ interface Props {
 /**
  * Single Choice Interaction Module
  * 
- * Renders radio buttons for one-to-one response mapping.
+ * Renders high-fidelity radio cards for one-to-one response mapping.
  */
 export const SingleChoiceModule: React.FC<Props> = ({ question, value, onChange, reviewMode }) => {
   const options = useMemo(() => {
@@ -37,13 +37,14 @@ export const SingleChoiceModule: React.FC<Props> = ({ question, value, onChange,
     >
       {options.map((option, idx) => {
         const isSelected = value === option;
+        const inputId = `q-${question.id}-${idx}`;
         
         return (
           <div 
             key={idx} 
             onClick={() => !reviewMode && onChange(option)}
             className={cn(
-              "flex items-center space-x-3 px-[18px] py-[14px] rounded-[12px] border transition-all cursor-pointer",
+              "flex items-center space-x-3 px-[18px] py-[14px] rounded-[12px] border transition-all cursor-pointer group",
               isSelected 
                 ? "bg-[#EFF6FF] border-[#2563EB] shadow-sm" 
                 : "bg-white border-[#E5E7EB] hover:bg-[#EFF6FF] hover:border-[#2563EB]"
@@ -51,13 +52,13 @@ export const SingleChoiceModule: React.FC<Props> = ({ question, value, onChange,
           >
             <RadioGroupItem 
               value={option} 
-              id={`q-${question.id}-${idx}`} 
+              id={inputId} 
               className="pointer-events-none"
             />
             <Label 
-              htmlFor={`q-${question.id}-${idx}`} 
-              className="option-text flex-1 cursor-pointer font-normal text-base text-slate-700"
-              onClick={(e) => e.preventDefault()} // Prevent bubbling from label clicks
+              htmlFor={inputId} 
+              className="option-text flex-1 cursor-pointer font-normal text-base text-slate-700 select-none"
+              onClick={(e) => e.preventDefault()}
             >
               {option}
             </Label>
