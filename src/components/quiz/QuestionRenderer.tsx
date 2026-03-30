@@ -293,14 +293,14 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
                 return (
                   <div key={i} className="space-y-2">
                     <div className={cn(
-                      "p-5 rounded-[2rem] border-2 transition-all flex items-center justify-between gap-6",
+                      "p-5 rounded-[2rem] border-2 transition-all grid grid-cols-1 sm:grid-cols-[1fr_200px] gap-6 items-start",
                       reviewMode 
                         ? (isCorrect ? "bg-green-50 border-green-100" : "bg-red-50 border-red-100") 
                         : "bg-slate-50/50 border-slate-100"
                     )}>
-                      <div className="flex-1 min-w-0">
+                      <div className="min-w-0">
                         <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-1">Prompt</span>
-                        <p className="option-text font-medium text-slate-700 truncate text-base">{prompt}</p>
+                        <p className="option-text font-medium text-slate-700 text-base leading-relaxed break-words whitespace-normal">{prompt}</p>
                       </div>
 
                       <div 
@@ -313,22 +313,22 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
                           if (data) handleDrop(prompt, data);
                         }}
                         className={cn(
-                          "w-48 h-16 rounded-2xl border-2 border-dashed flex items-center justify-center transition-all px-4 relative group",
+                          "w-full min-h-[48px] h-auto rounded-2xl border-2 border-dashed flex items-center justify-center transition-all p-3 relative group",
                           userVal ? "border-primary bg-white shadow-xl" : "border-slate-300 bg-white/50"
                         )}
                       >
                         {userVal ? (
-                          <>
-                            <span className="option-text font-black text-xs text-primary truncate pr-6">{userVal}</span>
+                          <div className="flex items-center justify-between w-full gap-2">
+                            <span className="option-text font-black text-xs text-primary break-words whitespace-normal leading-tight">{userVal}</span>
                             {!reviewMode && (
                               <button 
                                 onClick={() => handleClear(prompt)}
-                                className="absolute right-3 p-1 hover:bg-slate-100 rounded-full transition-colors"
+                                className="p-1 hover:bg-slate-100 rounded-full transition-colors shrink-0"
                               >
                                 <X className="w-3 h-3 text-slate-400" />
                               </button>
                             )}
-                          </>
+                          </div>
                         ) : (
                           <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">Drop Module</span>
                         )}
@@ -337,7 +337,7 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
                     {reviewMode && !isCorrect && (
                       <div className="px-6 flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                        <p className="option-text text-[10px] font-black text-green-600 uppercase tracking-widest">Correct Registry: {correctAnswer}</p>
+                        <p className="option-text text-[10px] font-black text-green-600 uppercase tracking-widest break-words whitespace-normal">Correct Registry: {correctAnswer}</p>
                       </div>
                     )}
                   </div>
@@ -350,7 +350,7 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
             <div className="lg:col-span-5">
               <div className="sticky top-24 space-y-4">
                 <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-2">Answer Pool</h3>
-                <div className="p-8 bg-slate-100/50 rounded-[3rem] border-4 border-dashed border-slate-200 min-h-[400px] flex flex-wrap gap-3 items-start content-start">
+                <div className="p-8 bg-slate-100/50 rounded-[3rem] border-4 border-dashed border-slate-200 min-h-[400px] flex flex-col gap-3 items-stretch">
                   {availableAnswers.map((ans, i) => (
                     <div
                       key={i}
@@ -361,7 +361,7 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
                       }}
                       onDragEnd={() => setDraggingItem(null)}
                       className={cn(
-                        "option-text px-6 py-4 bg-white border-2 border-slate-100 rounded-2xl shadow-sm cursor-grab active:cursor-grabbing hover:border-primary/40 hover:shadow-xl hover:-translate-y-1 transition-all font-black text-sm text-slate-600",
+                        "option-text w-full px-6 py-4 bg-white border-2 border-slate-100 rounded-2xl shadow-sm cursor-grab active:cursor-grabbing hover:border-primary/40 hover:shadow-xl hover:-translate-y-1 transition-all font-black text-sm text-slate-600 break-words whitespace-normal leading-tight",
                         draggingItem === ans && "opacity-20 scale-95 grayscale"
                       )}
                     >
