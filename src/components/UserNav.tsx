@@ -12,17 +12,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, LayoutGrid, ShieldCheck, LogIn, User, Settings, Sun, Moon } from "lucide-react";
+import { LogOut, LayoutGrid, ShieldCheck, LogIn, User } from "lucide-react";
 import Link from 'next/link';
-import { useTheme } from 'next-themes';
 import { useLanguage } from '@/context/language-context';
 
 export function UserNav() {
   const { user, logout, loading } = useAuth();
-  const { setTheme, theme } = useTheme();
   const { t } = useLanguage();
 
-  if (loading) return <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 animate-pulse" />;
+  if (loading) return <div className="w-10 h-10 rounded-full bg-slate-100 animate-pulse" />;
 
   if (!user) {
     return (
@@ -40,7 +38,7 @@ export function UserNav() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full ring-2 ring-primary/10 hover:ring-primary/30 transition-all p-0">
           <Avatar className="h-10 w-10">
-            <AvatarFallback className="bg-primary/5 dark:bg-primary/20 text-primary font-bold">
+            <AvatarFallback className="bg-primary/5 text-primary font-bold">
               {user.displayName?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
@@ -82,20 +80,6 @@ export function UserNav() {
             </DropdownMenuItem>
           </Link>
         )}
-
-        <DropdownMenuSeparator className="opacity-50" />
-        
-        <DropdownMenuItem 
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="rounded-lg p-2.5 font-bold cursor-pointer"
-        >
-          {theme === 'dark' ? (
-            <Sun className="mr-2 h-4 w-4 text-primary" />
-          ) : (
-            <Moon className="mr-2 h-4 w-4 text-primary" />
-          )}
-          <span>{theme === 'dark' ? t('lightMode') : t('darkMode')}</span>
-        </DropdownMenuItem>
 
         <DropdownMenuSeparator className="opacity-50" />
         

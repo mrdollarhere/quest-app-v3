@@ -1,8 +1,4 @@
 export const es = {
-  // Theme
-  lightMode: "Modo Claro",
-  darkMode: "Modo Oscuro",
-  system: "Sistema",
   // Navbar
   library: "Biblioteca de pruebas",
   setupGuide: "Guía de configuración",

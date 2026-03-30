@@ -1,8 +1,4 @@
 export const en = {
-  // Theme
-  lightMode: "Light Mode",
-  darkMode: "Dark Mode",
-  system: "System",
   // Navbar
   library: "Test Library",
   setupGuide: "Setup Guide",

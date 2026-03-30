@@ -1,8 +1,4 @@
 export const vi = {
-  // Theme
-  lightMode: "Chế độ Sáng",
-  darkMode: "Chế độ Tối",
-  system: "Hệ thống",
   // Navbar
   library: "Thư viện bài thi",
   setupGuide: "Hướng dẫn",
