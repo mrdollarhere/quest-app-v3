@@ -1,67 +1,83 @@
-# DNTRNG™ - Intelligence Simplified
+# Open Assessment Platform
 
-[![DNTRNG Protocol](https://img.shields.io/badge/DNTRNG-Protocol_v18.2-blue?style=for-the-badge&logo=google-sheets)](https://dntrng.com)
 [![Next.js](https://img.shields.io/badge/Next.js_15-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com)
+[![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://vercel.com)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-**DNTRNG™** is a premium, high-performance interactive assessment and intelligence engine. Built for speed and scale, it bridges the gap between modern React frontends and the ubiquitous power of Google Sheets™, allowing you to deploy complex intelligence modules in seconds.
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-username/your-repo-name)
 
----
+## What is this?
+This is a high-performance, interactive assessment and quiz engine built with React and Next.js. It uses Google Sheets as a real-time database, allowing you to manage questions, users, and results directly from a spreadsheet without needing a complex database setup.
 
-## 🚀 Core Features | Tính Năng Cốt Lõi
+## Features
+- **Interactive Question Types**: Supports multiple choice, drag-and-drop ordering, matching pairs, image hotspots, matrix choices, and more.
+- **Google Sheets Backend**: Real-time synchronization with a spreadsheet for easy data management.
+- **Admin Dashboard**: Full interface for managing tests, users, and viewing live analytics.
+- **Multiple Modes**: Practice mode (instant feedback), Timed Test mode, and "Race" mode (accuracy streak).
+- **Accessibility**: Built-in settings for adjustable text sizes and high-legibility layouts.
+- **Analytics**: Visual charts showing performance trends and question difficulty.
+- **Security**: Optional daily access keys that rotate automatically to protect assessment sessions.
+- **Multilingual**: Support for English, Vietnamese, and Spanish.
 
-- **Direct Cloud Sync**: Real-time bi-directional synchronization with Google Sheets™ as your database.
-- **Advanced Interaction Modules**: Hotspots (Visual mapping), Ordering, Matching (Drag & Drop), Matrix Choice, and Multiple True/False.
-- **Intelligence Zone Mapper**: Built-in visual CAD tool for administrators to map hotspot coordinates on any image asset.
-- **Daily Access Protocol**: Dynamic, time-sensitive security keys generated algorithmically for session protection.
-- **Identity Registry**: Personalized operator dashboards with live performance analytics.
+## Tech Stack
+- **Frontend**: Next.js 15 (App Router), React 19, Tailwind CSS.
+- **UI Components**: Shadcn UI, Lucide Icons.
+- **Charts**: Recharts.
+- **Database**: Google Sheets via Google Apps Script.
+- **AI Integration**: Genkit with Google Gemini for assessment parsing.
 
----
+## Project Structure
+- `src/app`: Application routes and page-level layouts.
+- `src/components`: Reusable UI components (Admin, Quiz, and Atomic UI).
+- `src/context`: Global state management for authentication and localization.
+- `src/lib`: Core utilities, security logic, and API configuration.
+- `src/hooks`: Custom hooks for data filtering and shared logic.
+- `src/types`: TypeScript interfaces for consistent data structures.
 
-## 🖥️ Desktop Deployment (Electron)
+## Local Setup
 
-To run or build the DNTRNG™ Desktop Application on your local machine:
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/your-username/your-repo-name.git
+   cd your-repo-name
+   ```
 
-### 1. Development Mode
-Runs the app in a standalone window for testing.
-1. **Clone Source**: Download this repository to your local machine.
-2. **Install Dependencies**: Run `npm install` in your terminal.
-3. **Launch Node**: Execute `npm run electron:dev`.
-    * Starts the engine on port `9005`.
-    * The DNTRNG™ window opens automatically.
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
 
-### 2. Building the Installer (.exe / .app)
-Creates a file you can send to others to install the app.
-1. **Run Build**: Execute `npm run electron:build`.
-2. **Get Installer**: Look in the `dist/` folder for your `.exe` (Windows) or `.dmg` (Mac).
+3. **Configure the database**:
+   - Create a new Google Sheet.
+   - Set up the required tabs: `Tests`, `Users`, `Responses`, `Activity`, `Settings`.
+   - Add the Google Apps Script (found in `src/app/lib/gas-template.ts`) to your sheet.
+   - Deploy as a Web App and copy the provided URL.
 
----
+4. **Set Environment Variables**:
+   Update `src/lib/api-config.ts` with your Google Apps Script URL:
+   ```typescript
+   export const API_URL = "your-apps-script-url";
+   ```
 
-## 🇺🇸 Operational Protocol (English)
+5. **Run the development server**:
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:9002](http://localhost:9002) to see the app.
 
-### Phase 01: Sheet Architecture
-Create a new Google Sheet and provision the following core tabs (Case-Sensitive).
+## Self-Hosting Guide
+Anyone can fork and deploy this project for free:
+1. **Frontend**: Connect your GitHub repository to Vercel or Firebase App Hosting.
+2. **Database**: Use the provided Apps Script template to turn any Google Sheet into a web API.
+3. **Configuration**: Point the frontend to your sheet URL using the `API_URL` setting.
 
-1. **`Tests`**: `id`, `title`, `description`, `category`, `difficulty`, `duration`, `image_url`
-2. **`Users`**: `id`, `name`, `email`, `role`, `password`
-3. **`Responses`**: `Timestamp`, `User Name`, `User Email`, `Test ID`, `Score`, `Total`, `Duration (ms)`, `Raw Responses`
-4. **`Activity`**: `Timestamp`, `User Name`, `User Email`, `Event`, `IP Address`, `Device`
-5. **`Settings`**: `key`, `value`
-6. **Module Tabs**: Create a tab for every test `id` using: `id`, `question_text`, `question_type`, `options`, `correct_answer`, `order_group`, `image_url`, `metadata`, `required`
+## Contributing
+Contributions are welcome!
+1. Fork the project.
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`).
+3. Submit your changes (`git commit -m 'Add some AmazingFeature'`).
+4. Push to the branch (`git push origin feature/AmazingFeature`).
+5. Open a Pull Request.
 
-### Phase 02: Logic Injection
-1. Open Google Sheet > **Extensions > Apps Script**.
-2. Paste code from `src/app/lib/gas-template.ts`.
-3. **Deploy > New Deployment > Web App**.
-4. Execute as: **Me**, Access: **Anyone**.
-5. Copy the **Web App URL** and update `src/lib/api-config.ts`.
-
----
-
-## 🔐 Identity Provisioning
-Access the **DNTRNG™ Console** using default admin credentials:
-* **Identity:** `admin@dntrng.com`
-* **Secret:** `admin123`
-
-## ⚖️ License
-This project is part of the **DNTRNG™ Open Source Initiative**. All rights reserved.
+## License
+Distributed under the MIT License. See `LICENSE` for more information.
