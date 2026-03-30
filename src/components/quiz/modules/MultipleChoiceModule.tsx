@@ -18,7 +18,7 @@ interface Props {
 /**
  * Multiple Choice Interaction Module
  * 
- * Renders checkboxes for many-to-many response mapping.
+ * Renders high-fidelity checkboxes for many-to-many response mapping.
  */
 export const MultipleChoiceModule: React.FC<Props> = ({ question, value, onChange, reviewMode }) => {
   const options = useMemo(() => {
@@ -26,12 +26,15 @@ export const MultipleChoiceModule: React.FC<Props> = ({ question, value, onChang
     return reviewMode ? rawOptions : shuffleArray(rawOptions);
   }, [question.id, question.options, reviewMode]);
 
-  const selected = Array.isArray(value) ? value : [];
+  // Protocol: Ensure value is parsed as a string array for inclusion checking
+  const selected = useMemo(() => parseRegistryArray(value), [value]);
   const correctArr = useMemo(() => parseRegistryArray(question.correct_answer), [question.correct_answer]);
 
   const toggle = (opt: string) => {
     if (reviewMode) return;
-    const next = selected.includes(opt) ? selected.filter(s => s !== opt) : [...selected, opt];
+    const next = selected.includes(opt) 
+      ? selected.filter(s => s !== opt) 
+      : [...selected, opt];
     onChange(next);
   };
 
@@ -39,33 +42,37 @@ export const MultipleChoiceModule: React.FC<Props> = ({ question, value, onChang
     <div className="flex flex-col gap-[10px]">
       {options.map((option, idx) => {
         const isSelected = selected.includes(option);
+        const inputId = `q-${question.id}-${idx}`;
         
         return (
           <div 
             key={idx} 
             onClick={() => toggle(option)}
             className={cn(
-              "flex items-center space-x-3 px-[18px] py-[14px] rounded-[12px] border transition-all cursor-pointer",
+              "flex items-center space-x-3 px-[18px] py-[14px] rounded-[12px] border transition-all cursor-pointer group",
               isSelected 
                 ? "bg-[#EFF6FF] border-[#2563EB] shadow-sm" 
                 : "bg-white border-[#E5E7EB] hover:bg-[#EFF6FF] hover:border-[#2563EB]"
             )}
           >
             <Checkbox 
-              id={`q-${question.id}-${idx}`} 
+              id={inputId} 
               checked={isSelected} 
-              onCheckedChange={() => {}} // Controlled by parent div click event
+              onCheckedChange={() => toggle(option)}
               disabled={reviewMode}
-              className="pointer-events-none"
+              className="transition-transform group-active:scale-95"
+              onClick={(e) => e.stopPropagation()} // Let the parent div handle the main click
             />
             <Label 
-              htmlFor={`q-${question.id}-${idx}`} 
+              htmlFor={inputId} 
               className="option-text flex-1 cursor-pointer font-normal text-base text-slate-700"
-              onClick={(e) => e.preventDefault()} // Prevent bubbling from label clicks
+              onClick={(e) => e.preventDefault()} // Prevent double-toggle from label/checkbox relationship
             >
               {option}
             </Label>
-            {reviewMode && correctArr.includes(option) && <CheckCircle2 className="w-6 h-6 text-green-500 shrink-0" />}
+            {reviewMode && correctArr.includes(option) && (
+              <CheckCircle2 className="w-6 h-6 text-green-500 shrink-0 animate-in zoom-in-50 duration-300" />
+            )}
           </div>
         );
       })}

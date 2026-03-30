@@ -40,9 +40,9 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
 
   const renderModule = () => {
     const props = { question, value, onChange, reviewMode };
-    const qType = String(question.question_type || '').toLowerCase();
+    // Protocol: Normalize type strings to handle spaces, underscores, and case sensitivity
+    const qType = String(question.question_type || '').toLowerCase().replace(/\s+/g, '_');
 
-    // Protocol: Strict identification of choice interaction modes
     if (qType === 'multiple_choice' || qType === 'many_answers') {
       return <MultipleChoiceModule {...props} />;
     }
