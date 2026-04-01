@@ -75,7 +75,8 @@ export default function AdminSettingsPage() {
     }
   }, [settings, settingsLoading]);
 
-  const currentSnapshot = {
+  // Derived snapshot from the actual server state (from context)
+  const currentSnapshot: Record<string, string> = {
     platform_name: settings.platform_name || 'DNTRNG',
     logo_url: settings.logo_url || '',
     support_email: settings.support_email || '',
@@ -91,7 +92,10 @@ export default function AdminSettingsPage() {
     guest_access_allowed: String(settings.guest_access_allowed ?? 'true')
   };
 
-  const hasChanges = JSON.stringify(formData) !== JSON.stringify(currentSnapshot);
+  // Compare local form state with the server snapshot to determine if we have changes
+  const hasChanges = Object.keys(formData).some(
+    (key) => formData[key] !== currentSnapshot[key]
+  );
 
   const handlePost = async (action: string, payload: any) => {
     if (!API_URL) return false;
@@ -109,18 +113,28 @@ export default function AdminSettingsPage() {
   };
 
   const handleSaveAll = async () => {
+    // Dirty Tracking Protocol: Identify only the fields that have actually changed
+    const changedKeys = Object.keys(formData).filter(
+      (key) => formData[key] !== currentSnapshot[key]
+    );
+
+    if (changedKeys.length === 0) {
+      return;
+    }
+
     setSaving(true);
     try {
-      // Loop through all keys and save them to the registry
-      for (const [key, value] of Object.entries(formData)) {
-        await handlePost('saveSetting', { key, value });
+      // Loop through ONLY the modified keys and save them to the registry
+      for (const key of changedKeys) {
+        await handlePost('saveSetting', { key, value: formData[key] });
       }
       
       toast({ 
         title: "Registry Updated", 
-        description: "All system preferences have been synchronized." 
+        description: `${changedKeys.length} system preference(s) synchronized.` 
       });
       
+      // Refresh the context which will trigger a re-snapshot in the useEffect
       await refreshSettings();
     } catch (err) {
       toast({ 
