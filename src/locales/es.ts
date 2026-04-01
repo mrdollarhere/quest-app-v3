@@ -141,5 +141,7 @@ export const es = {
   medium: "Intermedio",
   hard: "Difícil",
   // Settings Page
-  logoUrl: "URL del Logo (Imagen externa)"
+  logoUrl: "URL del Logo (Imagen externa)",
+  announcementBanner: "Banner de Anuncios (Inicio)",
+  registryBroadcast: "Aviso del Sistema"
 };

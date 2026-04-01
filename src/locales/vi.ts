@@ -148,6 +148,8 @@ export const vi = {
   branding: "Thương hiệu",
   platformName: "Tên nền tảng",
   logoUrl: "Đường dẫn Logo (Ảnh bên ngoài)",
+  announcementBanner: "Thông báo (Trang chủ)",
+  registryBroadcast: "Thông báo hệ thống",
   supportEmail: "Email hỗ trợ",
   securitySettings: "Cài đặt bảo mật",
   protocolSalt: "Mã muối bảo mật",

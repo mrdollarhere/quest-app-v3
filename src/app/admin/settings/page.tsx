@@ -18,7 +18,8 @@ import {
   LayoutGrid,
   Bell,
   Target,
-  ImageIcon
+  ImageIcon,
+  Megaphone
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ export default function AdminSettingsPage() {
     platform_name: '',
     logo_url: '',
     support_email: '',
+    announcement_banner: '',
     daily_key_salt: '',
     access_key_protection_enabled: 'true',
     default_pass_threshold: '70',
@@ -52,6 +54,7 @@ export default function AdminSettingsPage() {
         platform_name: settings.platform_name || 'DNTRNG',
         logo_url: settings.logo_url || '',
         support_email: settings.support_email || '',
+        announcement_banner: settings.announcement_banner || '',
         daily_key_salt: settings.daily_key_salt || '',
         access_key_protection_enabled: String(settings.access_key_protection_enabled ?? 'true'),
         default_pass_threshold: settings.default_pass_threshold || '70',
@@ -65,6 +68,7 @@ export default function AdminSettingsPage() {
     platform_name: settings.platform_name || 'DNTRNG',
     logo_url: settings.logo_url || '',
     support_email: settings.support_email || '',
+    announcement_banner: settings.announcement_banner || '',
     daily_key_salt: settings.daily_key_salt || '',
     access_key_protection_enabled: String(settings.access_key_protection_enabled ?? 'true'),
     default_pass_threshold: settings.default_pass_threshold || '70',
@@ -179,6 +183,19 @@ export default function AdminSettingsPage() {
                     <img src={formData.logo_url} alt="Logo Preview" className="h-12 w-auto object-contain" onError={(e) => (e.currentTarget.style.display = 'none')} />
                   </div>
                 )}
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{t('announcementBanner')}</Label>
+                <div className="relative">
+                  <Megaphone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                  <Input 
+                    value={formData.announcement_banner}
+                    onChange={(e) => setFormData({ ...formData, announcement_banner: e.target.value })}
+                    placeholder="Enter broadcast message (Leave blank to hide)"
+                    className="h-12 pl-11 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold text-sm"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">

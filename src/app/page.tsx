@@ -10,11 +10,12 @@ import {
   Zap,
   ArrowRight,
   Target,
-  Image as ImageIcon,
+  ImageIcon,
   ListOrdered,
   BarChart3,
   Languages,
-  CheckCircle2
+  CheckCircle2,
+  Megaphone
 } from "lucide-react";
 import { UserNav } from '@/components/UserNav';
 import { cn } from '@/lib/utils';
@@ -47,6 +48,22 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#F4F5F7] flex flex-col selection:bg-[#2563EB] selection:text-white font-sans">
+      {/* Announcement Banner */}
+      {settings.announcement_banner && (
+        <div className="bg-[#2563EB] text-white py-3 px-6 text-center relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+          <div className="max-w-7xl mx-auto flex items-center justify-center gap-3">
+            <div className="flex items-center gap-2 px-2 py-0.5 bg-white/20 rounded-full text-[9px] font-black uppercase tracking-widest">
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+              {t('registryBroadcast')}
+            </div>
+            <p className="text-xs md:text-sm font-bold tracking-tight">
+              {settings.announcement_banner}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Navigation */}
       <header className="py-4 px-6 md:px-12 border-b border-slate-200 bg-white sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto flex justify-between items-center">

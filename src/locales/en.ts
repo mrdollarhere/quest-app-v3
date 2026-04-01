@@ -148,6 +148,8 @@ export const en = {
   branding: "Branding",
   platformName: "Platform Name",
   logoUrl: "Logo URL (External Image Link)",
+  announcementBanner: "Announcement Banner (Landing Page)",
+  registryBroadcast: "Registry Broadcast",
   supportEmail: "Support Email",
   securitySettings: "Security Settings",
   protocolSalt: "Protocol Salt",
