@@ -162,5 +162,10 @@ export const vi = {
   allowedEmailDomains: "Tên miền email cho phép",
   allowedDomainsPlaceholder: "ví dụ: gmail.com, company.com (Để trống để cho phép tất cả)",
   domainRestricted: "Tên miền bị hạn chế: Email của bạn không được phép truy cập hệ thống.",
-  sessionTimeout: "Thời gian hết hạn phiên (Giờ)"
+  sessionTimeout: "Thời gian hết hạn phiên (Giờ)",
+  guestAccessAllowed: "Cho phép khách truy cập",
+  guestAccessDesc: "Cho phép người dùng tham gia mà không cần tài khoản đăng ký",
+  loginRequiredTitle: "Yêu cầu đăng nhập",
+  loginRequiredDesc: "Quyền truy cập cho khách đã bị tắt. Vui lòng đăng nhập để bắt đầu bài thi này.",
+  goToLogin: "Đến trang đăng nhập"
 };

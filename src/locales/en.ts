@@ -162,5 +162,10 @@ export const en = {
   allowedEmailDomains: "Allowed Email Domains",
   allowedDomainsPlaceholder: "e.g. gmail.com, company.com (Leave blank for all)",
   domainRestricted: "Domain Restricted: Your email domain is not permitted on this platform.",
-  sessionTimeout: "Session Timeout (Hours)"
+  sessionTimeout: "Session Timeout (Hours)",
+  guestAccessAllowed: "Guest Access Allowed",
+  guestAccessDesc: "Permit users to participate without a registered account",
+  loginRequiredTitle: "Authentication Required",
+  loginRequiredDesc: "Guest participation is disabled. Please sign in with your student account to initialize this module.",
+  goToLogin: "Access Login Registry"
 };

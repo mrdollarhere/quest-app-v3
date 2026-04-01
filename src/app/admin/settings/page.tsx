@@ -21,7 +21,8 @@ import {
   ImageIcon,
   Megaphone,
   Fingerprint,
-  Clock
+  Clock,
+  UserCheck
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -49,7 +50,8 @@ export default function AdminSettingsPage() {
     enable_benchmarking: 'true',
     maintenance_mode: 'false',
     allowed_email_domains: '',
-    session_timeout_hours: '24'
+    session_timeout_hours: '24',
+    guest_access_allowed: 'true'
   });
 
   useEffect(() => {
@@ -65,7 +67,8 @@ export default function AdminSettingsPage() {
         enable_benchmarking: String(settings.enable_benchmarking ?? 'true'),
         maintenance_mode: String(settings.maintenance_mode ?? 'false'),
         allowed_email_domains: settings.allowed_email_domains || '',
-        session_timeout_hours: settings.session_timeout_hours || '24'
+        session_timeout_hours: settings.session_timeout_hours || '24',
+        guest_access_allowed: String(settings.guest_access_allowed ?? 'true')
       });
     }
   }, [settings, settingsLoading]);
@@ -81,7 +84,8 @@ export default function AdminSettingsPage() {
     enable_benchmarking: String(settings.enable_benchmarking ?? 'true'),
     maintenance_mode: String(settings.maintenance_mode ?? 'false'),
     allowed_email_domains: settings.allowed_email_domains || '',
-    session_timeout_hours: settings.session_timeout_hours || '24'
+    session_timeout_hours: settings.session_timeout_hours || '24',
+    guest_access_allowed: String(settings.guest_access_allowed ?? 'true')
   };
 
   const hasChanges = JSON.stringify(formData) !== JSON.stringify(currentSnapshot);
@@ -274,15 +278,28 @@ export default function AdminSettingsPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
-                <div className="space-y-1">
-                  <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{t('protectionEnabled')}</p>
-                  <p className="text-xs text-slate-500 font-medium">Require daily access keys for all student nodes</p>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <div className="space-y-1">
+                    <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{t('protectionEnabled')}</p>
+                    <p className="text-xs text-slate-500 font-medium">Require daily access keys for all student nodes</p>
+                  </div>
+                  <Switch 
+                    checked={formData.access_key_protection_enabled === 'true'} 
+                    onCheckedChange={(val) => setFormData({ ...formData, access_key_protection_enabled: String(val) })} 
+                  />
                 </div>
-                <Switch 
-                  checked={formData.access_key_protection_enabled === 'true'} 
-                  onCheckedChange={(val) => setFormData({ ...formData, access_key_protection_enabled: String(val) })} 
-                />
+
+                <div className="flex items-center justify-between p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <div className="space-y-1">
+                    <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{t('guestAccessAllowed')}</p>
+                    <p className="text-xs text-slate-500 font-medium">{t('guestAccessDesc')}</p>
+                  </div>
+                  <Switch 
+                    checked={formData.guest_access_allowed === 'true'} 
+                    onCheckedChange={(val) => setFormData({ ...formData, guest_access_allowed: String(val) })} 
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>

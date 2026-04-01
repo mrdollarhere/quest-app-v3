@@ -147,5 +147,10 @@ export const es = {
   allowedEmailDomains: "Dominios permitidos",
   allowedDomainsPlaceholder: "ej: gmail.com, empresa.com (Vacío para todos)",
   domainRestricted: "Dominio restringido: Tu dominio de correo no está permitido en esta plataforma.",
-  sessionTimeout: "Tiempo de expiración de sesión (Horas)"
+  sessionTimeout: "Tiempo de expiración de sesión (Horas)",
+  guestAccessAllowed: "Acceso de invitados permitido",
+  guestAccessDesc: "Permitir que los usuarios participen sin una cuenta registrada",
+  loginRequiredTitle: "Identificación requerida",
+  loginRequiredDesc: "El acceso de invitados está desactivado. Inicia sesión con tu cuenta de estudiante para continuar.",
+  goToLogin: "Ir al registro de acceso"
 };

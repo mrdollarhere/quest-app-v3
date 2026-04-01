@@ -32,6 +32,7 @@ function QuizContent() {
   const [isWrongInRace, setIsWrongInRace] = useState(false);
   const [protocolSalt, setProtocolSalt] = useState("");
   const [isProtectionEnabled, setIsProtectionEnabled] = useState(true);
+  const [guestAccessAllowed, setGuestAccessAllowed] = useState(true);
   
   // Master registry to keep the original order for Training/Race
   const [originalQuestions, setOriginalQuestions] = useState<Question[]>([]);
@@ -75,6 +76,7 @@ function QuizContent() {
       let fetched: Question[] = [];
       let salt = "";
       let protection = true;
+      let guestAllowed = true;
       
       if (API_URL) {
         const [qRes, sRes] = await Promise.all([
@@ -94,12 +96,14 @@ function QuizContent() {
         salt = sData.daily_key_salt || "";
         // Normalize boolean check from spreadsheet registry
         protection = String(sData.access_key_protection_enabled ?? "true") !== "false";
+        guestAllowed = String(sData.guest_access_allowed ?? "true") !== "false";
       } else {
         fetched = DEMO_QUESTIONS;
       }
       
       setProtocolSalt(salt);
       setIsProtectionEnabled(protection);
+      setGuestAccessAllowed(guestAllowed);
       setOriginalQuestions(fetched);
       setQuiz(prev => ({ ...prev, questions: fetched, startTime: Date.now() }));
     } catch (err) {
@@ -287,6 +291,7 @@ function QuizContent() {
         setGuestName={setGuestName}
         protocolSalt={protocolSalt}
         isProtectionEnabled={isProtectionEnabled}
+        guestAccessAllowed={guestAccessAllowed}
         onStart={handleStart}
       />
     );

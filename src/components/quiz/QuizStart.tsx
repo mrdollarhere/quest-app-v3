@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { 
@@ -18,12 +18,16 @@ import {
   Clock,
   ListChecks,
   BarChart3,
-  ArrowRight
+  ArrowRight,
+  ShieldAlert,
+  LogIn
 } from "lucide-react";
 import { QuizMode } from '@/types/quiz';
 import { cn } from "@/lib/utils";
 import { generateDailyPassword } from '@/lib/security-utils';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/context/language-context';
+import Link from 'next/link';
 
 interface QuizStartProps {
   title: string;
@@ -35,10 +39,11 @@ interface QuizStartProps {
   setGuestName: (name: string) => void;
   protocolSalt?: string;
   isProtectionEnabled?: boolean;
+  guestAccessAllowed?: boolean;
   onStart: (mode: QuizMode) => void;
 }
 
-type Step = 'gate' | 'identity' | 'mode';
+type Step = 'gate' | 'identity' | 'mode' | 'login_required';
 
 export function QuizStart({
   title,
@@ -50,9 +55,15 @@ export function QuizStart({
   setGuestName,
   protocolSalt,
   isProtectionEnabled = true,
+  guestAccessAllowed = true,
   onStart
 }: QuizStartProps) {
-  const [step, setStep] = useState<Step>(isProtectionEnabled ? 'gate' : (user ? 'mode' : 'identity'));
+  const { t } = useLanguage();
+  const [step, setStep] = useState<Step>(() => {
+    if (isProtectionEnabled) return 'gate';
+    if (!user && !guestAccessAllowed) return 'login_required';
+    return user ? 'mode' : 'identity';
+  });
   const [password, setPassword] = useState('');
   const [selectedMode, setSelectedMode] = useState<QuizMode>('test');
   const { toast } = useToast();
@@ -62,14 +73,19 @@ export function QuizStart({
     if (password.trim().toUpperCase() === dailyKey.toUpperCase()) {
       toast({
         title: "Access Granted",
-        description: "Security Protocol Cleared. Please proceed with identity registration.",
+        description: "Security Protocol Cleared.",
       });
-      setStep(user ? 'mode' : 'identity');
+      
+      if (!user && !guestAccessAllowed) {
+        setStep('login_required');
+      } else {
+        setStep(user ? 'mode' : 'identity');
+      }
     } else {
       toast({
         variant: "destructive",
         title: "Access Denied",
-        description: "The daily security key provided is invalid for this node.",
+        description: "The daily security key provided is invalid.",
       });
     }
   };
@@ -109,10 +125,8 @@ export function QuizStart({
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 selection:bg-primary selection:text-white">
       <Card className="w-full max-w-2xl border-none shadow-2xl rounded-[3rem] overflow-hidden bg-white relative">
-        {/* Subtle Background Pattern */}
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:20px_20px]" />
         
-        {/* New Gradient Header Band */}
         <div className="relative z-10 bg-gradient-to-r from-primary to-indigo-600 p-10 md:p-14 text-center">
           <div className="mx-auto w-20 h-20 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center mb-8 rotate-3 shadow-2xl ring-1 ring-white/20">
             <Zap className="w-10 h-10 text-white fill-white/20" />
@@ -122,6 +136,7 @@ export function QuizStart({
           </CardTitle>
           <p className="text-white/60 font-black uppercase tracking-[0.4em] text-[10px]">
             {step === 'gate' ? 'Security Protocol Required' : 
+             step === 'login_required' ? 'Authentication Required' :
              step === 'identity' ? 'Mission Registration' : 
              'Mode Selection'}
           </p>
@@ -163,9 +178,33 @@ export function QuizStart({
             </div>
           )}
 
+          {step === 'login_required' && (
+            <div className="space-y-8 text-center animate-in fade-in zoom-in-95 duration-500">
+              <div className="p-10 bg-red-50 dark:bg-red-900/10 rounded-[3rem] border-2 border-red-100 dark:border-red-900/20">
+                <ShieldAlert className="w-16 h-16 text-red-500 mx-auto mb-6" />
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-4">
+                  {t('loginRequiredTitle')}
+                </h3>
+                <p className="text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                  {t('loginRequiredDesc')}
+                </p>
+              </div>
+              
+              <Link href="/login" className="block w-full">
+                <Button className="w-full h-20 rounded-full text-xl font-black shadow-2xl transition-all hover:scale-[1.02] bg-slate-900 text-white uppercase tracking-tighter">
+                  {t('goToLogin')}
+                  <LogIn className="w-6 h-6 ml-3" />
+                </Button>
+              </Link>
+              
+              <button onClick={() => setStep('gate')} className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300 hover:text-slate-500 transition-colors">
+                Return to Security Gate
+              </button>
+            </div>
+          )}
+
           {step === 'identity' && (
             <div className="space-y-12 animate-in fade-in slide-in-from-right-4 duration-500">
-              {/* Visual Stats Row */}
               <div className="grid grid-cols-3 gap-4">
                 <div className="bg-blue-50 rounded-2xl p-5 flex flex-col items-center justify-center gap-2 border border-blue-100/50 shadow-sm">
                   <ListChecks className="w-5 h-5 text-primary" />
@@ -257,12 +296,14 @@ export function QuizStart({
                 </Button>
                 
                 <div className="flex flex-col gap-4">
-                  <button 
-                    onClick={() => setStep('identity')}
-                    className="w-full text-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-300 hover:text-slate-500 transition-colors"
-                  >
-                    Modify Callsign Registry
-                  </button>
+                  {!user && guestAccessAllowed && (
+                    <button 
+                      onClick={() => setStep('identity')}
+                      className="w-full text-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-300 hover:text-slate-500 transition-colors"
+                    >
+                      Modify Callsign Registry
+                    </button>
+                  )}
                   {isProtectionEnabled && (
                     <button 
                       onClick={() => { setStep('gate'); setPassword(''); }}
