@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from 'react';
@@ -80,7 +79,7 @@ export function QuizStart({
       id: 'training' as QuizMode,
       title: 'Practice',
       icon: Gamepad2,
-      desc: 'No time limit, instant feedback',
+      desc: 'Fixed sequence, take your time',
       colorClass: 'bg-green-500 shadow-green-500/20',
       textClass: 'text-green-600',
       btnClass: 'bg-green-500 hover:bg-green-600'
@@ -89,7 +88,7 @@ export function QuizStart({
       id: 'test' as QuizMode,
       title: 'Test',
       icon: Target,
-      desc: 'Timed, score revealed at the end',
+      desc: 'Timed, shuffled, results at the end',
       colorClass: 'bg-primary shadow-primary/20',
       textClass: 'text-primary',
       btnClass: 'bg-primary hover:bg-primary/90'
