@@ -152,5 +152,7 @@ export const es = {
   guestAccessDesc: "Permitir que los usuarios participen sin una cuenta registrada",
   loginRequiredTitle: "Identificación requerida",
   loginRequiredDesc: "El acceso de invitados está desactivado. Inicia sesión con tu cuenta de estudiante para continuar.",
-  goToLogin: "Ir al registro de acceso"
+  goToLogin: "Ir al registro de acceso",
+  globalTimerLimit: "Límite de tiempo global (Minutos)",
+  globalTimerLimitDesc: "Duración de respaldo para pruebas sin un límite de tiempo específico"
 };

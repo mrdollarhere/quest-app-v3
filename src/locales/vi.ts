@@ -167,5 +167,7 @@ export const vi = {
   guestAccessDesc: "Cho phép người dùng tham gia mà không cần tài khoản đăng ký",
   loginRequiredTitle: "Yêu cầu đăng nhập",
   loginRequiredDesc: "Quyền truy cập cho khách đã bị tắt. Vui lòng đăng nhập để bắt đầu bài thi này.",
-  goToLogin: "Đến trang đăng nhập"
+  goToLogin: "Đến trang đăng nhập",
+  globalTimerLimit: "Thời gian làm bài mặc định (Phút)",
+  globalTimerLimitDesc: "Thời gian dự phòng cho các bài thi không có giới hạn thời gian cụ thể"
 };

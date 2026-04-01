@@ -19,20 +19,15 @@ function QuizContent() {
   const { user } = useAuth();
   const { toast } = useToast();
   
-  const testMetadata = useMemo(() => {
-    return AVAILABLE_TESTS.find(t => t.id === testId);
-  }, [testId]);
-
-  const quizTitle = testMetadata?.title || 'DNTRNG Assessment';
-
   const [loading, setLoading] = useState(true);
   const [isStarted, setIsStarted] = useState(false);
   const [guestName, setGuestName] = useState("");
-  const [timeLeft, setTimeLeft] = useState(900); // 15 minutes default
+  const [timeLeft, setTimeLeft] = useState(900); // Default to 15m
   const [isWrongInRace, setIsWrongInRace] = useState(false);
   const [protocolSalt, setProtocolSalt] = useState("");
   const [isProtectionEnabled, setIsProtectionEnabled] = useState(true);
   const [guestAccessAllowed, setGuestAccessAllowed] = useState(true);
+  const [testMetadata, setTestMetadata] = useState<any>(null);
   
   // Master registry to keep the original order for Training/Race
   const [originalQuestions, setOriginalQuestions] = useState<Question[]>([]);
@@ -48,6 +43,8 @@ function QuizContent() {
     highestStepReached: 0,
     flaggedQuestionIds: []
   });
+
+  const quizTitle = testMetadata?.title || 'Assessment';
 
   useEffect(() => {
     fetchQuestions();
@@ -70,6 +67,12 @@ function QuizContent() {
     return () => clearInterval(interval);
   }, [quiz.isSubmitted, loading, isStarted, quiz.mode]);
 
+  const parseDurationToSeconds = (dur: string | number | undefined, fallback: string | number = "15"): number => {
+    const raw = dur || fallback;
+    const num = parseInt(String(raw).replace(/[^0-9]/g, ''));
+    return isNaN(num) ? 900 : num * 60;
+  };
+
   const fetchQuestions = async () => {
     setLoading(true);
     try {
@@ -77,15 +80,19 @@ function QuizContent() {
       let salt = "";
       let protection = true;
       let guestAllowed = true;
+      let metadata = null;
+      let globalFallbackTime = "15";
       
       if (API_URL) {
-        const [qRes, sRes] = await Promise.all([
+        const [qRes, sRes, tRes] = await Promise.all([
           fetch(`${API_URL}?action=getQuestions&id=${testId}`),
-          fetch(`${API_URL}?action=getSettings`)
+          fetch(`${API_URL}?action=getSettings`),
+          fetch(`${API_URL}?action=getTests`)
         ]);
         
         const qData = await qRes.json();
         const sData = await sRes.json();
+        const tData = await tRes.json();
         
         if (qData && Array.isArray(qData) && qData.length > 0) {
           fetched = qData;
@@ -94,17 +101,28 @@ function QuizContent() {
         }
         
         salt = sData.daily_key_salt || "";
-        // Normalize boolean check from spreadsheet registry
         protection = String(sData.access_key_protection_enabled ?? "true") !== "false";
         guestAllowed = String(sData.guest_access_allowed ?? "true") !== "false";
+        globalFallbackTime = sData.global_timer_limit || "15";
+
+        if (Array.isArray(tData)) {
+          metadata = tData.find(t => String(t.id) === String(testId));
+        }
       } else {
         fetched = DEMO_QUESTIONS;
+        metadata = AVAILABLE_TESTS.find(t => t.id === testId);
       }
       
       setProtocolSalt(salt);
       setIsProtectionEnabled(protection);
       setGuestAccessAllowed(guestAllowed);
+      setTestMetadata(metadata);
       setOriginalQuestions(fetched);
+      
+      // Calculate initial time left based on hierarchy: Test Dur -> Global Fallback -> 15m
+      const seconds = parseDurationToSeconds(metadata?.duration, globalFallbackTime);
+      setTimeLeft(seconds);
+
       setQuiz(prev => ({ ...prev, questions: fetched, startTime: Date.now() }));
     } catch (err) {
       setOriginalQuestions(DEMO_QUESTIONS);
@@ -234,11 +252,7 @@ function QuizContent() {
   };
 
   const restart = () => {
-    setTimeLeft(900);
-    let q = [...originalQuestions];
-    if (quiz.mode === 'test') {
-      q = shuffleQuestions(q);
-    }
+    fetchQuestions(); // Re-fetch to ensure fresh timer and metadata
     setQuiz({
       ...quiz,
       currentQuestionIndex: 0,
@@ -248,7 +262,6 @@ function QuizContent() {
       startTime: Date.now(),
       mode: quiz.mode,
       highestStepReached: 0,
-      questions: q,
       flaggedQuestionIds: []
     });
   };

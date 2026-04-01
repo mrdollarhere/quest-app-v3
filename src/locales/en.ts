@@ -167,5 +167,7 @@ export const en = {
   guestAccessDesc: "Permit users to participate without a registered account",
   loginRequiredTitle: "Authentication Required",
   loginRequiredDesc: "Guest participation is disabled. Please sign in with your student account to initialize this module.",
-  goToLogin: "Access Login Registry"
+  goToLogin: "Access Login Registry",
+  globalTimerLimit: "Global Timer Limit (Minutes)",
+  globalTimerLimitDesc: "Fallback duration for tests without a specific time limit"
 };

@@ -47,6 +47,7 @@ export default function AdminSettingsPage() {
     daily_key_salt: '',
     access_key_protection_enabled: 'true',
     default_pass_threshold: '70',
+    global_timer_limit: '15',
     enable_benchmarking: 'true',
     maintenance_mode: 'false',
     allowed_email_domains: '',
@@ -64,6 +65,7 @@ export default function AdminSettingsPage() {
         daily_key_salt: settings.daily_key_salt || '',
         access_key_protection_enabled: String(settings.access_key_protection_enabled ?? 'true'),
         default_pass_threshold: settings.default_pass_threshold || '70',
+        global_timer_limit: settings.global_timer_limit || '15',
         enable_benchmarking: String(settings.enable_benchmarking ?? 'true'),
         maintenance_mode: String(settings.maintenance_mode ?? 'false'),
         allowed_email_domains: settings.allowed_email_domains || '',
@@ -81,6 +83,7 @@ export default function AdminSettingsPage() {
     daily_key_salt: settings.daily_key_salt || '',
     access_key_protection_enabled: String(settings.access_key_protection_enabled ?? 'true'),
     default_pass_threshold: settings.default_pass_threshold || '70',
+    global_timer_limit: settings.global_timer_limit || '15',
     enable_benchmarking: String(settings.enable_benchmarking ?? 'true'),
     maintenance_mode: String(settings.maintenance_mode ?? 'false'),
     allowed_email_domains: settings.allowed_email_domains || '',
@@ -326,6 +329,20 @@ export default function AdminSettingsPage() {
                     className="h-12 pl-11 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-black text-sm"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{t('globalTimerLimit')}</Label>
+                <div className="relative">
+                  <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                  <Input 
+                    type="number"
+                    value={formData.global_timer_limit}
+                    onChange={(e) => setFormData({ ...formData, global_timer_limit: e.target.value })}
+                    className="h-12 pl-11 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-black text-sm"
+                  />
+                </div>
+                <p className="text-[9px] font-medium text-slate-400 mt-2 px-1">{t('globalTimerLimitDesc')}</p>
               </div>
 
               <div className="space-y-6">
