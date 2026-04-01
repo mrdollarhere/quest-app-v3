@@ -28,7 +28,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     pathname.startsWith('/admin/tests') ? 'tests' :
                     pathname.startsWith('/admin/users') ? 'users' :
                     pathname.startsWith('/admin/responses') ? 'responses' :
-                    pathname.startsWith('/admin/activity') ? 'activity' : 'overview';
+                    pathname.startsWith('/admin/activity') ? 'activity' :
+                    pathname.startsWith('/admin/settings') ? 'settings' : 'overview';
 
   // Breadcrumb Resolver: Humanizes technical path segments
   const getHeaderTitle = () => {

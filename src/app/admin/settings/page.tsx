@@ -1,0 +1,282 @@
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import { useSettings } from '@/context/settings-context';
+import { useToast } from '@/hooks/use-toast';
+import { API_URL } from '@/lib/api-config';
+import { 
+  Settings as SettingsIcon, 
+  Globe, 
+  Shield, 
+  Mail, 
+  Save, 
+  CheckCircle2, 
+  AlertCircle,
+  Loader2,
+  Lock,
+  Zap,
+  LayoutGrid,
+  Bell,
+  Target
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { useLanguage } from '@/context/language-context';
+import { AILoader } from '@/components/ui/ai-loader';
+
+export default function AdminSettingsPage() {
+  const { settings, loading: settingsLoading, refreshSettings } = useSettings();
+  const { t } = useLanguage();
+  const { toast } = useToast();
+  const [saving, setSaving] = useState(false);
+  
+  // Controlled form state
+  const [formData, setFormData] = useState<Record<string, string>>({
+    platform_name: '',
+    support_email: '',
+    daily_key_salt: '',
+    access_key_protection_enabled: 'true',
+    default_pass_threshold: '70',
+    enable_benchmarking: 'true',
+    maintenance_mode: 'false'
+  });
+
+  useEffect(() => {
+    if (!settingsLoading && settings) {
+      setFormData({
+        platform_name: settings.platform_name || 'DNTRNG',
+        support_email: settings.support_email || '',
+        daily_key_salt: settings.daily_key_salt || '',
+        access_key_protection_enabled: String(settings.access_key_protection_enabled ?? 'true'),
+        default_pass_threshold: settings.default_pass_threshold || '70',
+        enable_benchmarking: String(settings.enable_benchmarking ?? 'true'),
+        maintenance_mode: String(settings.maintenance_mode ?? 'false')
+      });
+    }
+  }, [settings, settingsLoading]);
+
+  const hasChanges = JSON.stringify(formData) !== JSON.stringify({
+    platform_name: settings.platform_name || 'DNTRNG',
+    support_email: settings.support_email || '',
+    daily_key_salt: settings.daily_key_salt || '',
+    access_key_protection_enabled: String(settings.access_key_protection_enabled ?? 'true'),
+    default_pass_threshold: settings.default_pass_threshold || '70',
+    enable_benchmarking: String(settings.enable_benchmarking ?? 'true'),
+    maintenance_mode: String(settings.maintenance_mode ?? 'false')
+  });
+
+  const handlePost = async (action: string, payload: any) => {
+    if (!API_URL) return false;
+    try {
+      await fetch(API_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: JSON.stringify({ action, ...payload })
+      });
+      return true;
+    } catch (err) {
+      console.error(err);
+      return false;
+    }
+  };
+
+  const handleSaveAll = async () => {
+    setSaving(true);
+    try {
+      // Loop through all keys and save them to the registry
+      for (const [key, value] of Object.entries(formData)) {
+        await handlePost('saveSetting', { key, value });
+      }
+      
+      toast({ 
+        title: "Registry Updated", 
+        description: "All system preferences have been synchronized." 
+      });
+      
+      await refreshSettings();
+    } catch (err) {
+      toast({ 
+        variant: "destructive", 
+        title: "Sync Error", 
+        description: "Could not commit all settings to the registry." 
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (settingsLoading) {
+    return (
+      <div className="py-40">
+        <AILoader />
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-5xl mx-auto space-y-10 animate-in fade-in duration-700 pb-24">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{t('siteSettings')}</h1>
+          <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2">{t('platformConfig')}</p>
+        </div>
+        <div className="flex gap-4">
+          <Button 
+            onClick={handleSaveAll} 
+            disabled={saving || !hasChanges}
+            className="h-14 px-8 rounded-full bg-primary font-black uppercase text-xs tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] transition-all"
+          >
+            {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+            {t('saveAllSettings')}
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        {/* Left Column: Branding & Security */}
+        <div className="lg:col-span-7 space-y-8">
+          <Card className="border-none shadow-sm bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden border dark:border-slate-800">
+            <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b p-8">
+              <CardTitle className="text-xl font-black flex items-center gap-3">
+                <Globe className="w-5 h-5 text-primary" /> {t('branding')}
+              </CardTitle>
+              <CardDescription>Global visual identity and contact registry</CardDescription>
+            </CardHeader>
+            <CardContent className="p-8 space-y-6">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{t('platformName')}</Label>
+                <div className="relative">
+                  <Zap className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                  <Input 
+                    value={formData.platform_name}
+                    onChange={(e) => setFormData({ ...formData, platform_name: e.target.value })}
+                    className="h-12 pl-11 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-black text-sm"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{t('supportEmail')}</Label>
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                  <Input 
+                    type="email"
+                    value={formData.support_email}
+                    onChange={(e) => setFormData({ ...formData, support_email: e.target.value })}
+                    placeholder="support@yourplatform.com"
+                    className="h-12 pl-11 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold text-sm"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-none shadow-sm bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden border dark:border-slate-800">
+            <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b p-8">
+              <CardTitle className="text-xl font-black flex items-center gap-3">
+                <Shield className="w-5 h-5 text-primary" /> {t('securitySettings')}
+              </CardTitle>
+              <CardDescription>Authentication protocols and access logic</CardDescription>
+            </CardHeader>
+            <CardContent className="p-8 space-y-8">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{t('protocolSalt')}</Label>
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                  <Input 
+                    value={formData.daily_key_salt}
+                    onChange={(e) => setFormData({ ...formData, daily_key_salt: e.target.value })}
+                    placeholder="Enter custom protocol salt..."
+                    className="h-12 pl-11 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-mono text-xs"
+                  />
+                </div>
+                <p className="text-[9px] font-medium text-slate-400 mt-2 px-1">Rotating daily keys are generated using this value as a base.</p>
+              </div>
+
+              <div className="flex items-center justify-between p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                <div className="space-y-1">
+                  <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{t('protectionEnabled')}</p>
+                  <p className="text-xs text-slate-500 font-medium">Require daily access keys for all student nodes</p>
+                </div>
+                <Switch 
+                  checked={formData.access_key_protection_enabled === 'true'} 
+                  onCheckedChange={(val) => setFormData({ ...formData, access_key_protection_enabled: String(val) })} 
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column: Assessment Logic */}
+        <div className="lg:col-span-5 space-y-8">
+          <Card className="border-none shadow-sm bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden border dark:border-slate-800">
+            <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b p-8">
+              <CardTitle className="text-xl font-black flex items-center gap-3">
+                <Target className="w-5 h-5 text-primary" /> {t('assessmentConfig')}
+              </CardTitle>
+              <CardDescription>Global evaluation and analysis settings</CardDescription>
+            </CardHeader>
+            <CardContent className="p-8 space-y-8">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{t('passThreshold')}</Label>
+                <div className="relative">
+                  <Target className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                  <Input 
+                    type="number"
+                    value={formData.default_pass_threshold}
+                    onChange={(e) => setFormData({ ...formData, default_pass_threshold: e.target.value })}
+                    className="h-12 pl-11 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-black text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{t('enableBenchmarking')}</p>
+                    <p className="text-[10px] text-slate-500 font-medium">Show comparative results to students</p>
+                  </div>
+                  <Switch 
+                    checked={formData.enable_benchmarking === 'true'} 
+                    onCheckedChange={(val) => setFormData({ ...formData, enable_benchmarking: String(val) })} 
+                  />
+                </div>
+
+                <div className="h-px bg-slate-100 dark:bg-slate-800" />
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-black text-red-600 uppercase tracking-tight">{t('maintenanceMode')}</p>
+                    <p className="text-[10px] text-slate-500 font-medium">Prevent all new assessment sessions</p>
+                  </div>
+                  <Switch 
+                    checked={formData.maintenance_mode === 'true'} 
+                    onCheckedChange={(val) => setFormData({ ...formData, maintenance_mode: String(val) })} 
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-none shadow-2xl rounded-[2.5rem] bg-slate-900 text-white p-8 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-6 opacity-10">
+              <Bell className="w-24 h-24" />
+            </div>
+            <div className="relative z-10 space-y-4">
+              <div className="bg-primary/20 w-12 h-12 rounded-2xl flex items-center justify-center mb-2">
+                <AlertCircle className="w-6 h-6 text-primary" />
+              </div>
+              <h3 className="text-xl font-black uppercase tracking-tight">System Integrity</h3>
+              <p className="text-sm text-slate-400 font-medium leading-relaxed">
+                Changes applied here will affect all student nodes globally upon their next session initialization. 
+              </p>
+            </div>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}

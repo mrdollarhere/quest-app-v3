@@ -47,6 +47,7 @@ export const vi = {
   students: "Học sinh",
   results: "Kết quả",
   activity: "Nhật ký",
+  settings: "Cài đặt",
   logout: "Đăng xuất",
   adminConsoleLabel: "Quản trị",
   statusActive: "Trạng thái: Hoạt động",
@@ -139,5 +140,20 @@ export const vi = {
   beginner: "Cơ bản",
   easy: "Dễ",
   medium: "Trung bình",
-  hard: "Khó"
+  hard: "Khó",
+  // Settings Page
+  systemPreferences: "Cấu hình hệ thống",
+  platformConfig: "Thiết lập nền tảng",
+  siteSettings: "Cài đặt trang",
+  branding: "Thương hiệu",
+  platformName: "Tên nền tảng",
+  supportEmail: "Email hỗ trợ",
+  securitySettings: "Cài đặt bảo mật",
+  protocolSalt: "Mã muối bảo mật",
+  protectionEnabled: "Bật bảo vệ mã truy cập",
+  assessmentConfig: "Hiệu chuẩn bài thi",
+  passThreshold: "Ngưỡng đạt (%)",
+  enableBenchmarking: "Bật so sánh xếp hạng",
+  maintenanceMode: "Chế độ bảo trì",
+  saveAllSettings: "Lưu tất cả thay đổi"
 };

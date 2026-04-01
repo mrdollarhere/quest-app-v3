@@ -47,6 +47,7 @@ export const en = {
   students: "Students",
   results: "Results",
   activity: "Logs",
+  settings: "Settings",
   logout: "Log out",
   adminConsoleLabel: "Admin Console",
   statusActive: "Status: Active",
@@ -139,5 +140,20 @@ export const en = {
   beginner: "Beginner",
   easy: "Easy",
   medium: "Medium",
-  hard: "Hard"
+  hard: "Hard",
+  // Settings Page
+  systemPreferences: "System Preferences",
+  platformConfig: "Platform Configuration",
+  siteSettings: "Site Settings",
+  branding: "Branding",
+  platformName: "Platform Name",
+  supportEmail: "Support Email",
+  securitySettings: "Security Settings",
+  protocolSalt: "Protocol Salt",
+  protectionEnabled: "Protection Enabled",
+  assessmentConfig: "Assessment Calibration",
+  passThreshold: "Pass Threshold (%)",
+  enableBenchmarking: "Enable Benchmarking",
+  maintenanceMode: "Maintenance Mode",
+  saveAllSettings: "Apply Global Changes"
 };
