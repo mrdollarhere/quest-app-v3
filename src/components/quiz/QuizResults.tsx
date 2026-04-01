@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -98,19 +97,22 @@ export function QuizResults({
   };
   const VerdictIcon = IconMap[verdict.iconName];
 
+  // Logic Enforcement: Benchmarking Toggle
+  const isBenchmarkingEnabled = String(settings.enable_benchmarking ?? 'true') !== 'false';
+
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center py-12 px-4 md:px-8 selection:bg-primary selection:text-white pb-32 transition-colors duration-500">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center py-12 px-4 md:px-8 selection:bg-primary selection:text-white pb-32 transition-colors duration-500">
       <div className="w-full max-w-6xl space-y-12 animate-in fade-in duration-700">
         
         {/* Header: Identity Bar */}
         <div className="flex flex-col items-center text-center space-y-6">
-          <div className="inline-flex items-center gap-4 px-10 py-5 rounded-full bg-white border border-slate-200 shadow-xl">
+          <div className="inline-flex items-center gap-4 px-10 py-5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl">
             <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-primary to-blue-400 flex items-center justify-center shadow-lg shadow-primary/20">
               <User className="w-7 h-7 text-white fill-white/20" />
             </div>
             <div className="text-left">
               <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 leading-none mb-1.5">Assessment Operator</p>
-              <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase">{userName}</h1>
+              <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white uppercase">{userName}</h1>
             </div>
           </div>
           
@@ -132,7 +134,7 @@ export function QuizResults({
 
           {/* Diagnostics & Metrics */}
           <div className="lg:col-span-7 space-y-8 flex flex-col">
-            <Card className="flex-1 border-none shadow-2xl rounded-[3rem] bg-white border-slate-100 p-12 flex flex-col justify-center relative overflow-hidden transition-all duration-500">
+            <Card className="flex-1 border-none shadow-2xl rounded-[3rem] bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 p-12 flex flex-col justify-center relative overflow-hidden transition-all duration-500">
               {/* Verdict Module */}
               <div className={cn(
                 "p-8 rounded-[2rem] border-l-4 mb-10 transition-all duration-500 shadow-sm",
@@ -143,16 +145,18 @@ export function QuizResults({
                   <VerdictIcon className={cn("w-5 h-5", verdict.color)} />
                   <h4 className={cn("text-[10px] font-black uppercase tracking-[0.3em]", verdict.color)}>System Verdict</h4>
                 </div>
-                <p className="text-slate-900 font-black text-2xl leading-tight tracking-tight">
+                <p className="text-slate-900 dark:text-slate-100 font-black text-2xl leading-tight tracking-tight">
                   "{renderVerdictMessage(verdict.message, verdict.highlight, verdict.color)}"
                 </p>
               </div>
 
-              {/* Benchmarking Module */}
-              <BenchmarkingSection testId={testId} percentage={percentage} />
+              {/* Benchmarking Module: Conditional Enforcement */}
+              {isBenchmarkingEnabled && (
+                <BenchmarkingSection testId={testId} percentage={percentage} enabled={true} />
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <Button onClick={onRestart} variant="outline" className="h-18 rounded-full font-black border-2 border-slate-200 bg-transparent text-slate-600 text-xs uppercase tracking-widest hover:bg-slate-50 transition-all py-8">
+                <Button onClick={onRestart} variant="outline" className="h-18 rounded-full font-black border-2 border-slate-200 dark:border-slate-700 bg-transparent text-slate-600 dark:text-slate-400 text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all py-8">
                   <RotateCcw className="w-5 h-5 mr-3" />
                   Restart Module
                 </Button>
@@ -197,10 +201,10 @@ export function QuizResults({
 
 function StatMetric({ icon: Icon, label, value }: { icon: any, label: string, value: string }) {
   return (
-    <div className="p-8 rounded-[2rem] border bg-white border-slate-100 shadow-sm flex flex-col items-center text-center gap-3 group transition-all hover:shadow-md hover:-translate-y-1">
+    <div className="p-8 rounded-[2rem] border bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 shadow-sm flex flex-col items-center text-center gap-3 group transition-all hover:shadow-md hover:-translate-y-1">
       <Icon className="w-5 h-5 text-primary opacity-40 group-hover:opacity-100 transition-opacity" />
       <div className="space-y-1">
-        <p className="text-xl font-black text-slate-900 leading-none tracking-tight">{value}</p>
+        <p className="text-xl font-black text-slate-900 dark:text-white leading-none tracking-tight">{value}</p>
         <p className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-400">{label}</p>
       </div>
     </div>

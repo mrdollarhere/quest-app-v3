@@ -12,6 +12,9 @@ import { API_URL } from '@/lib/api-config';
 import { useAuth } from '@/context/auth-context';
 import { calculateTotalScore, calculateScoreForQuestion } from '@/lib/quiz-utils';
 import { AILoader } from '@/components/ui/ai-loader';
+import { AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 function QuizContent() {
   const searchParams = useSearchParams();
@@ -27,6 +30,7 @@ function QuizContent() {
   const [protocolSalt, setProtocolSalt] = useState("");
   const [isProtectionEnabled, setIsProtectionEnabled] = useState(true);
   const [guestAccessAllowed, setGuestAccessAllowed] = useState(true);
+  const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
   const [testMetadata, setTestMetadata] = useState<any>(null);
   
   // Master registry to keep the original order for Training/Race
@@ -80,6 +84,7 @@ function QuizContent() {
       let salt = "";
       let protection = true;
       let guestAllowed = true;
+      let maintenance = false;
       let metadata = null;
       let globalFallbackTime = "15";
       
@@ -103,6 +108,7 @@ function QuizContent() {
         salt = sData.daily_key_salt || "";
         protection = String(sData.access_key_protection_enabled ?? "true") !== "false";
         guestAllowed = String(sData.guest_access_allowed ?? "true") !== "false";
+        maintenance = String(sData.maintenance_mode ?? "false") === "true";
         globalFallbackTime = sData.global_timer_limit || "15";
 
         if (Array.isArray(tData)) {
@@ -116,6 +122,7 @@ function QuizContent() {
       setProtocolSalt(salt);
       setIsProtectionEnabled(protection);
       setGuestAccessAllowed(guestAllowed);
+      setIsMaintenanceMode(maintenance);
       setTestMetadata(metadata);
       setOriginalQuestions(fetched);
       
@@ -291,6 +298,26 @@ function QuizContent() {
       <AILoader />
     </div>
   );
+
+  // Enforcement Protocol: Maintenance Mode
+  if (isMaintenanceMode && user?.role !== 'admin') {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-6 text-center transition-colors duration-500">
+        <div className="w-24 h-24 bg-amber-50 dark:bg-amber-900/20 rounded-[2.5rem] flex items-center justify-center mb-8 shadow-2xl ring-8 ring-white dark:ring-slate-900">
+          <AlertCircle className="w-12 h-12 text-amber-500" />
+        </div>
+        <h2 className="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-4">System Maintenance</h2>
+        <p className="text-slate-500 dark:text-slate-400 font-medium max-w-md mx-auto mb-10 leading-relaxed text-lg">
+          This assessment node is currently offline for structural calibration. Please return later or contact your supervisor.
+        </p>
+        <Link href="/">
+          <Button className="h-14 rounded-full px-10 bg-slate-900 dark:bg-primary font-black uppercase text-xs tracking-widest shadow-xl hover:scale-105 transition-all border-none">
+            Return Home
+          </Button>
+        </Link>
+      </div>
+    );
+  }
 
   if (!isStarted) {
     return (
