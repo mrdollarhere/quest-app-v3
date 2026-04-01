@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -21,6 +22,7 @@ import Link from 'next/link';
 import { cn } from "@/lib/utils";
 import { Question, UserResponse } from '@/types/quiz';
 import { getVerdictData } from '@/lib/quiz-config';
+import { useSettings } from '@/context/settings-context';
 import { PerformanceGauge } from './PerformanceGauge';
 import { BenchmarkingSection } from './BenchmarkingSection';
 import { StepAnalytics } from './StepAnalytics';
@@ -50,6 +52,7 @@ export function QuizResults({
   startTime,
   endTime
 }: QuizResultsProps) {
+  const { settings } = useSettings();
   const [textSize, setTextSize] = useState<'normal' | 'large' | 'small'>('normal');
 
   useEffect(() => {
@@ -60,8 +63,9 @@ export function QuizResults({
   }, []);
 
   const percentage = Math.round((score / (totalQuestions || 1)) * 100);
+  const threshold = Number(settings.default_pass_threshold || '70');
   const isMastery = percentage >= 80;
-  const isPass = percentage >= 50;
+  const isPass = percentage >= threshold;
   
   const verdict = getVerdictData(percentage);
 

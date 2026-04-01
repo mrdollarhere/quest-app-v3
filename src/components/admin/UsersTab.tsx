@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useMemo } from 'react';
@@ -38,6 +39,7 @@ import {
 import Link from 'next/link';
 import { cn } from "@/lib/utils";
 import { useLanguage } from '@/context/language-context';
+import { useSettings } from '@/context/settings-context';
 import { Pagination } from './Pagination';
 import { useRegistryFilter } from '@/hooks/useRegistryFilter';
 
@@ -53,8 +55,11 @@ interface UsersTabProps {
 
 export function UsersTab({ users, responses, loading, onEdit, onDelete, onAdd, onRefresh }: UsersTabProps) {
   const { t } = useLanguage();
+  const { settings } = useSettings();
   const [deleteConfirmEmail, setDeleteConfirmEmail] = React.useState<string | null>(null);
   
+  const threshold = Number(settings.default_pass_threshold || '70');
+
   const userStats = useMemo(() => {
     const stats: Record<string, { count: number, passed: number, avg: number }> = {};
     
@@ -67,7 +72,7 @@ export function UsersTab({ users, responses, loading, onEdit, onDelete, onAdd, o
       const pct = (score / total) * 100;
       
       stats[email].count++;
-      if (pct >= 70) stats[email].passed++;
+      if (pct >= threshold) stats[email].passed++;
       stats[email].avg += pct;
     });
 
@@ -76,7 +81,7 @@ export function UsersTab({ users, responses, loading, onEdit, onDelete, onAdd, o
     });
 
     return stats;
-  }, [responses]);
+  }, [responses, threshold]);
 
   const {
     searchTerm,
@@ -253,7 +258,7 @@ export function UsersTab({ users, responses, loading, onEdit, onDelete, onAdd, o
                       <div className="flex flex-col items-center">
                         <span className={cn(
                           "font-black text-base",
-                          s.avg >= 80 ? "text-green-600" : s.avg >= 50 ? "text-orange-600" : "text-slate-400 dark:text-slate-600"
+                          s.avg >= 80 ? "text-green-600" : s.avg >= threshold ? "text-orange-600" : "text-slate-400 dark:text-slate-600"
                         )}>
                           {s.count > 0 ? `${s.avg}%` : '--'}
                         </span>

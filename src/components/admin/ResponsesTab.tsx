@@ -43,6 +43,7 @@ import {
   RefreshCcw
 } from "lucide-react";
 import { useLanguage } from '@/context/language-context';
+import { useSettings } from '@/context/settings-context';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -70,9 +71,11 @@ const CHART_COLORS = ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#0ea5e9', '#e
 
 export function ResponsesTab({ responses, tests, loading, onRefresh, onDelete }: ResponsesTabProps) {
   const { t } = useLanguage();
+  const { settings } = useSettings();
   const [deleteConfirm, setDeleteConfirm] = React.useState<{ timestamp: string, email: string } | null>(null);
 
-  const stats = useMemo(() => calculateResponseStats(responses, tests), [responses, tests]);
+  const threshold = Number(settings.default_pass_threshold || '70');
+  const stats = useMemo(() => calculateResponseStats(responses, tests, threshold), [responses, tests, threshold]);
 
   const {
     searchTerm,

@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
@@ -31,17 +32,21 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from "@/lib/utils";
 import { AILoader } from '@/components/ui/ai-loader';
 import { useLanguage } from '@/context/language-context';
+import { useSettings } from '@/context/settings-context';
 
 function UserDetailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { toast } = useToast();
   const { t } = useLanguage();
+  const { settings } = useSettings();
   const email = searchParams.get('email') || "";
 
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [responses, setResponses] = useState<any[]>([]);
+
+  const threshold = Number(settings.default_pass_threshold || '70');
 
   const fetchData = async () => {
     if (!API_URL || !email) {
@@ -84,7 +89,7 @@ function UserDetailContent() {
       const p = (Number(r.Score) / (Number(r.Total) || 1)) * 100;
       totalScore += Number(r.Score);
       totalPossible += Number(r.Total);
-      if (p >= 70) passed++;
+      if (p >= threshold) passed++;
       return p;
     });
 
@@ -94,7 +99,7 @@ function UserDetailContent() {
       avg: Math.round((totalScore / totalPossible) * 100),
       best: Math.round(Math.max(...percentages))
     };
-  }, [responses]);
+  }, [responses, threshold]);
 
   if (loading) return (
     <div className="py-32">
@@ -170,7 +175,7 @@ function UserDetailContent() {
               </div>
               <Progress value={(stats.passed / (stats.total || 1)) * 100} className="h-2 rounded-full" />
               <p className="text-[10px] font-medium text-slate-400 leading-relaxed">
-                Structural achievement score calculated from all verified assessment logs.
+                Structural achievement score calculated from all verified assessment logs. Threshold: {threshold}%.
               </p>
             </div>
           </Card>
@@ -228,7 +233,7 @@ function UserDetailContent() {
                           <TableCell className="px-8 text-right">
                             <Badge className={cn(
                               "font-black px-3 py-1 rounded-full border-none shadow-sm text-[9px] uppercase tracking-widest",
-                              pct >= 80 ? "bg-green-100 text-green-700" : pct >= 50 ? "bg-orange-100 text-orange-700" : "bg-red-100 text-red-700"
+                              pct >= 80 ? "bg-green-100 text-green-700" : pct >= threshold ? "bg-orange-100 text-orange-700" : "bg-red-100 text-red-700"
                             )}>
                               {pct}%
                             </Badge>

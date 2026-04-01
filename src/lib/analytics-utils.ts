@@ -12,8 +12,11 @@ export interface ResponseStats {
 
 /**
  * Calculates global and per-test metrics from raw response data.
+ * @param responses - The list of submission records.
+ * @param tests - The list of assessment modules.
+ * @param threshold - The percentage required to pass (default 70).
  */
-export function calculateResponseStats(responses: any[], tests: any[]): ResponseStats | null {
+export function calculateResponseStats(responses: any[], tests: any[], threshold: number = 70): ResponseStats | null {
   if (!responses || responses.length === 0) return null;
 
   const total = responses.length;
@@ -35,10 +38,10 @@ export function calculateResponseStats(responses: any[], tests: any[]): Response
     
     totalScorePct += pct;
     
-    if (pct >= 50) passes++;
+    if (pct >= threshold) passes++;
     
     if (pct >= 80) gradeCounts.Excellent++;
-    else if (pct >= 50) gradeCounts.Pass++;
+    else if (pct >= threshold) gradeCounts.Pass++;
     else gradeCounts.Fail++;
 
     const testId = String(r['Test ID'] || 'Unknown');
@@ -48,9 +51,9 @@ export function calculateResponseStats(responses: any[], tests: any[]): Response
   });
 
   const gradeData = [
-    { name: 'Excellent (80%+)', value: gradeCounts.Excellent, color: '#22c55e' },
-    { name: 'Pass (50-79%)', value: gradeCounts.Pass, color: '#f59e0b' },
-    { name: 'Fail (<50%)', value: gradeCounts.Fail, color: '#ef4444' }
+    { name: `Excellent (80%+)`, value: gradeCounts.Excellent, color: '#22c55e' },
+    { name: `Pass (${threshold}-${79}%)`, value: gradeCounts.Pass, color: '#f59e0b' },
+    { name: `Fail (<${threshold}%)`, value: gradeCounts.Fail, color: '#ef4444' }
   ];
 
   const testPerformanceData = Object.entries(testStats).map(([id, data]) => {
