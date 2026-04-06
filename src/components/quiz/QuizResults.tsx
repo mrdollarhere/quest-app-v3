@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -28,6 +29,7 @@ import { PerformanceGauge } from './PerformanceGauge';
 import { BenchmarkingSection } from './BenchmarkingSection';
 import { StepAnalytics } from './StepAnalytics';
 import { generateCertificatePDF } from '@/lib/certificate-utils';
+import confetti from 'canvas-confetti';
 
 interface QuizResultsProps {
   title: string;
@@ -76,6 +78,44 @@ export function QuizResults({
   const isPass = percentage >= testThreshold;
   const verdict = getVerdictData(percentage);
 
+  // High-Fidelity Celebration Protocol
+  useEffect(() => {
+    if (isPass) {
+      const attemptKey = `confetti_shown_${testId || 'unknown'}_${endTime || Date.now()}`;
+      const shown = sessionStorage.getItem(attemptKey);
+      
+      if (!shown) {
+        const duration = 3 * 1000;
+        const animationEnd = Date.now() + duration;
+        const colors = ['#0F172A', '#3B5BDB', '#FFFFFF'];
+
+        const frame = () => {
+          confetti({
+            particleCount: 2,
+            angle: 60,
+            spread: 55,
+            origin: { x: 0, y: 0 },
+            colors: colors,
+          });
+          confetti({
+            particleCount: 2,
+            angle: 120,
+            spread: 55,
+            origin: { x: 1, y: 0 },
+            colors: colors,
+          });
+
+          if (Date.now() < animationEnd) {
+            requestAnimationFrame(frame);
+          }
+        };
+
+        frame();
+        sessionStorage.setItem(attemptKey, 'true');
+      }
+    }
+  }, [isPass, testId, endTime]);
+
   const durationMs = (endTime && startTime) ? endTime - startTime : 0;
   const formatDuration = (ms: number) => {
     const seconds = Math.floor(ms / 1000);
@@ -123,7 +163,7 @@ export function QuizResults({
     AlertCircle,
     XCircle
   };
-  const VerdictIcon = IconMap[verdict.iconName];
+  const VerdictIcon = IconMap[verdict.iconName as keyof typeof IconMap];
 
   const isBenchmarkingEnabled = String(settings.enable_benchmarking ?? 'true') !== 'false';
 
