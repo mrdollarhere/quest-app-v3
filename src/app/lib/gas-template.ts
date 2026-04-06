@@ -1,5 +1,6 @@
+
 export const GAS_CODE = `/**
- * QUESTFLOW BACKEND v18.2 - REGISTRY TRANSPARENCY PROTOCOL
+ * QUESTFLOW BACKEND v18.3 - CERTIFICATION PROTOCOL
  * 
  * ACTIONS SUPPORTED:
  * - GET: login, getTests, getUsers, getResponses, getQuestions, getActivity, getSettings
@@ -137,7 +138,7 @@ function doPost(e) {
 
     if (action === 'submitResponse') {
       let sheet = ss.getSheetByName('Responses') || ss.insertSheet('Responses');
-      const headers = ['Timestamp', 'User Name', 'User Email', 'Test ID', 'Score', 'Total', 'Duration (ms)', 'Raw Responses'];
+      const headers = ['Timestamp', 'User Name', 'User Email', 'Test ID', 'Score', 'Total', 'Duration (ms)', 'Raw Responses', 'Certificate ID'];
       
       if (sheet.getLastRow() === 0) {
         sheet.appendRow(headers);
@@ -154,7 +155,8 @@ function doPost(e) {
         payload.score || 0, 
         payload.total || 0, 
         payload.duration || 0, 
-        JSON.stringify(payload.responses || [])
+        JSON.stringify(payload.responses || []),
+        payload.certificateId || ''
       ];
       
       sheet.appendRow(rowData);
@@ -164,7 +166,8 @@ function doPost(e) {
     if (action === 'saveTest') {
       const sheet = ss.getSheetByName('Tests') || ss.insertSheet('Tests');
       const data = payload.data;
-      if (sheet.getLastRow() === 0) sheet.appendRow(['id', 'title', 'description', 'category', 'difficulty', 'duration', 'image_url']);
+      const headers = ['id', 'title', 'description', 'category', 'difficulty', 'duration', 'image_url', 'certificate_enabled', 'passing_threshold'];
+      if (sheet.getLastRow() === 0) sheet.appendRow(headers);
       upsertRow(sheet, 'id', data.id, data);
       
       if (!ss.getSheetByName(data.id)) {

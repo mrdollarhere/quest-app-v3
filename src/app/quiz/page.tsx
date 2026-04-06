@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, Suspense, useMemo } from 'react';
@@ -32,6 +33,7 @@ function QuizContent() {
   const [guestAccessAllowed, setGuestAccessAllowed] = useState(true);
   const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
   const [testMetadata, setTestMetadata] = useState<any>(null);
+  const [generatedCertificateId, setGeneratedCertificateId] = useState<string | null>(null);
   
   // Master registry to keep the original order for Training/Race
   const [originalQuestions, setOriginalQuestions] = useState<Question[]>([]);
@@ -222,8 +224,22 @@ function QuizContent() {
     const finalScore = calculateTotalScore(quiz.questions, quiz.responses);
     const finalName = (user?.displayName || guestName?.trim() || 'Guest User');
     const finalEmail = (user?.email || 'Anonymous');
+    const timestamp = Date.now();
+    const finalPercentage = Math.round((finalScore / quiz.questions.length) * 100);
     
-    setQuiz({ ...quiz, isSubmitted: true, score: finalScore, endTime: Date.now() });
+    // Check for certificate award
+    let certId = "";
+    const threshold = Number(testMetadata?.passing_threshold || 70);
+    const certEnabled = String(testMetadata?.certificate_enabled) === "TRUE";
+    
+    if (certEnabled && finalPercentage >= threshold) {
+      // Unique Certificate ID Protocol: [StudentID/Email]-[TestID]-[Timestamp]
+      const cleanEmail = finalEmail.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8);
+      certId = `CRT-${cleanEmail}-${testId}-${timestamp.toString().slice(-6)}`.toUpperCase();
+      setGeneratedCertificateId(certId);
+    }
+    
+    setQuiz({ ...quiz, isSubmitted: true, score: finalScore, endTime: timestamp });
 
     if (API_URL) {
       try {
@@ -237,9 +253,10 @@ function QuizContent() {
             userEmail: finalEmail,
             score: finalScore,
             total: quiz.questions.length,
-            duration: Date.now() - quiz.startTime,
+            duration: timestamp - quiz.startTime,
             responses: quiz.responses,
-            mode: quiz.mode
+            mode: quiz.mode,
+            certificateId: certId
           })
         });
         toast({ title: "Intelligence Synced", description: "Assessment results have been committed." });
@@ -271,6 +288,7 @@ function QuizContent() {
       highestStepReached: 0,
       flaggedQuestionIds: []
     });
+    setGeneratedCertificateId(null);
   };
 
   const jumpToQuestion = (index: number) => {
@@ -350,6 +368,8 @@ function QuizContent() {
         onRestart={restart}
         startTime={quiz.startTime}
         endTime={quiz.endTime}
+        testMetadata={testMetadata}
+        certificateId={generatedCertificateId || undefined}
       />
     );
   }

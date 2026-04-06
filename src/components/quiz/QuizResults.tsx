@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -15,7 +16,9 @@ import {
   Zap,
   Trophy,
   AlertCircle,
-  XCircle
+  XCircle,
+  FileBadge,
+  Download
 } from "lucide-react";
 import Link from 'next/link';
 import { cn } from "@/lib/utils";
@@ -25,6 +28,7 @@ import { useSettings } from '@/context/settings-context';
 import { PerformanceGauge } from './PerformanceGauge';
 import { BenchmarkingSection } from './BenchmarkingSection';
 import { StepAnalytics } from './StepAnalytics';
+import { generateCertificatePDF } from '@/lib/certificate-utils';
 
 interface QuizResultsProps {
   title: string;
@@ -37,6 +41,8 @@ interface QuizResultsProps {
   onRestart: () => void;
   startTime?: number;
   endTime?: number;
+  testMetadata?: any;
+  certificateId?: string;
 }
 
 export function QuizResults({
@@ -49,10 +55,13 @@ export function QuizResults({
   userName,
   onRestart,
   startTime,
-  endTime
+  endTime,
+  testMetadata,
+  certificateId
 }: QuizResultsProps) {
   const { settings } = useSettings();
   const [textSize, setTextSize] = useState<'normal' | 'large' | 'small'>('normal');
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('dntrng_text_size') as 'normal' | 'large' | 'small';
@@ -62,9 +71,11 @@ export function QuizResults({
   }, []);
 
   const percentage = Math.round((score / (totalQuestions || 1)) * 100);
-  const threshold = Number(settings.default_pass_threshold || '70');
+  const globalThreshold = Number(settings.default_pass_threshold || '70');
+  const testThreshold = Number(testMetadata?.passing_threshold || globalThreshold);
+  
   const isMastery = percentage >= 80;
-  const isPass = percentage >= threshold;
+  const isPass = percentage >= testThreshold;
   
   const verdict = getVerdictData(percentage);
 
@@ -88,6 +99,26 @@ export function QuizResults({
     );
   };
 
+  const handleDownloadCertificate = async () => {
+    if (!certificateId) return;
+    setIsGenerating(true);
+    try {
+      await generateCertificatePDF({
+        studentName: userName,
+        testName: title,
+        score,
+        total: totalQuestions,
+        date: new Date(endTime || Date.now()),
+        certificateId,
+        platformName: String(settings.platform_name || "DNTRNG")
+      });
+    } catch (e) {
+      console.error("Certificate generation failed", e);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const IconMap = {
     Trophy,
     Zap,
@@ -97,7 +128,6 @@ export function QuizResults({
   };
   const VerdictIcon = IconMap[verdict.iconName];
 
-  // Logic Enforcement: Benchmarking Toggle
   const isBenchmarkingEnabled = String(settings.enable_benchmarking ?? 'true') !== 'false';
 
   return (
@@ -153,6 +183,29 @@ export function QuizResults({
               {/* Benchmarking Module: Conditional Enforcement */}
               {isBenchmarkingEnabled && (
                 <BenchmarkingSection testId={testId} percentage={percentage} enabled={true} />
+              )}
+
+              {/* Certificate Download Panel */}
+              {certificateId && isPass && (
+                <div className="mb-10 p-8 rounded-[2rem] bg-slate-900 text-white relative overflow-hidden group shadow-2xl animate-in zoom-in-95 duration-500">
+                  <div className="absolute top-0 right-0 p-6 opacity-10 rotate-12 group-hover:rotate-45 transition-transform duration-700">
+                    <FileBadge className="w-32 h-32" />
+                  </div>
+                  <div className="relative z-10 space-y-6">
+                    <div>
+                      <h4 className="text-primary font-black uppercase text-[10px] tracking-[0.4em] mb-2">Registry Award</h4>
+                      <p className="text-xl font-bold leading-tight">Your certification is ready for high-fidelity extraction.</p>
+                    </div>
+                    <Button 
+                      onClick={handleDownloadCertificate}
+                      disabled={isGenerating}
+                      className="h-14 rounded-full px-8 bg-primary hover:bg-primary/90 font-black uppercase text-xs tracking-widest gap-3 shadow-xl transition-all hover:scale-[1.02]"
+                    >
+                      {isGenerating ? <Zap className="w-4 h-4 animate-pulse" /> : <Download className="w-4 h-4" />}
+                      {isGenerating ? 'Generating PDF...' : 'Download Certificate'}
+                    </Button>
+                  </div>
+                </div>
               )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">

@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from 'react';
@@ -8,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { 
   Select, 
@@ -16,13 +18,14 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { ArrowLeft, Save, Loader2, Sparkles, LayoutGrid, Image as ImageIcon, Clock, Gauge, X } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Sparkles, LayoutGrid, Image as ImageIcon, Clock, Gauge, X, Trophy } from "lucide-react";
 
 export default function NewTestPage() {
   const [loading, setLoading] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
   const [imageUrl, setImageUrl] = useState("");
   const [difficulty, setDifficulty] = useState("Easy");
+  const [certEnabled, setCertEnabled] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -34,8 +37,9 @@ export default function NewTestPage() {
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData.entries());
     
-    // Explicitly add select values since native FormData might miss them from Radix Select
+    // Explicitly add controlled values
     data.difficulty = difficulty;
+    data.certificate_enabled = certEnabled ? "TRUE" : "FALSE";
     
     // Auto-formatting duration suffix if only number provided
     if (data.duration && !String(data.duration).includes('m')) {
@@ -152,6 +156,31 @@ export default function NewTestPage() {
                   </div>
                 </div>
 
+                <div className="p-8 bg-slate-50 dark:bg-slate-800/50 rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-slate-700 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Trophy className="w-5 h-5 text-primary" />
+                      <div className="space-y-0.5">
+                        <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">Certification Protocol</p>
+                        <p className="text-[10px] text-slate-500 font-medium">Generate completion certificate for passing students</p>
+                      </div>
+                    </div>
+                    <Switch checked={certEnabled} onCheckedChange={setCertEnabled} />
+                  </div>
+
+                  {certEnabled && (
+                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">Passing Threshold (%)</Label>
+                      <Input 
+                        name="passing_threshold" 
+                        type="number" 
+                        defaultValue={70} 
+                        className="rounded-xl h-12 bg-white dark:bg-slate-900 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-black" 
+                      />
+                    </div>
+                  )}
+                </div>
+
                 <div className="space-y-4 pt-4">
                   <div className="space-y-2">
                     <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1 flex items-center gap-2">
@@ -212,7 +241,7 @@ export default function NewTestPage() {
                 <Sparkles className="w-8 h-8 text-primary mb-6 animate-pulse" />
                 <h3 className="text-xl font-black uppercase tracking-tight mb-4">Pro Tip</h3>
                 <p className="text-sm text-slate-400 font-medium leading-relaxed">
-                  Tests are saved instantly to your Google Sheet. After saving this, you'll be taken to the editor where you can start adding questions.
+                  You can now configure module-specific passing thresholds. Certificates are awarded instantly when students exceed this alignment target.
                 </p>
               </Card>
             </div>
