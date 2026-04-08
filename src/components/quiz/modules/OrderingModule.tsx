@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Question } from '@/types/quiz';
 import { Button } from "@/components/ui/button";
 import { GripVertical, Info, RotateCcw, Check, X } from "lucide-react";
@@ -20,26 +20,48 @@ export const OrderingModule: React.FC<Props> = ({ question, value, onChange, rev
   // Terminal Preview Protocol: Maintain internal state for shuffled order to allow interactivity in preview contexts
   const [internalOrder, setInternalOrder] = useState<string[]>([]);
   const [initialShuffle, setInitialShuffle] = useState<string[]>([]);
+  const hasInitialized = useRef(false);
 
   const parsedOptions = useMemo(() => {
+    // Use options field first, then fallback to order_group (DB schema flexibility)
     return parseRegistryArray(question.options || question.order_group);
   }, [question.options, question.order_group]);
 
-  // Initialization Protocol: Shuffle items exactly once on load or when the set of options changes
-  useEffect(() => {
-    if (parsedOptions.length > 0) {
-      const shuffled = shuffleArray(parsedOptions);
-      setInitialShuffle(shuffled);
-      setInternalOrder(shuffled);
-    } else {
-      setInitialShuffle([]);
-      setInternalOrder([]);
-    }
-  }, [parsedOptions]);
-
-  // In production player, value is hoisted. In admin preview, value is null.
-  const currentOrder = (value as string[]) || internalOrder;
   const correctOrder = useMemo(() => parseRegistryArray(question.correct_answer), [question.correct_answer]);
+
+  // Initialization Protocol: Shuffle items exactly once on load or when the question changes
+  useEffect(() => {
+    // Check if parent already has a saved value for this question
+    const parentValue = (Array.isArray(value) && value.length > 0) ? value : null;
+
+    if (parsedOptions.length > 0) {
+      if (!parentValue) {
+        // First load: Shuffle and notify parent
+        let shuffled = shuffleArray(parsedOptions);
+        
+        // Never show in correct order protocol
+        const correctOrderStr = JSON.stringify(correctOrder);
+        if (shuffled.length > 1 && JSON.stringify(shuffled) === correctOrderStr) {
+          [shuffled[0], shuffled[1]] = [shuffled[1], shuffled[0]];
+        }
+        
+        setInitialShuffle(shuffled);
+        setInternalOrder(shuffled);
+        onChange(shuffled);
+      } else {
+        // Returning to question: Use existing parent value
+        setInternalOrder(parentValue);
+        // If it's the first time we see this question ID, capture the initial state for the Reset button
+        if (!hasInitialized.current) {
+          setInitialShuffle(parentValue);
+        }
+      }
+      hasInitialized.current = true;
+    }
+  }, [question.id, question.options, question.order_group]); // Stability dependency: triggers on actual content change
+
+  // Synchronize local drag state with parent response state
+  const currentOrder = (value as string[]) || internalOrder;
 
   const handleDragOver = (e: React.DragEvent, index: number) => {
     e.preventDefault();
@@ -51,7 +73,7 @@ export const OrderingModule: React.FC<Props> = ({ question, value, onChange, rev
     
     setDraggedItemIndex(index);
     
-    // Update local state for visual feedback if parent isn't controlling state (admin preview mode)
+    // Admin Preview Support: Update local state if parent isn't providing a response registry yet
     if (!value) {
       setInternalOrder(newOrder);
     }
@@ -60,9 +82,11 @@ export const OrderingModule: React.FC<Props> = ({ question, value, onChange, rev
   };
 
   const handleReset = () => {
-    // Reset to the original shuffled state for this attempt
-    setInternalOrder(initialShuffle);
-    onChange(initialShuffle);
+    // Reset to the original shuffled state captured at start of mission attempt
+    if (initialShuffle.length > 0) {
+      setInternalOrder(initialShuffle);
+      onChange(initialShuffle);
+    }
   };
 
   if (currentOrder.length === 0 && parsedOptions.length > 0) {
@@ -81,7 +105,13 @@ export const OrderingModule: React.FC<Props> = ({ question, value, onChange, rev
             <Info className="w-4 h-4" />
             <span>Drag items to reorder them into the correct sequence.</span>
           </div>
-          <Button variant="outline" size="sm" onClick={handleReset} className="rounded-full gap-2 border-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleReset} 
+            disabled={JSON.stringify(currentOrder) === JSON.stringify(initialShuffle)}
+            className="rounded-full gap-2 border-2 hover:bg-slate-50"
+          >
             <RotateCcw className="w-4 h-4" />
             Reset
           </Button>
@@ -107,7 +137,12 @@ export const OrderingModule: React.FC<Props> = ({ question, value, onChange, rev
                 reviewMode && !isCorrectPos && "border-destructive/30 bg-destructive/5"
               )}
             >
-              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-50 font-black text-slate-400 text-sm shrink-0 border border-slate-100">
+              <div className={cn(
+                "flex items-center justify-center w-10 h-10 rounded-full font-black text-sm shrink-0 border",
+                reviewMode 
+                  ? (isCorrectPos ? "bg-emerald-500 text-white border-emerald-400" : "bg-destructive text-white border-destructive/50")
+                  : "bg-slate-50 text-slate-400 border-slate-100"
+              )}>
                 {idx + 1}
               </div>
               <div className="option-text flex-1 font-medium text-slate-700 text-base">{item}</div>
