@@ -86,11 +86,9 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
   const [mapperOpen, setMapperOpen] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   
-  // Image Preview Logic
   const [debouncedUrl, setDebouncedUrl] = useState('');
   const [isValidImage, setIsValidImage] = useState<boolean | null>(null);
 
-  // Dirty Tracking Protocol
   const [initialSnapshot, setInitialSnapshot] = useState<string | null>(null);
   const [showDiscardWarning, setShowDiscardWarning] = useState(false);
 
@@ -118,7 +116,6 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
       setIsValidImage(null);
       setMetadata(meta);
 
-      // Capture initial state for unsaved changes detection
       setInitialSnapshot(JSON.stringify({
         type: qType,
         text: qTextVal,
@@ -136,7 +133,6 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
     }
   }, [open, editingItem]);
 
-  // Debounced URL Protocol
   useEffect(() => {
     setIsValidImage(null);
     const timer = setTimeout(() => {
@@ -169,38 +165,49 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    let finalOptions = optionsList;
-    let finalCorrect = correctAnswers;
-    let finalOrder = matrixRows;
+    
+    // Registry Sanitization: Clean whitespace from inputs
+    const cleanOptions = optionsList.filter(o => o && o.trim() !== "");
+    const cleanCorrect = correctAnswers.filter(a => a && a.trim() !== "");
+    const cleanRows = matrixRows.filter(r => r && r.trim() !== "");
 
-    // Type Specific Save Logic
+    let finalOptions = cleanOptions;
+    let finalCorrect = cleanCorrect;
+    let finalOrder = cleanRows;
+
+    // Ordering Protocol Calibration: Sequence is the correct answer
     if (selectedType === 'ordering') {
-      // For ordering, the correct answer IS the list the admin entered
-      finalCorrect = optionsList;
-      finalOrder = optionsList;
+      finalOptions = cleanOptions;
+      finalCorrect = cleanOptions;
+      finalOrder = cleanOptions;
     } else if (selectedType === 'matching') {
-      const pairs = matchingPairs.map(p => `${p.left.trim()}|${p.right.trim()}`);
+      const pairs = matchingPairs
+        .filter(p => p.left.trim() !== "" && p.right.trim() !== "")
+        .map(p => `${p.left.trim()}|${p.right.trim()}`);
       finalOrder = pairs;
       finalCorrect = pairs;
+      finalOptions = []; 
     }
     
-    onSave({
+    // Registry Data Commitment
+    const payload = {
       question_text: questionText,
       id: editingItem?.id || `q_${Date.now()}`,
-      options: JSON.stringify(finalOptions),
-      correct_answer: JSON.stringify(finalCorrect),
-      order_group: JSON.stringify(finalOrder),
+      // Conditional Serialization: Prevent committing empty JSON arrays
+      options: finalOptions.length > 0 ? JSON.stringify(finalOptions) : "",
+      correct_answer: finalCorrect.length > 0 ? JSON.stringify(finalCorrect) : "",
+      order_group: finalOrder.length > 0 ? JSON.stringify(finalOrder) : "",
       image_url: imageUrl,
       metadata: metadata,
       question_type: selectedType
-    }, isRequired);
+    };
+
+    onSave(payload, isRequired);
     
-    // Bypass warning on successful submit
     setInitialSnapshot(null);
     onOpenChange(false);
   };
 
-  // Virtual Question for Preview Engine
   const previewQuestion: Question = {
     id: editingItem?.id || 'preview',
     question_text: questionText,
@@ -228,7 +235,6 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
           "h-[90vh] rounded-[3rem] overflow-hidden p-0 border-none shadow-2xl bg-white flex flex-row transition-all duration-500",
           showPreview ? "sm:max-w-[95vw]" : "sm:max-w-[85vw]"
         )}>
-          {/* Navigation Sidebar */}
           <div className="w-[280px] bg-slate-50 border-r p-4 overflow-y-auto hidden lg:block">
             <p className="text-[10px] font-black uppercase text-slate-400 mb-4 px-4 tracking-widest">Input Protocol</p>
             {QUESTION_TYPES.map((type) => (
@@ -248,7 +254,6 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
           </div>
 
           <form onSubmit={handleSubmit} className="flex-1 flex flex-col bg-white overflow-hidden">
-            {/* Header */}
             <div className="p-8 border-b flex items-center justify-between shrink-0">
               <div className="flex items-center gap-4">
                 <div className="bg-primary/10 p-2 rounded-xl">
@@ -273,9 +278,7 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
               </div>
             </div>
 
-            {/* Content Body (Split view when preview is on) */}
             <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-              {/* Form Side */}
               <div className={cn(
                 "flex-1 overflow-y-auto p-10 space-y-10 custom-scrollbar transition-all duration-500",
                 showPreview ? "lg:border-r border-slate-100" : ""
@@ -353,7 +356,6 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
                 </div>
               </div>
 
-              {/* Preview Side */}
               {showPreview && (
                 <div className="hidden lg:flex flex-1 flex-col bg-slate-50/50 overflow-hidden animate-in fade-in slide-in-from-right-4 duration-500">
                   <div className="p-6 border-b flex items-center justify-between bg-white/50 backdrop-blur-sm">
@@ -381,7 +383,6 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
               )}
             </div>
 
-            {/* Footer Actions */}
             <div className="p-8 border-t flex items-center justify-between bg-white/80 shrink-0">
               <div className="flex items-center gap-4 px-6 py-3.5 bg-slate-50 rounded-2xl border border-slate-100 shadow-inner">
                 <Checkbox 
