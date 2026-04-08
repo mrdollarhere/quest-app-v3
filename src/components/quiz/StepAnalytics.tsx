@@ -27,8 +27,8 @@ export function StepAnalytics({ questions, responses, textSize }: StepAnalyticsP
           <History className="w-7 h-7 text-primary" />
         </div>
         <div>
-          <h3 className="text-4xl font-black tracking-tight text-slate-900 uppercase leading-none">Step Analytics</h3>
-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.4em] mt-3">Registry Calibration Audit</p>
+          <h3 className="text-4xl font-black tracking-tight text-slate-900 uppercase leading-none">Question Review</h3>
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.4em] mt-3">See how you did on each question</p>
         </div>
       </div>
 
@@ -63,7 +63,7 @@ export function StepAnalytics({ questions, responses, textSize }: StepAnalyticsP
                         "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest",
                         isCorrect ? "bg-emerald-500 text-white" : "bg-rose-500 text-white"
                       )}>
-                        {isCorrect ? "Correct Alignment" : "Alignment Gap"}
+                        {isCorrect ? "Correct" : "Incorrect"}
                       </div>
                     </div>
                     <h4 className="font-semibold text-slate-900 text-xl tracking-tight line-clamp-1 group-hover:text-primary transition-colors">

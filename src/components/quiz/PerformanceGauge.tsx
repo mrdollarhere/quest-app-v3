@@ -99,7 +99,7 @@ export function PerformanceGauge({ percentage, score, totalQuestions, isPass: is
           )}>
             {displayValue}%
           </span>
-          <span className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400">Alignment</span>
+          <span className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400">Score</span>
         </div>
       </div>
 
@@ -115,7 +115,7 @@ export function PerformanceGauge({ percentage, score, totalQuestions, isPass: is
           <p className="text-4xl font-black text-rose-600">{totalQuestions - score}</p>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 mt-2 border border-rose-100">
             <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-rose-600/80">Errors</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-rose-600/80">Incorrect</span>
           </div>
         </div>
       </div>

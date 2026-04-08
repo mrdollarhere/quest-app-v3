@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -211,7 +210,7 @@ export function QuizResults({
               )}>
                 <div className="flex items-center gap-3 mb-4">
                   <VerdictIcon className={cn("w-5 h-5", verdict.color)} />
-                  <h4 className={cn("text-[10px] font-black uppercase tracking-[0.3em]", verdict.color)}>System Verdict</h4>
+                  <h4 className={cn("text-[10px] font-black uppercase tracking-[0.3em]", verdict.color)}>Your Result</h4>
                 </div>
                 <p className="text-slate-900 dark:text-slate-100 font-black text-2xl leading-tight tracking-tight">
                   "{renderVerdictMessage(verdict.message, verdict.highlight, verdict.color)}"
@@ -249,11 +248,11 @@ export function QuizResults({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <Button onClick={onRestart} variant="outline" className="h-18 rounded-full font-black border-2 border-slate-200 dark:border-slate-700 bg-transparent text-slate-600 dark:text-slate-400 text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all py-8">
                   <RotateCcw className="w-5 h-5 mr-3" />
-                  Restart Module
+                  Try Again
                 </Button>
                 <Link href="/tests" className="w-full">
                   <Button className="w-full h-18 rounded-full font-black shadow-2xl bg-primary hover:scale-[1.02] transition-all text-xs uppercase tracking-widest text-white border-none py-8">
-                    Enter Library
+                    Back to Tests
                     <ArrowRight className="w-5 h-5 ml-3" />
                   </Button>
                 </Link>
@@ -262,9 +261,9 @@ export function QuizResults({
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
               <StatMetric icon={History} label="Attempts" value="01" />
-              <StatMetric icon={Target} label="Precision" value={percentage >= 80 ? "High" : isPass ? "Med" : "Low"} />
-              <StatMetric icon={Clock} label="Session" value={formatDuration(durationMs)} />
-              <StatMetric icon={Activity} label="Telemetry" value="Live" />
+              <StatMetric icon={Target} label="Accuracy" value={percentage >= 80 ? "High" : isPass ? "Med" : "Low"} />
+              <StatMetric icon={Clock} label="Time Taken" value={formatDuration(durationMs)} />
+              <StatMetric icon={Activity} label="Status" value="Live" />
             </div>
           </div>
         </div>
