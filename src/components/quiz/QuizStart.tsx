@@ -298,7 +298,7 @@ export function QuizStart({
                     currentModeInfo?.btnClass
                   )}
                 >
-                  Initialize Protocol
+                  Start Test
                   <Play className="w-6 h-6 ml-3 fill-current" />
                 </Button>
                 
