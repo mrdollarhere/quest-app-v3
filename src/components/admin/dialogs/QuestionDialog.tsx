@@ -166,7 +166,6 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    // Registry Sanitization: Clean whitespace from inputs
     const cleanOptions = optionsList.filter(o => o && o.trim() !== "");
     const cleanCorrect = correctAnswers.filter(a => a && a.trim() !== "");
     const cleanRows = matrixRows.filter(r => r && r.trim() !== "");
@@ -175,7 +174,7 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
     let finalCorrect = cleanCorrect;
     let finalOrder = cleanRows;
 
-    // Ordering Protocol Calibration: Sequence is the correct answer
+    // Ordering Protocol Calibration: The Interaction Options sequence IS the correct answer.
     if (selectedType === 'ordering') {
       finalOptions = cleanOptions;
       finalCorrect = cleanOptions;
@@ -189,11 +188,9 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
       finalOptions = []; 
     }
     
-    // Registry Data Commitment
     const payload = {
       question_text: questionText,
       id: editingItem?.id || `q_${Date.now()}`,
-      // Conditional Serialization: Prevent committing empty JSON arrays
       options: finalOptions.length > 0 ? JSON.stringify(finalOptions) : "",
       correct_answer: finalCorrect.length > 0 ? JSON.stringify(finalCorrect) : "",
       order_group: finalOrder.length > 0 ? JSON.stringify(finalOrder) : "",
@@ -363,7 +360,7 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
                       <Sparkles className="w-4 h-4 text-primary animate-pulse" />
                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Terminal Preview</span>
                     </div>
-                    <div className="px-3 py-1 bg-white rounded-full border shadow-sm text-[8px] font-black text-primary uppercase">Read Only Mode</div>
+                    <div className="px-3 py-1 bg-white rounded-full border shadow-sm text-[8px] font-black text-primary uppercase">Simulation Protocol</div>
                   </div>
                   <div className="flex-1 overflow-y-auto p-12 custom-scrollbar">
                     <div className="max-w-2xl mx-auto bg-white rounded-[2rem] shadow-2xl p-10 border border-slate-100">
@@ -376,7 +373,7 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
                     </div>
                     
                     <div className="mt-8 text-center">
-                      <p className="text-[9px] font-bold text-slate-300 uppercase tracking-[0.3em]">Simulation Protocol v1.0</p>
+                      <p className="text-[9px] font-bold text-slate-300 uppercase tracking-[0.3em]">Simulation Mode — Data Persistence Restricted</p>
                     </div>
                   </div>
                 </div>

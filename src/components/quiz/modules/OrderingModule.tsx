@@ -16,13 +16,29 @@ interface Props {
 
 export const OrderingModule: React.FC<Props> = ({ question, value, onChange, reviewMode }) => {
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
+  
+  // Terminal Preview Protocol: Maintain internal state for shuffled order to allow interactivity in preview contexts
+  const [internalOrder, setInternalOrder] = useState<string[]>([]);
+  const [initialShuffle, setInitialShuffle] = useState<string[]>([]);
 
-  const initialShuffledOrder = useMemo(() => {
-    return shuffleArray(parseRegistryArray(question.options || question.order_group));
-  }, [question.id, question.options, question.order_group]);
+  const parsedOptions = useMemo(() => {
+    return parseRegistryArray(question.options || question.order_group);
+  }, [question.options, question.order_group]);
 
-  // Protocol: Maintain local state for current order to ensure smooth dragging
-  const currentOrder = (value as string[]) || initialShuffledOrder;
+  // Initialization Protocol: Shuffle items exactly once on load or when the set of options changes
+  useEffect(() => {
+    if (parsedOptions.length > 0) {
+      const shuffled = shuffleArray(parsedOptions);
+      setInitialShuffle(shuffled);
+      setInternalOrder(shuffled);
+    } else {
+      setInitialShuffle([]);
+      setInternalOrder([]);
+    }
+  }, [parsedOptions]);
+
+  // In production player, value is hoisted. In admin preview, value is null.
+  const currentOrder = (value as string[]) || internalOrder;
   const correctOrder = useMemo(() => parseRegistryArray(question.correct_answer), [question.correct_answer]);
 
   const handleDragOver = (e: React.DragEvent, index: number) => {
@@ -34,18 +50,27 @@ export const OrderingModule: React.FC<Props> = ({ question, value, onChange, rev
     newOrder.splice(index, 0, itemToMove);
     
     setDraggedItemIndex(index);
+    
+    // Update local state for visual feedback if parent isn't controlling state (admin preview mode)
+    if (!value) {
+      setInternalOrder(newOrder);
+    }
+    
     onChange(newOrder);
   };
 
-  // Sync protocol: If options change from parent (preview), reset the order
-  useEffect(() => {
-    if (!value && initialShuffledOrder.length > 0) {
-      onChange(initialShuffledOrder);
-    }
-  }, [initialShuffledOrder, value, onChange]);
+  const handleReset = () => {
+    // Reset to the original shuffled state for this attempt
+    setInternalOrder(initialShuffle);
+    onChange(initialShuffle);
+  };
 
-  if (currentOrder.length === 0 && parseRegistryArray(question.options || question.order_group).length > 0) {
-    return <div className="h-40 flex items-center justify-center text-slate-300 font-bold animate-pulse">Initializing Sequence...</div>;
+  if (currentOrder.length === 0 && parsedOptions.length > 0) {
+    return (
+      <div className="h-40 flex items-center justify-center text-slate-300 font-bold animate-pulse">
+        Initializing Sequence...
+      </div>
+    );
   }
 
   return (
@@ -56,7 +81,7 @@ export const OrderingModule: React.FC<Props> = ({ question, value, onChange, rev
             <Info className="w-4 h-4" />
             <span>Drag items to reorder them into the correct sequence.</span>
           </div>
-          <Button variant="outline" size="sm" onClick={() => onChange(initialShuffledOrder)} className="rounded-full gap-2">
+          <Button variant="outline" size="sm" onClick={handleReset} className="rounded-full gap-2 border-2">
             <RotateCcw className="w-4 h-4" />
             Reset
           </Button>
@@ -78,7 +103,7 @@ export const OrderingModule: React.FC<Props> = ({ question, value, onChange, rev
                 "flex items-center gap-4 p-5 rounded-2xl border-2 transition-all duration-200 group select-none",
                 isDragging ? "opacity-20 bg-slate-100 border-primary border-dashed scale-[0.98]" : "bg-white border-slate-100 shadow-sm",
                 !reviewMode && !isDragging && "hover:border-primary/40 hover:shadow-lg cursor-grab active:cursor-grabbing hover:-translate-y-0.5",
-                reviewMode && isCorrectPos && "border-green-500 bg-green-50/50",
+                reviewMode && isCorrectPos && "border-emerald-500 bg-emerald-50/50",
                 reviewMode && !isCorrectPos && "border-destructive/30 bg-destructive/5"
               )}
             >
