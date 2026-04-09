@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -15,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Save, Settings2, Trophy } from "lucide-react";
+import { Save, Settings2, Trophy, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TestDialogProps {
@@ -23,9 +22,10 @@ interface TestDialogProps {
   onOpenChange: (open: boolean) => void;
   editingItem: any;
   onSave: (data: any) => void;
+  loading?: boolean;
 }
 
-export function TestDialog({ open, onOpenChange, editingItem, onSave }: TestDialogProps) {
+export function TestDialog({ open, onOpenChange, editingItem, onSave, loading }: TestDialogProps) {
   const [certEnabled, setCertEnabled] = useState(false);
 
   useEffect(() => {
@@ -38,19 +38,23 @@ export function TestDialog({ open, onOpenChange, editingItem, onSave }: TestDial
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (loading) return;
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData.entries());
     
-    // Explicitly add controlled values
     data.certificate_enabled = certEnabled ? "TRUE" : "FALSE";
     
     onSave(data);
-    onOpenChange(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px] rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl bg-white dark:bg-slate-900">
+    <Dialog open={open} onOpenChange={(val) => !loading && onOpenChange(val)}>
+      <DialogContent className={cn(
+        "sm:max-w-[550px] rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl bg-white dark:bg-slate-900",
+        loading && "cursor-wait"
+      )}>
+        {loading && <div className="absolute inset-0 z-[100] bg-white/10 backdrop-blur-[0.5px] cursor-wait" />}
+        
         <div className="bg-primary p-10 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 p-8 opacity-10">
             <Settings2 className="w-24 h-24" />
@@ -70,6 +74,7 @@ export function TestDialog({ open, onOpenChange, editingItem, onSave }: TestDial
               <Input 
                 name="id" 
                 defaultValue={editingItem?.id} 
+                disabled={loading || !!editingItem}
                 placeholder="auto-id" 
                 readOnly={!!editingItem} 
                 className={cn(
@@ -80,28 +85,59 @@ export function TestDialog({ open, onOpenChange, editingItem, onSave }: TestDial
             </div>
             <div className="space-y-2">
               <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">Category</Label>
-              <Input name="category" defaultValue={editingItem?.category} placeholder="e.g. Science" className="rounded-xl h-12 bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold" />
+              <Input 
+                name="category" 
+                defaultValue={editingItem?.category} 
+                disabled={loading}
+                placeholder="e.g. Science" 
+                className="rounded-xl h-12 bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold" 
+              />
             </div>
           </div>
           
           <div className="space-y-2">
             <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">Title</Label>
-            <Input name="title" defaultValue={editingItem?.title} required placeholder="Name of the test" className="rounded-xl h-14 bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-black text-lg" />
+            <Input 
+              name="title" 
+              defaultValue={editingItem?.title} 
+              disabled={loading}
+              required 
+              placeholder="Name of the test" 
+              className="rounded-xl h-14 bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-black text-lg" 
+            />
           </div>
 
           <div className="space-y-2">
             <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">Description</Label>
-            <Textarea name="description" defaultValue={editingItem?.description} placeholder="What is this test about?" className="rounded-2xl min-h-[100px] bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700" />
+            <Textarea 
+              name="description" 
+              defaultValue={editingItem?.description} 
+              disabled={loading}
+              placeholder="What is this test about?" 
+              className="rounded-2xl min-h-[100px] bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700" 
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">Difficulty</Label>
-              <Input name="difficulty" defaultValue={editingItem?.difficulty} placeholder="Easy / Hard" className="rounded-xl h-12 bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold" />
+              <Input 
+                name="difficulty" 
+                defaultValue={editingItem?.difficulty} 
+                disabled={loading}
+                placeholder="Easy / Hard" 
+                className="rounded-xl h-12 bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold" 
+              />
             </div>
             <div className="space-y-2">
               <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">Time Limit</Label>
-              <Input name="duration" defaultValue={editingItem?.duration} placeholder="e.g. 15m" className="rounded-xl h-12 bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold" />
+              <Input 
+                name="duration" 
+                defaultValue={editingItem?.duration} 
+                disabled={loading}
+                placeholder="e.g. 15m" 
+                className="rounded-xl h-12 bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold" 
+              />
             </div>
           </div>
 
@@ -114,7 +150,7 @@ export function TestDialog({ open, onOpenChange, editingItem, onSave }: TestDial
                   <p className="text-[10px] text-slate-500 font-medium">Award certificate on completion</p>
                 </div>
               </div>
-              <Switch checked={certEnabled} onCheckedChange={setCertEnabled} />
+              <Switch checked={certEnabled} onCheckedChange={setCertEnabled} disabled={loading} />
             </div>
 
             {certEnabled && (
@@ -124,6 +160,7 @@ export function TestDialog({ open, onOpenChange, editingItem, onSave }: TestDial
                   name="passing_threshold" 
                   type="number" 
                   defaultValue={editingItem?.passing_threshold || 70} 
+                  disabled={loading}
                   className="rounded-xl h-12 bg-white dark:bg-slate-900 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-black" 
                 />
               </div>
@@ -131,8 +168,18 @@ export function TestDialog({ open, onOpenChange, editingItem, onSave }: TestDial
           </div>
 
           <DialogFooter className="pt-6">
-            <Button type="submit" className="rounded-full w-full h-16 font-black text-xl shadow-2xl transition-all hover:scale-[1.02] bg-primary">
-              <Save className="w-5 h-5 mr-3" /> Save Module
+            <Button type="submit" disabled={loading} className="rounded-full w-full h-16 font-black text-xl shadow-2xl transition-all hover:scale-[1.02] bg-primary">
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-5 h-5 mr-3" />
+                  Save Module
+                </>
+              )}
             </Button>
           </DialogFooter>
         </form>

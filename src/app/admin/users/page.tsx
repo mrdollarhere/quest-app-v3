@@ -48,6 +48,7 @@ export default function AdminUsersPage() {
         body: JSON.stringify({ action, ...payload })
       });
       toast({ title: "Success", description: "Identity record updated." });
+      setDialogs({ ...dialogs, user: false });
       setTimeout(fetchData, 1500);
     } catch (err) {
       toast({ variant: "destructive", title: "Error" });
@@ -85,6 +86,7 @@ export default function AdminUsersPage() {
         onSaveUsers={(usersData) => handlePost('saveUsers', { data: usersData })}
         onSaveQuestion={() => {}}
         onSaveBulk={() => {}}
+        loading={loading}
       />
     </div>
   );

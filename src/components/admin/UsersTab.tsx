@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useMemo } from 'react';
@@ -166,6 +165,7 @@ export function UsersTab({ users, responses, loading, onEdit, onDelete, onAdd, o
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <Input 
                 placeholder="Search by name or email..." 
+                disabled={loading}
                 className="h-12 pl-12 rounded-full bg-white dark:bg-slate-900 border-none ring-1 ring-slate-100 dark:ring-slate-800 focus:ring-primary/40 text-sm font-bold shadow-sm"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -175,12 +175,13 @@ export function UsersTab({ users, responses, loading, onEdit, onDelete, onAdd, o
               variant="outline" 
               size="icon" 
               onClick={onRefresh} 
+              disabled={loading}
               className="rounded-full h-12 w-12 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm"
             >
               <RefreshCcw className={cn("w-4 h-4 text-slate-400", loading && "animate-spin text-primary")} />
             </Button>
           </div>
-          <Button onClick={onAdd} className="rounded-full gap-2 font-black h-12 px-8 shadow-xl bg-primary">
+          <Button onClick={onAdd} disabled={loading} className="rounded-full gap-2 font-black h-12 px-8 shadow-xl bg-primary">
             <Plus className="w-4 h-4" /> {t('addStudent')}
           </Button>
         </div>
@@ -193,25 +194,25 @@ export function UsersTab({ users, responses, loading, onEdit, onDelete, onAdd, o
               <TableRow className="bg-slate-50/50 dark:bg-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 border-none">
                 <TableHead 
                   className="px-8 py-5 font-black uppercase text-[10px] tracking-widest text-slate-400 cursor-pointer hover:text-primary transition-colors"
-                  onClick={() => handleSort('name')}
+                  onClick={() => !loading && handleSort('name')}
                 >
                   <div className="flex items-center">{t('studentInfo')} <SortIcon column="name" /></div>
                 </TableHead>
                 <TableHead 
                   className="font-black uppercase text-[10px] tracking-widest text-slate-400 cursor-pointer hover:text-primary transition-colors"
-                  onClick={() => handleSort('role')}
+                  onClick={() => !loading && handleSort('role')}
                 >
                   <div className="flex items-center">{t('role')} <SortIcon column="role" /></div>
                 </TableHead>
                 <TableHead 
                   className="font-black uppercase text-[10px] tracking-widest text-slate-400 text-center cursor-pointer hover:text-primary transition-colors"
-                  onClick={() => handleSort('count')}
+                  onClick={() => !loading && handleSort('count')}
                 >
                   <div className="flex items-center justify-center">{t('testsDone')} <SortIcon column="count" /></div>
                 </TableHead>
                 <TableHead 
                   className="font-black uppercase text-[10px] tracking-widest text-slate-400 text-center cursor-pointer hover:text-primary transition-colors"
-                  onClick={() => handleSort('avg')}
+                  onClick={() => !loading && handleSort('avg')}
                 >
                   <div className="flex items-center justify-center">{t('avgScore')} <SortIcon column="avg" /></div>
                 </TableHead>
@@ -268,14 +269,14 @@ export function UsersTab({ users, responses, loading, onEdit, onDelete, onAdd, o
                     <TableCell className="px-8 text-right">
                       <div className="flex justify-end gap-2 transition-all duration-300">
                         <Link href={`/admin/users/detail?email=${encodeURIComponent(u.email)}`}>
-                          <Button variant="ghost" size="icon" title="View Profile" className="rounded-full h-10 w-10 hover:bg-primary/5 text-primary">
+                          <Button variant="ghost" size="icon" disabled={loading} title="View Profile" className="rounded-full h-10 w-10 hover:bg-primary/5 text-primary">
                             <Eye className="w-4 h-4" />
                           </Button>
                         </Link>
-                        <Button variant="ghost" size="icon" title={t('edit')} onClick={() => onEdit(u)} className="rounded-full h-10 w-10 hover:bg-slate-100 dark:hover:bg-slate-800">
+                        <Button variant="ghost" size="icon" disabled={loading} title={t('edit')} onClick={() => onEdit(u)} className="rounded-full h-10 w-10 hover:bg-slate-100 dark:hover:bg-slate-800">
                           <Edit className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                         </Button>
-                        <Button variant="ghost" size="icon" title={t('delete')} onClick={() => setDeleteConfirmEmail(u.email)} className="rounded-full h-10 w-10 text-destructive hover:bg-destructive/5">
+                        <Button variant="ghost" size="icon" disabled={loading} title={t('delete')} onClick={() => setDeleteConfirmEmail(u.email)} className="rounded-full h-10 w-10 text-destructive hover:bg-destructive/5">
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
@@ -306,7 +307,7 @@ export function UsersTab({ users, responses, loading, onEdit, onDelete, onAdd, o
         </CardContent>
       </Card>
 
-      <AlertDialog open={!!deleteConfirmEmail} onOpenChange={(open) => !open && setDeleteConfirmEmail(null)}>
+      <AlertDialog open={!!deleteConfirmEmail} onOpenChange={(open) => !open && !loading && setDeleteConfirmEmail(null)}>
         <AlertDialogContent className="rounded-[3rem] p-10 border-none shadow-2xl dark:bg-slate-900">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-3xl font-black uppercase tracking-tight text-slate-900 dark:text-white">
@@ -317,13 +318,15 @@ export function UsersTab({ users, responses, loading, onEdit, onDelete, onAdd, o
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-8 flex flex-col sm:flex-row gap-4">
-            <AlertDialogCancel className="h-14 rounded-full border-2 font-black uppercase text-xs tracking-widest flex-1 dark:border-slate-700 dark:text-slate-400">
+            <AlertDialogCancel disabled={loading} className="h-14 rounded-full border-2 font-black uppercase text-xs tracking-widest flex-1 dark:border-slate-700 dark:text-slate-400">
               {t('cancel')}
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDelete}
+              disabled={loading}
               className="h-14 rounded-full bg-destructive hover:bg-destructive/90 text-white font-black uppercase text-xs tracking-widest flex-1 shadow-xl shadow-destructive/20 border-none"
             >
+              {loading ? <RefreshCcw className="w-4 h-4 mr-2 animate-spin" /> : null}
               {t('delete')}
             </AlertDialogAction>
           </AlertDialogFooter>

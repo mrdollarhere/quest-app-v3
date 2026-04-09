@@ -56,6 +56,7 @@ export default function AdminTestsPage() {
         body: JSON.stringify({ action, ...payload })
       });
       toast({ title: "Success", description: "Test list updated." });
+      setDialogs({ ...dialogs, test: false });
       setTimeout(fetchTests, 1500);
     } catch (err) {
       toast({ variant: "destructive", title: "Error" });
@@ -108,6 +109,7 @@ export default function AdminTestsPage() {
         onSaveUser={() => {}}
         onSaveQuestion={() => {}}
         onSaveBulk={() => {}}
+        loading={loading}
       />
 
       <QuestionAnalyticsDialog 

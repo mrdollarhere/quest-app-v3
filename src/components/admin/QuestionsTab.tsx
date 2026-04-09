@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useMemo } from 'react';
@@ -11,7 +10,8 @@ import {
   Search,
   Filter,
   XCircle,
-  Database
+  Database,
+  RefreshCcw
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,7 @@ interface QuestionsTabProps {
   onDelete: (id: string) => void;
   onAdd: () => void;
   onBulkEdit: () => void;
+  loading?: boolean;
 }
 
 const QUESTION_TYPES = [
@@ -80,7 +81,8 @@ export function QuestionsTab({
   onEdit, 
   onDelete, 
   onAdd, 
-  onBulkEdit 
+  onBulkEdit,
+  loading
 }: QuestionsTabProps) {
   const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState("");
@@ -89,7 +91,6 @@ export function QuestionsTab({
 
   const filteredQuestions = useMemo(() => {
     return questions.filter(q => {
-      // Protocol: Explicit string casting to prevent crashes on numeric sheet data
       const qText = String(q.question_text || "");
       const matchesSearch = qText.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesType = typeFilter === "all" || q.question_type === typeFilter;
@@ -123,7 +124,7 @@ export function QuestionsTab({
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-             <Select value={selectedTestId} onValueChange={setSelectedTestId}>
+             <Select value={selectedTestId} onValueChange={setSelectedTestId} disabled={loading}>
               <SelectTrigger className="w-[240px] h-12 rounded-xl font-bold border-none ring-1 ring-slate-200 bg-white">
                 <SelectValue placeholder="Select test" />
               </SelectTrigger>
@@ -133,10 +134,10 @@ export function QuestionsTab({
                 ))}
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={onBulkEdit} className="rounded-xl h-12 font-bold border-none ring-1 ring-slate-200 bg-white hover:bg-slate-50">
+            <Button variant="outline" onClick={onBulkEdit} disabled={loading} className="rounded-xl h-12 font-bold border-none ring-1 ring-slate-200 bg-white hover:bg-slate-50">
               <FileText className="w-4 h-4 mr-2" /> JSON Editor
             </Button>
-            <Button onClick={onAdd} className="rounded-xl h-12 px-6 font-black shadow-xl shadow-primary/20 bg-primary hover:scale-[1.02] transition-transform">
+            <Button onClick={onAdd} disabled={loading} className="rounded-xl h-12 px-6 font-black shadow-xl shadow-primary/20 bg-primary hover:scale-[1.02] transition-transform">
               <Plus className="w-4 h-4 mr-2" /> Add Question
             </Button>
           </div>
@@ -152,10 +153,11 @@ export function QuestionsTab({
                   placeholder="Search questions..." 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  disabled={loading}
                   className="pl-11 h-11 rounded-xl bg-slate-50 border-none ring-1 ring-slate-100 focus:ring-primary/40 font-medium"
                 />
               </div>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <Select value={typeFilter} onValueChange={setTypeFilter} disabled={loading}>
                 <SelectTrigger className="w-full md:w-[200px] h-11 rounded-xl bg-slate-50 border-none ring-1 ring-slate-100 font-bold text-xs uppercase tracking-widest text-slate-500">
                   <div className="flex items-center gap-2">
                     <Filter className="w-3.5 h-3.5" />
@@ -169,7 +171,7 @@ export function QuestionsTab({
                 </SelectContent>
               </Select>
               {(searchTerm || typeFilter !== "all") && (
-                <Button variant="ghost" onClick={clearFilters} className="h-11 rounded-xl px-4 font-bold text-xs uppercase tracking-widest text-slate-400 hover:text-primary">
+                <Button variant="ghost" onClick={clearFilters} disabled={loading} className="h-11 rounded-xl px-4 font-bold text-xs uppercase tracking-widest text-slate-400 hover:text-primary">
                   <XCircle className="w-4 h-4 mr-2" /> Clear
                 </Button>
               )}
@@ -207,10 +209,10 @@ export function QuestionsTab({
                   </TableCell>
                   <TableCell className="px-10 text-right">
                     <div className="flex justify-end gap-2 transition-all">
-                      <Button variant="ghost" size="icon" onClick={() => onEdit(q)} className="h-9 w-9 rounded-xl hover:bg-primary/5 hover:text-primary">
+                      <Button variant="ghost" size="icon" disabled={loading} onClick={() => onEdit(q)} className="h-9 w-9 rounded-xl hover:bg-primary/5 hover:text-primary">
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmId(q.id)} className="h-9 w-9 rounded-xl text-destructive hover:bg-destructive/5">
+                      <Button variant="ghost" size="icon" disabled={loading} onClick={() => setDeleteConfirmId(q.id)} className="h-9 w-9 rounded-xl text-destructive hover:bg-destructive/5">
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
@@ -227,7 +229,7 @@ export function QuestionsTab({
                         <p className="font-black uppercase tracking-[0.3em] text-xs">No Intelligence Matches</p>
                         <p className="text-[10px] font-bold">Try adjusting your search query or type filter</p>
                       </div>
-                      <Button variant="link" onClick={clearFilters} className="font-black text-primary uppercase tracking-widest text-[9px]">Reset Registry View</Button>
+                      <Button variant="link" onClick={clearFilters} disabled={loading} className="font-black text-primary uppercase tracking-widest text-[9px]">Reset Registry View</Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -237,7 +239,7 @@ export function QuestionsTab({
         </CardContent>
       </Card>
 
-      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && !loading && setDeleteConfirmId(null)}>
         <AlertDialogContent className="rounded-[3rem] p-10 border-none shadow-2xl dark:bg-slate-900">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-3xl font-black uppercase tracking-tight text-slate-900 dark:text-white">
@@ -248,13 +250,15 @@ export function QuestionsTab({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-8 flex flex-col sm:flex-row gap-4">
-            <AlertDialogCancel className="h-14 rounded-full border-2 font-black uppercase text-xs tracking-widest flex-1 dark:border-slate-700 dark:text-slate-400">
+            <AlertDialogCancel disabled={loading} className="h-14 rounded-full border-2 font-black uppercase text-xs tracking-widest flex-1 dark:border-slate-700 dark:text-slate-400">
               {t('cancel')}
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDelete}
+              disabled={loading}
               className="h-14 rounded-full bg-destructive hover:bg-destructive/90 text-white font-black uppercase text-xs tracking-widest flex-1 shadow-xl shadow-destructive/20 border-none"
             >
+              {loading ? <RefreshCcw className="w-4 h-4 mr-2 animate-spin" /> : null}
               {t('delete')}
             </AlertDialogAction>
           </AlertDialogFooter>

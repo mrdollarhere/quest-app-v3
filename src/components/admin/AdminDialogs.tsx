@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from 'react';
@@ -24,6 +23,7 @@ interface AdminDialogsProps {
   onSaveUsers?: (data: any[]) => void;
   onSaveQuestion: (data: any, isRequired: boolean) => void;
   onSaveBulk: (json: string) => void;
+  loading?: boolean;
 }
 
 export function AdminDialogs({ 
@@ -36,7 +36,8 @@ export function AdminDialogs({
   onSaveUser, 
   onSaveUsers,
   onSaveQuestion, 
-  onSaveBulk 
+  onSaveBulk,
+  loading
 }: AdminDialogsProps) {
   return (
     <>
@@ -45,6 +46,7 @@ export function AdminDialogs({
         onOpenChange={(val) => setDialogs({...dialogs, test: val})}
         editingItem={editingItem}
         onSave={onSaveTest}
+        loading={loading}
       />
 
       <QuestionDialog 
@@ -53,6 +55,7 @@ export function AdminDialogs({
         editingItem={editingItem}
         selectedTestId={selectedTestId}
         onSave={onSaveQuestion}
+        loading={loading}
       />
 
       <UserDialog 
@@ -61,6 +64,7 @@ export function AdminDialogs({
         editingItem={editingItem}
         onSave={onSaveUser}
         onSaveBatch={onSaveUsers}
+        loading={loading}
       />
 
       <BulkDialog 

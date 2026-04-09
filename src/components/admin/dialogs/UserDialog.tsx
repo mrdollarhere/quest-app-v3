@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users as UsersIcon, UserPlus, Mail, Lock, Eye, EyeOff, User } from "lucide-react";
+import { Users as UsersIcon, UserPlus, Mail, Lock, Eye, EyeOff, User, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface UserDialogProps {
@@ -22,14 +22,14 @@ interface UserDialogProps {
   editingItem: any;
   onSave: (data: any) => void;
   onSaveBatch?: (data: any[]) => void;
+  loading?: boolean;
 }
 
-export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatch }: UserDialogProps) {
+export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatch, loading }: UserDialogProps) {
   const [activeTab, setActiveTab] = useState<"single" | "batch">("single");
   const [showPassword, setShowPassword] = useState(false);
   const [showBatchPassword, setShowBatchPassword] = useState(false);
   
-  // Controlled form state for single entry
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -37,7 +37,6 @@ export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatc
     role: 'user'
   });
 
-  // Reset/Populate state when dialog opens or editingItem changes
   useEffect(() => {
     if (open) {
       if (editingItem) {
@@ -58,34 +57,30 @@ export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatc
     }
   }, [open, editingItem]);
 
-  // Determine if the save button should be disabled (Change-Aware Guard)
-  const isSaveDisabled = editingItem ? (
-    // In edit mode: disable if NO fields have changed from the registry record
+  const isSaveDisabled = loading || (editingItem ? (
     formData.name === (editingItem.name || '') &&
     formData.email === (editingItem.email || '') &&
     formData.password === (editingItem.password || '') &&
     formData.role === (editingItem.role || 'user')
   ) : (
-    // In add mode: disable if required identity fields are empty
     !formData.name.trim() || !formData.email.trim()
-  );
+  ));
 
   const handleSingleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (loading) return;
     
     const payload: any = { ...formData };
-    
-    // Protocol Transparency: We send the password if it's visible/edited.
     if (editingItem && !formData.password.trim()) {
       delete payload.password;
     }
     
     onSave(payload);
-    onOpenChange(false);
   };
 
   const handleBatchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (loading) return;
     const batchFormData = new FormData(e.currentTarget);
     const data = Object.fromEntries(batchFormData.entries());
     
@@ -111,12 +106,16 @@ export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatc
     if (onSaveBatch) {
       onSaveBatch(batch);
     }
-    onOpenChange(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl bg-white dark:bg-slate-900">
+    <Dialog open={open} onOpenChange={(val) => !loading && onOpenChange(val)}>
+      <DialogContent className={cn(
+        "sm:max-w-[500px] rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl bg-white dark:bg-slate-900",
+        loading && "cursor-wait"
+      )}>
+        {loading && <div className="absolute inset-0 z-[100] bg-white/10 backdrop-blur-[0.5px] cursor-wait" />}
+        
         <DialogHeader className="p-10 pb-0">
           <div className="flex items-center gap-4">
             <div className="bg-primary/10 p-3 rounded-2xl">
@@ -132,10 +131,10 @@ export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatc
           {!editingItem && (
             <div className="px-10 pt-6">
               <TabsList className="grid w-full grid-cols-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl h-12">
-                <TabsTrigger value="single" className="rounded-xl font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-sm">
+                <TabsTrigger value="single" disabled={loading} className="rounded-xl font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-sm">
                   Add One
                 </TabsTrigger>
-                <TabsTrigger value="batch" className="rounded-xl font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-sm">
+                <TabsTrigger value="batch" disabled={loading} className="rounded-xl font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-sm">
                   Add Many
                 </TabsTrigger>
               </TabsList>
@@ -152,6 +151,7 @@ export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatc
                     name="name" 
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    disabled={loading}
                     required 
                     placeholder="Enter full name" 
                     className="h-14 pl-11 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold focus:ring-primary/40" 
@@ -167,12 +167,13 @@ export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatc
                     type="email" 
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    disabled={loading || !!editingItem}
                     required 
                     readOnly={!!editingItem} 
                     placeholder="Enter email address" 
                     className={cn(
                       "h-14 pl-11 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold focus:ring-primary/40",
-                      !!editingItem && "opacity-60 cursor-not-allowed"
+                      (!!editingItem || loading) && "opacity-60 cursor-not-allowed"
                     )} 
                   />
                 </div>
@@ -187,11 +188,13 @@ export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatc
                     type={showPassword ? "text" : "password"} 
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    disabled={loading}
                     placeholder="Enter password" 
                     className="h-14 pl-11 pr-12 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold focus:ring-primary/40" 
                   />
                   <button
                     type="button"
+                    disabled={loading}
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1"
                   >
@@ -205,8 +208,9 @@ export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatc
                 <select 
                   name="role" 
                   value={formData.role}
+                  disabled={loading}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
-                  className="w-full h-14 px-4 rounded-2xl border-none ring-1 ring-slate-200 dark:ring-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-black text-sm outline-none focus:ring-primary/40 cursor-pointer"
+                  className="w-full h-14 px-4 rounded-2xl border-none ring-1 ring-slate-200 dark:ring-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-black text-sm outline-none focus:ring-primary/40 cursor-pointer disabled:opacity-50"
                 >
                   <option value="user">Student</option>
                   <option value="admin">Admin</option>
@@ -218,6 +222,7 @@ export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatc
                   disabled={isSaveDisabled}
                   className="rounded-full w-full h-16 font-black text-lg bg-primary text-white disabled:opacity-50 disabled:cursor-not-allowed shadow-2xl transition-all hover:scale-[1.02] border-none"
                 >
+                  {loading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : null}
                   {editingItem ? 'Save Changes' : 'Add User'}
                 </Button>
               </DialogFooter>
@@ -235,21 +240,21 @@ export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatc
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">Name Prefix</Label>
-                  <Input name="namePrefix" placeholder="Student " className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold" />
+                  <Input name="namePrefix" disabled={loading} placeholder="Student " className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold" />
                 </div>
                 <div className="space-y-2">
                   <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">Number Range</Label>
                   <div className="flex items-center gap-2">
-                    <Input name="rangeStart" type="number" defaultValue="1" className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold text-center" />
+                    <Input name="rangeStart" type="number" defaultValue="1" disabled={loading} className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold text-center" />
                     <span className="text-slate-300 font-black">to</span>
-                    <Input name="rangeEnd" type="number" defaultValue="10" className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold text-center" />
+                    <Input name="rangeEnd" type="number" defaultValue="10" disabled={loading} className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold text-center" />
                   </div>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">Email Pattern</Label>
-                <Input name="emailPattern" required placeholder="student{{n}}@dntrng.com" className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-mono text-xs" />
+                <Input name="emailPattern" required disabled={loading} placeholder="student{{n}}@dntrng.com" className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-mono text-xs" />
               </div>
 
               <div className="space-y-2">
@@ -259,11 +264,13 @@ export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatc
                     name="password" 
                     type={showBatchPassword ? "text" : "password"} 
                     required 
+                    disabled={loading}
                     defaultValue="admin123" 
                     className="h-12 pr-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold" 
                   />
                   <button
                     type="button"
+                    disabled={loading}
                     onClick={() => setShowBatchPassword(!showBatchPassword)}
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1"
                   >
@@ -273,7 +280,8 @@ export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatc
               </div>
 
               <DialogFooter className="pt-6">
-                <Button type="submit" className="rounded-full w-full h-16 font-black text-lg bg-primary text-white shadow-xl hover:scale-[1.02] transition-all border-none">
+                <Button type="submit" disabled={loading} className="rounded-full w-full h-16 font-black text-lg bg-primary text-white shadow-xl hover:scale-[1.02] transition-all border-none">
+                  {loading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : null}
                   Initialize Batch Provisioning
                 </Button>
               </DialogFooter>

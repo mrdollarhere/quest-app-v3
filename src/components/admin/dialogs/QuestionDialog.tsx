@@ -28,7 +28,8 @@ import {
   EyeOff,
   Sparkles,
   X,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from "lucide-react";
 import { QuestionType, Question } from '@/types/quiz';
 import { cn } from "@/lib/utils";
@@ -57,6 +58,7 @@ interface QuestionDialogProps {
   editingItem: any;
   selectedTestId: string;
   onSave: (data: any, isRequired: boolean) => void;
+  loading?: boolean;
 }
 
 const QUESTION_TYPES = [
@@ -73,7 +75,7 @@ const QUESTION_TYPES = [
   { value: 'rating', icon: Star, label: 'Rating' },
 ];
 
-export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId, onSave }: QuestionDialogProps) {
+export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId, onSave, loading }: QuestionDialogProps) {
   const [selectedType, setSelectedType] = useState<QuestionType>('single_choice');
   const [questionText, setQuestionText] = useState('');
   const [isRequired, setIsRequired] = useState(false);
@@ -156,6 +158,7 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
   const isDirty = initialSnapshot !== null && initialSnapshot !== currentSnapshot;
 
   const handleDialogChange = (newOpen: boolean) => {
+    if (loading) return;
     if (!newOpen && isDirty) {
       setShowDiscardWarning(true);
     } else {
@@ -165,6 +168,7 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (loading) return;
     
     const cleanOptions = optionsList.filter(o => o && o.trim() !== "");
     const cleanCorrect = correctAnswers.filter(a => a && a.trim() !== "");
@@ -174,7 +178,6 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
     let finalCorrect = cleanCorrect;
     let finalOrder = cleanRows;
 
-    // Ordering Protocol Calibration: The Interaction Options sequence IS the correct answer.
     if (selectedType === 'ordering') {
       finalOptions = cleanOptions;
       finalCorrect = cleanOptions;
@@ -200,9 +203,6 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
     };
 
     onSave(payload, isRequired);
-    
-    setInitialSnapshot(null);
-    onOpenChange(false);
   };
 
   const previewQuestion: Question = {
@@ -230,18 +230,26 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
       <Dialog open={open} onOpenChange={handleDialogChange}>
         <DialogContent className={cn(
           "h-[90vh] rounded-[3rem] overflow-hidden p-0 border-none shadow-2xl bg-white flex flex-row transition-all duration-500",
-          showPreview ? "sm:max-w-[95vw]" : "sm:max-w-[85vw]"
+          showPreview ? "sm:max-w-[95vw]" : "sm:max-w-[85vw]",
+          loading ? "cursor-wait" : ""
         )}>
+          {/* Loading Lock Overlay */}
+          {loading && (
+            <div className="absolute inset-0 z-[100] bg-white/10 backdrop-blur-[0.5px] cursor-wait" />
+          )}
+
           <div className="w-[280px] bg-slate-50 border-r p-4 overflow-y-auto hidden lg:block">
             <p className="text-[10px] font-black uppercase text-slate-400 mb-4 px-4 tracking-widest">Input Protocol</p>
             {QUESTION_TYPES.map((type) => (
               <button 
                 key={type.value} 
                 type="button"
+                disabled={loading}
                 onClick={() => setSelectedType(type.value as QuestionType)} 
                 className={cn(
                   "w-full flex items-center gap-4 p-4 rounded-2xl transition-all mb-1", 
-                  selectedType === type.value ? "bg-primary text-white shadow-xl" : "hover:bg-white text-slate-500"
+                  selectedType === type.value ? "bg-primary text-white shadow-xl" : "hover:bg-white text-slate-500",
+                  loading && "opacity-50 cursor-not-allowed"
                 )}
               >
                 <type.icon className="w-5 h-5" />
@@ -263,6 +271,7 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
                 <Button 
                   type="button" 
                   variant="outline" 
+                  disabled={loading}
                   onClick={() => setShowPreview(!showPreview)}
                   className={cn(
                     "rounded-full font-black text-[10px] uppercase tracking-widest gap-2 border-2 h-11 px-6",
@@ -275,7 +284,9 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
               </div>
             </div>
 
-            <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+            <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+              {loading && <div className="absolute inset-0 z-[60] bg-white/20 cursor-wait" />}
+              
               <div className={cn(
                 "flex-1 overflow-y-auto p-10 space-y-10 custom-scrollbar transition-all duration-500",
                 showPreview ? "lg:border-r border-slate-100" : ""
@@ -286,16 +297,23 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
                     name="question_text" 
                     value={questionText}
                     onChange={(e) => setQuestionText(e.target.value)}
+                    disabled={loading}
                     required 
                     placeholder="Enter the assessment prompt..."
-                    className="rounded-2xl min-h-[100px] text-xl bg-slate-50 border-none ring-1 ring-slate-100 focus:ring-primary/40 transition-all" 
+                    className="rounded-2xl min-h-[100px] text-xl bg-slate-50 border-none ring-1 ring-slate-100 focus:ring-primary/40 transition-all disabled:opacity-50" 
                   />
                 </div>
 
                 <div className="p-8 bg-slate-50/50 rounded-[2.5rem] border-2 border-dashed border-slate-200 space-y-6">
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Visual Asset (URL)</Label>
-                    <Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://..." className="rounded-xl h-12 bg-white ring-1 ring-slate-200 border-none" />
+                    <Input 
+                      value={imageUrl} 
+                      onChange={(e) => setImageUrl(e.target.value)} 
+                      disabled={loading}
+                      placeholder="https://..." 
+                      className="rounded-xl h-12 bg-white ring-1 ring-slate-200 border-none disabled:opacity-50" 
+                    />
                   </div>
 
                   {imageUrl && (
@@ -322,7 +340,7 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors pointer-events-none" />
                         </div>
                         
-                        {isValidImage === true && (
+                        {isValidImage === true && !loading && (
                           <Button 
                             type="button"
                             variant="destructive"
@@ -338,18 +356,63 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
                   )}
 
                   {selectedType === 'hotspot' && (
-                    <Button type="button" onClick={() => setMapperOpen(true)} className="w-full h-12 bg-slate-900 text-white font-black uppercase text-[10px] rounded-xl hover:scale-[1.01] transition-transform">
+                    <Button 
+                      type="button" 
+                      onClick={() => setMapperOpen(true)} 
+                      disabled={loading}
+                      className="w-full h-12 bg-slate-900 text-white font-black uppercase text-[10px] rounded-xl hover:scale-[1.01] transition-transform"
+                    >
                       <Target className="w-4 h-4 mr-2" /> Open Zone Registry Mapper
                     </Button>
                   )}
                 </div>
 
                 <div className="space-y-6">
-                  {['single_choice', 'multiple_choice', 'dropdown', 'ordering'].includes(selectedType) && <ChoiceFields type={selectedType} options={optionsList} setOptions={setOptionsList} correct={correctAnswers} setCorrect={setCorrectAnswers} />}
-                  {selectedType === 'short_text' && <TextField value={correctAnswers[0] || ""} onChange={(v) => setCorrectAnswers([v])} />}
-                  {['true_false', 'multiple_true_false'].includes(selectedType) && <BooleanFields type={selectedType} rows={matrixRows} setRows={setMatrixRows} correct={correctAnswers} setCorrect={setCorrectAnswers} />}
-                  {selectedType === 'matrix_choice' && <MatrixFields rows={matrixRows} setRows={setMatrixRows} cols={optionsList} setCols={setOptionsList} correct={correctAnswers} setCorrect={setCorrectAnswers} />}
-                  {selectedType === 'matching' && <MatchingFields pairs={matchingPairs} setPairs={setMatchingPairs} />}
+                  {['single_choice', 'multiple_choice', 'dropdown', 'ordering'].includes(selectedType) && (
+                    <ChoiceFields 
+                      type={selectedType} 
+                      options={optionsList} 
+                      setOptions={setOptionsList} 
+                      correct={correctAnswers} 
+                      setCorrect={setCorrectAnswers} 
+                      disabled={loading}
+                    />
+                  )}
+                  {selectedType === 'short_text' && (
+                    <TextField 
+                      value={correctAnswers[0] || ""} 
+                      onChange={(v) => setCorrectAnswers([v])} 
+                      disabled={loading}
+                    />
+                  )}
+                  {['true_false', 'multiple_true_false'].includes(selectedType) && (
+                    <BooleanFields 
+                      type={selectedType} 
+                      rows={matrixRows} 
+                      setRows={setMatrixRows} 
+                      correct={correctAnswers} 
+                      setCorrect={setCorrectAnswers} 
+                      disabled={loading}
+                    />
+                  )}
+                  {selectedType === 'matrix_choice' && (
+                    <MatrixFields 
+                      rows={matrixRows} 
+                      setRows={setMatrixRows} 
+                      cols={optionsList} 
+                      setCols={setOptionsList} 
+                      correct={correctAnswers} 
+                      setCorrect={setCorrectAnswers} 
+                      disabled={loading}
+                    />
+                  )}
+                  {selectedType === 'matching' && (
+                    <MatchingFields 
+                      pairs={matchingPairs} 
+                      setPairs={setMatchingPairs} 
+                      disabled={loading}
+                    />
+                  )}
                 </div>
               </div>
 
@@ -385,6 +448,7 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
                 <Checkbox 
                   id="required" 
                   checked={isRequired}
+                  disabled={loading}
                   onCheckedChange={(checked) => setIsRequired(!!checked)}
                 />
                 <Label htmlFor="required" className="text-[10px] font-black uppercase tracking-widest cursor-pointer select-none">Mandatory Step</Label>
@@ -393,13 +457,28 @@ export function QuestionDialog({ open, onOpenChange, editingItem, selectedTestId
                 <Button 
                   type="button" 
                   variant="ghost" 
+                  disabled={loading}
                   onClick={() => onOpenChange(false)}
                   className="rounded-full font-bold text-slate-400 h-16 px-8"
                 >
                   Discard
                 </Button>
-                <Button type="submit" className="rounded-full px-12 h-16 font-black text-lg bg-primary shadow-2xl shadow-primary/20 hover:scale-[1.02] transition-all border-none">
-                  <Save className="w-5 h-5 mr-3" /> Commit Registry
+                <Button 
+                  type="submit" 
+                  disabled={loading || !questionText.trim()}
+                  className="rounded-full min-w-[240px] h-16 font-black text-lg bg-primary shadow-2xl shadow-primary/20 hover:scale-[1.02] transition-all border-none"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                      Saving Registry...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-5 h-5 mr-3" />
+                      Commit Registry
+                    </>
+                  )}
                 </Button>
               </div>
             </div>

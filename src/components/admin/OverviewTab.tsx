@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useMemo } from 'react';
@@ -34,9 +33,10 @@ interface OverviewTabProps {
   onSeed: () => void;
   onSaveSetting: (key: string, value: string) => void;
   setActiveTab: (tab: AdminTab) => void;
+  loading?: boolean;
 }
 
-export function OverviewTab({ data, lastSync, settings, onNewTest, onManageContent, onSync, onSeed, onSaveSetting, setActiveTab }: OverviewTabProps) {
+export function OverviewTab({ data, lastSync, settings, onNewTest, onManageContent, onSync, onSeed, onSaveSetting, setActiveTab, loading }: OverviewTabProps) {
   const router = useRouter();
   const { t } = useLanguage();
   
@@ -81,11 +81,11 @@ export function OverviewTab({ data, lastSync, settings, onNewTest, onManageConte
       <DashboardCharts responses={data.responses} onSeeAll={() => setActiveTab('responses')} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-        <QuickActionCard title={t('createTest')} icon={Plus} onClick={() => router.push('/admin/tests/new')} theme="primary" />
-        <QuickActionCard title={t('manageTests')} icon={Zap} onClick={onManageContent} theme="dark" />
-        <QuickActionCard title={t('gsCode')} icon={Code2} onClick={() => { navigator.clipboard.writeText(GAS_CODE); }} theme="accent" />
-        <QuickActionCard title={t('syncData')} icon={RefreshCcw} onClick={onSync} theme="light" />
-        <QuickActionCard title={t('seedData')} icon={Database} onClick={onSeed} theme="warning" />
+        <QuickActionCard title={t('createTest')} icon={Plus} onClick={() => router.push('/admin/tests/new')} theme="primary" disabled={loading} />
+        <QuickActionCard title={t('manageTests')} icon={Zap} onClick={onManageContent} theme="dark" disabled={loading} />
+        <QuickActionCard title={t('gsCode')} icon={Code2} onClick={() => { navigator.clipboard.writeText(GAS_CODE); }} theme="accent" disabled={loading} />
+        <QuickActionCard title={t('syncData')} icon={RefreshCcw} onClick={onSync} theme="light" disabled={loading} loading={loading} />
+        <QuickActionCard title={t('seedData')} icon={Database} onClick={onSeed} theme="warning" disabled={loading} />
       </div>
     </div>
   );
@@ -111,7 +111,7 @@ function StatCard({ icon: Icon, label, value, color, trend }: any) {
   );
 }
 
-function QuickActionCard({ title, icon: Icon, onClick, theme }: any) {
+function QuickActionCard({ title, icon: Icon, onClick, theme, disabled, loading }: any) {
   const themes: Record<string, string> = {
     primary: "bg-primary text-white",
     dark: "bg-slate-900 text-white",
@@ -120,9 +120,18 @@ function QuickActionCard({ title, icon: Icon, onClick, theme }: any) {
     warning: "bg-orange-500 text-white"
   };
   return (
-    <Card className={cn("border-none shadow-sm cursor-pointer hover:scale-[1.02] transition-transform", themes[theme])} onClick={onClick}>
+    <Card 
+      className={cn(
+        "border-none shadow-sm cursor-pointer transition-all", 
+        themes[theme],
+        disabled ? "opacity-50 cursor-not-allowed" : "hover:scale-[1.02]"
+      )} 
+      onClick={!disabled ? onClick : undefined}
+    >
       <CardContent className="pt-6 flex items-center gap-4">
-        <div className={cn("p-3 rounded-xl", theme === 'light' ? 'bg-slate-100' : 'bg-white/20')}><Icon className="w-6 h-6" /></div>
+        <div className={cn("p-3 rounded-xl", theme === 'light' ? 'bg-slate-100' : 'bg-white/20')}>
+          <Icon className={cn("w-6 h-6", loading && "animate-spin")} />
+        </div>
         <p className="font-black text-base">{title}</p>
       </CardContent>
     </Card>

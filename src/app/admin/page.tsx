@@ -50,7 +50,6 @@ export default function AdminDashboard() {
         responses: Array.isArray(responsesData) ? responsesData : []
       });
       setLastSync(new Date());
-      // Also ensure settings context is fresh
       refreshSettings();
     } catch (err) {
       toast({ variant: "destructive", title: "Sync Error", description: "Could not fetch data." });
@@ -72,6 +71,7 @@ export default function AdminDashboard() {
         mode: 'no-cors',
         body: JSON.stringify({ action, ...payload })
       });
+      setDialogs({ ...dialogs, test: false, user: false });
       return true;
     } catch (err) {
       console.error(err);
@@ -85,7 +85,6 @@ export default function AdminDashboard() {
     const ok = await handlePost('saveSetting', { key, value });
     if (ok) {
       toast({ title: "Success", description: "System settings updated." });
-      // We don't call fetchData here because the context will handle it via refreshSettings if called from AccessKeyPanel
     }
   };
 
@@ -131,6 +130,7 @@ export default function AdminDashboard() {
         onSeed={handleSeedData}
         onSaveSetting={handleSaveSetting}
         setActiveTab={(tab) => router.push(`/admin/${tab === 'overview' ? '' : tab}`)}
+        loading={loading}
       />
 
       <AdminDialogs 
@@ -160,6 +160,7 @@ export default function AdminDashboard() {
         }}
         onSaveQuestion={() => {}}
         onSaveBulk={() => {}}
+        loading={loading}
       />
     </div>
   );

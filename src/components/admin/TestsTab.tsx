@@ -106,6 +106,7 @@ export function TestsTab({ tests, loading, onEdit, onDelete, onManageQuestions, 
                 placeholder={t('searchTests')} 
                 className="pl-10 rounded-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 h-11" 
                 value={searchTerm} 
+                disabled={loading}
                 onChange={(e) => setSearchTerm(e.target.value)} 
               />
             </div>
@@ -113,6 +114,7 @@ export function TestsTab({ tests, loading, onEdit, onDelete, onManageQuestions, 
               variant="outline" 
               size="icon" 
               onClick={onRefresh} 
+              disabled={loading}
               className="rounded-full h-11 w-11 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
             >
               <RefreshCcw className={cn("w-4 h-4 text-slate-400", loading && "animate-spin text-primary")} />
@@ -124,6 +126,7 @@ export function TestsTab({ tests, loading, onEdit, onDelete, onManageQuestions, 
               variant={viewMode === 'list' ? 'secondary' : 'ghost'} 
               size="icon" 
               onClick={() => setViewMode('list')}
+              disabled={loading}
               className={cn("rounded-full h-9 w-9", viewMode === 'list' && "bg-white dark:bg-slate-700 shadow-sm")}
             >
               <List className="w-4 h-4" />
@@ -132,13 +135,14 @@ export function TestsTab({ tests, loading, onEdit, onDelete, onManageQuestions, 
               variant={viewMode === 'card' ? 'secondary' : 'ghost'} 
               size="icon" 
               onClick={() => setViewMode('card')}
+              disabled={loading}
               className={cn("rounded-full h-9 w-9", viewMode === 'card' && "bg-white dark:bg-slate-700 shadow-sm")}
             >
               <LayoutGrid className="w-4 h-4" />
             </Button>
           </div>
 
-          <Button onClick={onAdd} className="rounded-full h-11 px-6 gap-2 font-black shadow-lg bg-primary">
+          <Button onClick={onAdd} disabled={loading} className="rounded-full h-11 px-6 gap-2 font-black shadow-lg bg-primary">
             <Plus className="w-4 h-4" /> {t('newTest')}
           </Button>
         </div>
@@ -200,16 +204,16 @@ export function TestsTab({ tests, loading, onEdit, onDelete, onManageQuestions, 
                       </TableCell>
                       <TableCell className="px-8 text-right">
                         <div className="flex justify-end gap-2 flex-wrap sm:flex-nowrap">
-                          <Button variant="ghost" size="sm" onClick={() => onViewAnalytics(t_item)} className="rounded-full text-primary font-black text-xs hover:bg-primary/5">
+                          <Button variant="ghost" size="sm" disabled={loading} onClick={() => onViewAnalytics(t_item)} className="rounded-full text-primary font-black text-xs hover:bg-primary/5">
                             <BarChart3 className="w-4 h-4 mr-1.5" /> Analytics
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={() => onManageQuestions(t_item.id)} className="rounded-full text-slate-600 dark:text-slate-400 font-black text-xs hover:bg-slate-100 dark:hover:bg-slate-800">
+                          <Button variant="ghost" size="sm" disabled={loading} onClick={() => onManageQuestions(t_item.id)} className="rounded-full text-slate-600 dark:text-slate-400 font-black text-xs hover:bg-slate-100 dark:hover:bg-slate-800">
                             <FileEdit className="w-4 h-4 mr-1.5" /> {t('questions')}
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => onEdit(t_item)} className="rounded-full h-8 w-8 hover:bg-slate-100 dark:hover:bg-slate-800">
+                          <Button variant="ghost" size="icon" disabled={loading} onClick={() => onEdit(t_item)} className="rounded-full h-8 w-8 hover:bg-slate-100 dark:hover:bg-slate-800">
                             <Edit className="w-4 h-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmId(t_item.id)} className="rounded-full h-8 w-8 text-destructive hover:bg-destructive/5">
+                          <Button variant="ghost" size="icon" disabled={loading} onClick={() => setDeleteConfirmId(t_item.id)} className="rounded-full h-8 w-8 text-destructive hover:bg-destructive/5">
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
@@ -270,7 +274,7 @@ export function TestsTab({ tests, loading, onEdit, onDelete, onManageQuestions, 
                   </div>
                   <div className="absolute top-4 right-4">
                     <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
+                      <DropdownMenuTrigger asChild disabled={loading}>
                         <Button size="icon" variant="secondary" className="rounded-full h-10 w-10 shadow-2xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-md">
                           <MoreVertical className="w-4 h-4" />
                         </Button>
@@ -322,6 +326,7 @@ export function TestsTab({ tests, loading, onEdit, onDelete, onManageQuestions, 
                 <CardFooter className="pt-0 p-4 mt-auto">
                   <Button 
                     onClick={() => onManageQuestions(t_item.id)}
+                    disabled={loading}
                     className="w-full h-12 rounded-full font-black text-xs uppercase tracking-widest shadow-lg group-hover:shadow-primary/20 transition-all hover:scale-[1.02] bg-primary"
                   >
                     {t('questions')}
@@ -349,7 +354,7 @@ export function TestsTab({ tests, loading, onEdit, onDelete, onManageQuestions, 
         </div>
       )}
 
-      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && !loading && setDeleteConfirmId(null)}>
         <AlertDialogContent className="rounded-[3rem] p-10 border-none shadow-2xl dark:bg-slate-900">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-3xl font-black uppercase tracking-tight text-slate-900 dark:text-white">
@@ -360,13 +365,15 @@ export function TestsTab({ tests, loading, onEdit, onDelete, onManageQuestions, 
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-8 flex flex-col sm:flex-row gap-4">
-            <AlertDialogCancel className="h-14 rounded-full border-2 font-black uppercase text-xs tracking-widest flex-1 dark:border-slate-700 dark:text-slate-400">
+            <AlertDialogCancel disabled={loading} className="h-14 rounded-full border-2 font-black uppercase text-xs tracking-widest flex-1 dark:border-slate-700 dark:text-slate-400">
               {t('cancel')}
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDelete}
+              disabled={loading}
               className="h-14 rounded-full bg-destructive hover:bg-destructive/90 text-white font-black uppercase text-xs tracking-widest flex-1 shadow-xl shadow-destructive/20 border-none"
             >
+              {loading ? <RefreshCcw className="w-4 h-4 mr-2 animate-spin" /> : null}
               {t('delete')}
             </AlertDialogAction>
           </AlertDialogFooter>

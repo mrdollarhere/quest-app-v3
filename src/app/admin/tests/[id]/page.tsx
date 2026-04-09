@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -56,6 +55,7 @@ export default function AdminTestDetailPage() {
         body: JSON.stringify({ action, ...payload })
       });
       toast({ title: "Success", description: "Registry updated." });
+      setDialogs({ ...dialogs, question: false, test: false, user: false, bulk: false });
       setTimeout(fetchData, 1500);
     } catch (err) {
       toast({ variant: "destructive", title: "Error" });
@@ -67,7 +67,7 @@ export default function AdminTestDetailPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4 mb-2">
-        <Button variant="ghost" onClick={() => router.push('/admin/tests')} className="rounded-full">
+        <Button variant="ghost" onClick={() => router.push('/admin/tests')} disabled={loading} className="rounded-full">
           <ArrowLeft className="w-4 h-4 mr-2" /> Back to Tests
         </Button>
       </div>
@@ -89,6 +89,7 @@ export default function AdminTestDetailPage() {
           }}
           onAdd={() => { setEditingItem(null); setDialogs({ ...dialogs, question: true }); }}
           onBulkEdit={() => setDialogs({ ...dialogs, bulk: true })}
+          loading={loading}
         />
       )}
 
@@ -103,18 +104,17 @@ export default function AdminTestDetailPage() {
         onSaveQuestion={(qData, isRequired) => {
           const newId = (qData.id as string)?.trim() || `q_${Date.now().toString().slice(-6)}`;
           const prepared = { ...qData, id: newId, required: isRequired ? "TRUE" : "FALSE" };
-          // Granular Persistence Protocol: Use saveQuestion for single add/edit
           handlePost('saveQuestion', { testId, question: prepared });
         }}
         onSaveBulk={(json) => {
           try {
             const parsed = JSON.parse(json);
             handlePost('saveQuestions', { testId, questions: parsed });
-            setDialogs({ ...dialogs, bulk: false });
           } catch (e) {
             toast({ variant: "destructive", title: "Invalid JSON" });
           }
         }}
+        loading={loading}
       />
     </div>
   );
