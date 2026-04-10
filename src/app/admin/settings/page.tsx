@@ -33,6 +33,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useLanguage } from '@/context/language-context';
 import { AILoader } from '@/components/ui/ai-loader';
+import { logActivity } from '@/lib/activity-log';
 
 export default function AdminSettingsPage() {
   const { settings, loading: settingsLoading, refreshSettings } = useSettings();
@@ -141,6 +142,8 @@ export default function AdminSettingsPage() {
         title: "Registry Updated", 
         description: `${changedKeys.length} system preference(s) synchronized.` 
       });
+      
+      logActivity("System settings updated", `${changedKeys.length} preference(s) calibrated`);
       
       // Refresh the context which will trigger a re-snapshot in the useEffect
       await refreshSettings();

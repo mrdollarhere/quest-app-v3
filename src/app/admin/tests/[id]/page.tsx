@@ -10,6 +10,7 @@ import { Question } from '@/types/quiz';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { AILoader } from '@/components/ui/ai-loader';
+import { logActivity } from '@/lib/activity-log';
 
 export default function AdminTestDetailPage() {
   const { id } = useParams();
@@ -84,8 +85,10 @@ export default function AdminTestDetailPage() {
           setSelectedTestId={(newId) => router.push(`/admin/tests/${newId}`)}
           onEdit={(q) => { setEditingItem(q); setDialogs({ ...dialogs, question: true }); }}
           onDelete={(qid) => {
+            const q = questions.find(q => q.id === qid);
             const updated = questions.filter(q => q.id !== qid);
             handlePost('saveQuestions', { testId, questions: updated });
+            logActivity("Question deleted", q?.question_text || qid);
           }}
           onAdd={() => { setEditingItem(null); setDialogs({ ...dialogs, question: true }); }}
           onBulkEdit={() => setDialogs({ ...dialogs, bulk: true })}
@@ -105,11 +108,13 @@ export default function AdminTestDetailPage() {
           const newId = (qData.id as string)?.trim() || `q_${Date.now().toString().slice(-6)}`;
           const prepared = { ...qData, id: newId, required: isRequired ? "TRUE" : "FALSE" };
           handlePost('saveQuestion', { testId, question: prepared });
+          logActivity(editingItem ? "Question edited" : "Question added", qData.question_text);
         }}
         onSaveBulk={(json) => {
           try {
             const parsed = JSON.parse(json);
             handlePost('saveQuestions', { testId, questions: parsed });
+            logActivity("Bulk intelligence push", `${parsed.length} questions committed to ${testId}`);
           } catch (e) {
             toast({ variant: "destructive", title: "Invalid JSON" });
           }

@@ -5,9 +5,11 @@ import { useToast } from '@/hooks/use-toast';
 import { API_URL } from '@/lib/api-config';
 import { OverviewTab } from '@/components/admin/OverviewTab';
 import { AdminDialogs } from '@/components/admin/AdminDialogs';
+import { ChangelogPanel } from '@/components/admin/ChangelogPanel';
 import { useRouter } from 'next/navigation';
 import { DEMO_QUESTIONS, AVAILABLE_TESTS } from '@/app/lib/demo-data';
 import { useSettings } from '@/context/settings-context';
+import { logActivity } from '@/lib/activity-log';
 
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(false);
@@ -85,6 +87,7 @@ export default function AdminDashboard() {
     const ok = await handlePost('saveSetting', { key, value });
     if (ok) {
       toast({ title: "Success", description: "System settings updated." });
+      logActivity("Settings updated", key);
     }
   };
 
@@ -111,6 +114,7 @@ export default function AdminDashboard() {
         });
       }
 
+      logActivity("Bulk seed performed", `${AVAILABLE_TESTS.length} modules initialized`);
       toast({ title: "Sync Complete", description: "All assessment modules are now live." });
       setTimeout(fetchData, 2000);
     } catch (error) {
@@ -119,7 +123,7 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-24">
       <OverviewTab 
         data={data} 
         lastSync={lastSync}
@@ -132,6 +136,8 @@ export default function AdminDashboard() {
         setActiveTab={(tab) => router.push(`/admin/${tab === 'overview' ? '' : tab}`)}
         loading={loading}
       />
+
+      <ChangelogPanel />
 
       <AdminDialogs 
         dialogs={dialogs} 
@@ -148,6 +154,7 @@ export default function AdminDashboard() {
           const ok = await handlePost('saveTest', { data: payload });
           if (ok) {
             toast({ title: "Success", description: "Test record updated." });
+            logActivity("Test created/edited", payload.title);
             fetchData();
           }
         }}
@@ -155,6 +162,7 @@ export default function AdminDashboard() {
           const ok = await handlePost('saveUser', { data: userData });
           if (ok) {
             toast({ title: "Success", description: "Student record updated." });
+            logActivity("Student provisioning", userData.name);
             fetchData();
           }
         }}

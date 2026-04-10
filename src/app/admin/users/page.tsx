@@ -6,6 +6,7 @@ import { API_URL } from '@/lib/api-config';
 import { UsersTab } from '@/components/admin/UsersTab';
 import { AdminDialogs } from '@/components/admin/AdminDialogs';
 import { AILoader } from '@/components/ui/ai-loader';
+import { logActivity } from '@/lib/activity-log';
 
 export default function AdminUsersPage() {
   const [loading, setLoading] = useState(false);
@@ -69,7 +70,11 @@ export default function AdminUsersPage() {
           responses={responses}
           loading={loading}
           onEdit={(item) => { setEditingItem(item); setDialogs({ ...dialogs, user: true }); }}
-          onDelete={(email) => handlePost('deleteUser', { email })}
+          onDelete={(email) => {
+            const u = users.find(u => u.email === email);
+            handlePost('deleteUser', { email });
+            logActivity("Student deleted", u?.name || email);
+          }}
           onAdd={() => { setEditingItem(null); setDialogs({ ...dialogs, user: true }); }}
           onRefresh={fetchData}
         />
@@ -82,8 +87,14 @@ export default function AdminUsersPage() {
         selectedTestId=""
         questions={[]}
         onSaveTest={() => {}}
-        onSaveUser={(userData) => handlePost('saveUser', { data: userData })}
-        onSaveUsers={(usersData) => handlePost('saveUsers', { data: usersData })}
+        onSaveUser={(userData) => {
+          handlePost('saveUser', { data: userData });
+          logActivity(editingItem ? "Student record edited" : "Student added", userData.name);
+        }}
+        onSaveUsers={(usersData) => {
+          handlePost('saveUsers', { data: usersData });
+          logActivity("Bulk student provisioning", `${usersData.length} records committed`);
+        }}
         onSaveQuestion={() => {}}
         onSaveBulk={() => {}}
         loading={loading}

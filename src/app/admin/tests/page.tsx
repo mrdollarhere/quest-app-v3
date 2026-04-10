@@ -7,6 +7,7 @@ import { TestsTab } from '@/components/admin/TestsTab';
 import { AdminDialogs } from '@/components/admin/AdminDialogs';
 import { QuestionAnalyticsDialog } from '@/components/admin/analytics/QuestionAnalyticsDialog';
 import { useRouter } from 'next/navigation';
+import { logActivity } from '@/lib/activity-log';
 
 export default function AdminTestsPage() {
   const [loading, setLoading] = useState(false);
@@ -85,7 +86,11 @@ export default function AdminTestsPage() {
         tests={tests} 
         loading={loading}
         onEdit={(item) => { setEditingItem(item); setDialogs({ ...dialogs, test: true }); }}
-        onDelete={(id) => handlePost('deleteTest', { id })}
+        onDelete={(id) => {
+          const t = tests.find(t => t.id === id);
+          handlePost('deleteTest', { id });
+          logActivity("Test deleted", t?.title || id);
+        }}
         onManageQuestions={(id) => router.push(`/admin/tests/${id}`)}
         onViewAnalytics={openAnalytics}
         onAdd={() => router.push('/admin/tests/new')}
@@ -105,6 +110,7 @@ export default function AdminTestsPage() {
             payload.id = `${slug}-${Date.now().toString().slice(-4)}`;
           }
           handlePost('saveTest', { data: payload });
+          logActivity(editingItem ? "Test edited" : "Test created", payload.title);
         }}
         onSaveUser={() => {}}
         onSaveQuestion={() => {}}

@@ -61,12 +61,25 @@
 ## 9. GAS Code Management
 *   Live GAS code always lives at `src/lib/gas/latest.ts`.
 *   Before ANY change to GAS code:
-    1. Copy `latest.ts` to `src/lib/gas/versions/vX.ts` (increment version number).
+    1. Copy latest.ts to `src/lib/gas/versions/vX.ts` (increment version number).
     2. Add entry to `CHANGELOG.md` describing what changed.
     3. Make changes to `latest.ts` only.
 *   Never edit or delete version files — read-only backups.
 
-## 10. General Rules
+## 10. Changelog & Activity Log Rules
+System Changelog (CHANGELOG.md):
+- Every time a significant code change is made, add an entry to CHANGELOG.md at project root BEFORE making the change.
+- Format: `## v{X} — {date}` followed by bulleted changes.
+- Increment version number for every entry.
+- CHANGELOG.md is displayed in the Admin dashboard — keep entries clear and human readable.
+
+Activity Log (automatic):
+- Every admin operation that modifies data must call `logActivity(action, target)` after success.
+- Never call `logActivity` on failed operations.
+- The helper is at `src/lib/activity-log.ts`.
+- Do not remove or skip `logActivity` calls.
+
+## 11. General Rules
 *   **No New Packages**: Ask before adding dependencies to keep the Electron bundle size optimal.
 *   **Self-Documentation**: Use clear naming (e.g., `isProtectionEnabled`) instead of excessive comments.
 *   **Zero Breakage**: Never modify the core authentication logic without a full registry audit.
