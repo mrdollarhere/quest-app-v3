@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -8,7 +9,7 @@ import { CardView } from '@/components/library/CardView';
 import { ListView } from '@/components/library/ListView';
 import { EmptyState } from '@/components/library/EmptyState';
 import { AILoader } from '@/components/ui/ai-loader';
-import { Sparkles, AlertCircle, RefreshCcw, Database } from 'lucide-react';
+import { Sparkles, AlertCircle, RefreshCcw, Database, Filter, LayoutGrid } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/context/language-context';
 import { useSettings } from '@/context/settings-context';
@@ -25,6 +26,7 @@ export default function TestsLibrary() {
   const { settings } = useSettings();
   const [search, setSearch] = useState("");
   const [difficultyFilter, setDifficultyFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
   const [tests, setTests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,6 +84,15 @@ export default function TestsLibrary() {
     }
   };
 
+  const categories = useMemo(() => {
+    const cats = new Set<string>();
+    tests.forEach(t_item => {
+      const cat = String(t_item.category || "").trim();
+      if (cat) cats.add(cat);
+    });
+    return ["all", ...Array.from(cats).sort()];
+  }, [tests]);
+
   const filteredTests = useMemo(() => {
     return tests.filter(t_item => {
       // Protocol: Explicit string casting to prevent type errors from numeric sheet entries
@@ -97,10 +108,13 @@ export default function TestsLibrary() {
       
       const matchesDifficulty = difficultyFilter === "all" || 
         difficulty.toLowerCase() === difficultyFilter.toLowerCase();
+
+      const matchesCategory = categoryFilter === "all" || 
+        category.toLowerCase() === categoryFilter.toLowerCase();
       
-      return matchesSearch && matchesDifficulty;
+      return matchesSearch && matchesDifficulty && matchesCategory;
     });
-  }, [tests, search, difficultyFilter]);
+  }, [tests, search, difficultyFilter, categoryFilter]);
 
   const difficultyOptions = ["all", "beginner", "easy", "medium", "hard"];
 
@@ -143,28 +157,60 @@ export default function TestsLibrary() {
         ) : (
           <div className="space-y-12">
             {!search && (
-              <div className="space-y-10">
+              <div className="space-y-12">
                 <div className="px-4">
                   <h2 className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase mb-4">{t('chooseTest')}</h2>
                   <p className="text-slate-500 dark:text-slate-400 font-medium text-lg max-w-2xl">{t('testSubtitle')}</p>
                 </div>
 
-                {/* Filter Tabs */}
-                <div className="flex flex-wrap items-center gap-3 px-4">
-                  {difficultyOptions.map((opt) => (
-                    <button
-                      key={opt}
-                      onClick={() => setDifficultyFilter(opt)}
-                      className={cn(
-                        "px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] transition-all border-2",
-                        difficultyFilter === opt 
-                          ? "bg-primary border-primary text-white shadow-lg shadow-primary/20 scale-105" 
-                          : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-400 hover:border-slate-200"
-                      )}
-                    >
-                      {t(opt)}
-                    </button>
-                  ))}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10 px-4">
+                  {/* Difficulty Filters */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Filter className="w-4 h-4 text-primary" />
+                      <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Complexity Level</h3>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {difficultyOptions.map((opt) => (
+                        <button
+                          key={opt}
+                          onClick={() => setDifficultyFilter(opt)}
+                          className={cn(
+                            "px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all border-2",
+                            difficultyFilter === opt 
+                              ? "bg-primary border-primary text-white shadow-lg shadow-primary/20" 
+                              : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-400 hover:border-slate-200"
+                          )}
+                        >
+                          {t(opt)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Category Filters */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <LayoutGrid className="w-4 h-4 text-primary" />
+                      <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Domain Classification</h3>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {categories.map((cat) => (
+                        <button
+                          key={cat}
+                          onClick={() => setCategoryFilter(cat)}
+                          className={cn(
+                            "px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all border-2",
+                            categoryFilter === cat 
+                              ? "bg-slate-900 border-slate-900 dark:bg-primary dark:border-primary text-white shadow-lg" 
+                              : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-400 hover:border-slate-200"
+                          )}
+                        >
+                          {cat === 'all' ? t('all') : cat}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -176,7 +222,7 @@ export default function TestsLibrary() {
                 <ListView tests={filteredTests} />
               )
             ) : (
-              <EmptyState onClear={() => { setSearch(""); setDifficultyFilter("all"); }} />
+              <EmptyState onClear={() => { setSearch(""); setDifficultyFilter("all"); setCategoryFilter("all"); }} />
             )}
           </div>
         )}
