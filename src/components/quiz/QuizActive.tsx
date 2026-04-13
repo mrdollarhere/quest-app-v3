@@ -10,7 +10,8 @@ import {
   RotateCcw,
   Flag,
   Save,
-  Type
+  Type,
+  LayoutGrid
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { QuizTimer } from './QuizTimer';
@@ -98,7 +99,7 @@ export function QuizActive({
           <div className="flex items-center gap-2 md:gap-8">
             <div className="flex items-center gap-1 md:gap-4 text-slate-400">
               <Button variant="ghost" size="icon" className="rounded-full h-10 w-10 hover:bg-slate-50"><Save className="w-5 h-5" /></Button>
-              <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(true)} className="rounded-full h-10 w-10 hover:bg-slate-50"><RotateCcw className="w-5 h-5" /></Button>
+              <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(true)} className="rounded-full h-10 w-10 hover:bg-slate-50"><LayoutGrid className="w-5 h-5" /></Button>
               <Button variant="ghost" size="icon" onClick={toggleTextSize} className="rounded-full h-10 w-10 hidden sm:flex hover:bg-slate-50 flex-col items-center justify-center pt-1">
                 <Type className={cn("transition-all", textSize === 'small' ? "w-4 h-4" : textSize === 'large' ? "w-6 h-6" : "w-5 h-5")} />
                 <span className="text-[7px] font-black uppercase tracking-tighter leading-none -mt-0.5">{textSize === 'small' ? 'A-' : textSize === 'large' ? 'A+' : 'A'}</span>
