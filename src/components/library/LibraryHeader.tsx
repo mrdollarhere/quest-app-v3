@@ -44,8 +44,7 @@ export function LibraryHeader({
               </Button>
             </Link>
             <div>
-              <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">{t('chooseTest')}</h1>
-              <div className="flex items-center gap-4 mt-2">
+              <div className="flex items-center gap-4">
                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                   {brandName} Registry Active
