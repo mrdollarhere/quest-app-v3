@@ -1,3 +1,40 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "landscape-1",
+      "description": "A beautiful mountain landscape for hotspot testing.",
+      "imageUrl": "https://picsum.photos/seed/mountain1/800/450",
+      "imageHint": "mountain landscape"
+    },
+    {
+      "id": "ui-concept",
+      "description": "A mobile UI concept for hotspot testing.",
+      "imageUrl": "https://picsum.photos/seed/ui/800/450",
+      "imageHint": "mobile app ui"
+    },
+    {
+      "id": "code-editor",
+      "description": "A code editor background.",
+      "imageUrl": "https://picsum.photos/seed/code/800/450",
+      "imageHint": "coding programming"
+    },
+    {
+      "id": "data-viz",
+      "description": "Data visualization and charts.",
+      "imageUrl": "https://picsum.photos/seed/data/800/450",
+      "imageHint": "data analytics"
+    },
+    {
+      "id": "nature-test",
+      "description": "Nature and biology test cover.",
+      "imageUrl": "https://picsum.photos/seed/nature/800/450",
+      "imageHint": "nature forest"
+    },
+    {
+      "id": "logo-placeholder",
+      "description": "A generic tech logo placeholder.",
+      "imageUrl": "https://picsum.photos/seed/logo/200/200",
+      "imageHint": "abstract logo"
+    }
+  ]
 }

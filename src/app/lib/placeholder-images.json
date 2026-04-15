@@ -30,6 +30,12 @@
       "description": "Nature and biology test cover.",
       "imageUrl": "https://picsum.photos/seed/nature/800/450",
       "imageHint": "nature forest"
+    },
+    {
+      "id": "logo-placeholder",
+      "description": "A generic tech logo placeholder.",
+      "imageUrl": "https://picsum.photos/seed/logo/200/200",
+      "imageHint": "abstract logo"
     }
   ]
 }
