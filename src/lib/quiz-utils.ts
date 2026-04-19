@@ -83,26 +83,25 @@ export const calculateScoreForQuestion = (q: Question, response: any): boolean =
   if (questionType === 'hotspot') {
     try {
       const zones: HotspotZone[] = JSON.parse(q.metadata || "[]");
-      // Migration Protocol: radius -> rect
-      const normalizedZones = zones.map(z => {
-        if ('radius' in z && !('width' in z)) {
-          const r = (z as any).radius;
-          return {
-            ...z,
-            x: z.x - r,
-            y: z.y - r,
-            width: r * 2,
-            height: r * 2
-          } as HotspotZone;
-        }
-        return z as HotspotZone;
-      });
-
-      const hit = normalizedZones.find((z: HotspotZone) => {
-        return response.x >= z.x && response.x <= z.x + z.width &&
-               response.y >= z.y && response.y <= z.y + z.height;
-      });
-      return !!hit && !!hit.isCorrect;
+      const correctZoneIds = zones.filter(z => z.isCorrect).map(z => z.id).sort();
+      
+      // Support for both legacy single-coord and new multi-selection (array of IDs)
+      if (Array.isArray(response)) {
+        const selectedIds = [...response].sort();
+        return JSON.stringify(selectedIds) === JSON.stringify(correctZoneIds);
+      } else if (response && typeof response === 'object' && 'x' in response) {
+        // Legacy single selection fallback
+        const hit = zones.find((z: HotspotZone) => {
+          const x = z.x;
+          const y = z.y;
+          const w = z.width || ((z as any).radius * 2);
+          const h = z.height || ((z as any).radius * 2);
+          return response.x >= x && response.x <= x + w &&
+                 response.y >= y && response.y <= y + h;
+        });
+        return !!hit && !!hit.isCorrect && correctZoneIds.length === 1;
+      }
+      return false;
     } catch (e) { return false; }
   } 
   

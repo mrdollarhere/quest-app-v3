@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Question, HotspotZone } from '@/types/quiz';
 import { cn } from "@/lib/utils";
 
@@ -15,57 +15,69 @@ export const HotspotModule: React.FC<Props> = ({ question, value, onChange, revi
   const [imgSrc, setImgSrc] = useState<string | undefined>(undefined);
   const [aspectRatio, setAspectRatio] = useState<number>(0.5625);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
 
   useEffect(() => {
     setImgSrc(question.image_url && question.image_url.trim() !== "" ? question.image_url : 'https://picsum.photos/seed/dntrng-placeholder/800/450');
   }, [question.image_url]);
-
-  useEffect(() => {
-    if (!containerRef.current) return;
-
-    const observer = new ResizeObserver((entries) => {
-      for (let entry of entries) {
-        setContainerSize({
-          width: entry.contentRect.width,
-          height: entry.contentRect.height
-        });
-      }
-    });
-
-    observer.observe(containerRef.current);
-    return () => observer.disconnect();
-  }, []);
 
   const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
     setAspectRatio(img.naturalHeight / img.naturalWidth);
   };
 
-  const zones: HotspotZone[] = JSON.parse(question.metadata || "[]").map((z: any) => {
-    // Migration Protocol: radius -> rect
-    if ('radius' in z && !('width' in z)) {
-      const r = z.radius;
-      return {
-        ...z,
-        x: z.x - r,
-        y: z.y - r,
-        width: r * 2,
-        height: r * 2
-      };
+  const zones: HotspotZone[] = useMemo(() => {
+    try {
+      const parsed = JSON.parse(question.metadata || "[]");
+      return Array.isArray(parsed) ? parsed.map((z: any) => {
+        // Migration Protocol: radius -> rect
+        if ('radius' in z && !('width' in z)) {
+          const r = z.radius;
+          return {
+            ...z,
+            x: z.x - r,
+            y: z.y - r,
+            width: r * 2,
+            height: r * 2
+          };
+        }
+        return z;
+      }) : [];
+    } catch (e) {
+      return [];
     }
-    return z;
-  });
+  }, [question.metadata]);
+
+  const maxSelections = useMemo(() => zones.filter(z => z.isCorrect).length || 1, [zones]);
+  const selectedZoneIds = useMemo(() => Array.isArray(value) ? value : [], [value]);
 
   const handleClick = (e: React.MouseEvent) => {
     if (reviewMode || !containerRef.current) return;
+    
     const rect = containerRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    onChange({ x, y });
-  };
+    const clickX = ((e.clientX - rect.left) / rect.width) * 100;
+    const clickY = ((e.clientY - rect.top) / rect.height) * 100;
 
-  const userCoords = value as { x: number; y: number } | null;
+    // Find if click was inside any zone
+    const hitZone = zones.find(z => 
+      clickX >= z.x && clickX <= z.x + z.width &&
+      clickY >= z.y && clickY <= z.y + z.height
+    );
+
+    if (hitZone) {
+      let nextSelection = [...selectedZoneIds];
+      if (nextSelection.includes(hitZone.id)) {
+        // Deselect
+        nextSelection = nextSelection.filter(id => id !== hitZone.id);
+      } else {
+        // Select & Handle Auto-Swap (FIFO)
+        if (nextSelection.length >= maxSelections) {
+          nextSelection.shift(); // Remove oldest
+        }
+        nextSelection.push(hitZone.id);
+      }
+      onChange(nextSelection);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -93,39 +105,54 @@ export const HotspotModule: React.FC<Props> = ({ question, value, onChange, revi
 
           {/* Interaction Layer */}
           <div className="absolute inset-0 pointer-events-none">
-            {/* User Interaction Marker */}
-            {userCoords && !reviewMode && (
-              <div 
-                className="absolute w-8 h-8 border-4 border-white rounded-full bg-primary/80 shadow-2xl ring-8 ring-primary/10 -translate-x-1/2 -translate-y-1/2 animate-in zoom-in duration-300"
-                style={{ left: `${userCoords.x}%`, top: `${userCoords.y}%` }}
-              />
-            )}
+            {/* User Interaction Markers (Active Phase) */}
+            {!reviewMode && zones.map((z) => {
+              const isSelected = selectedZoneIds.includes(z.id);
+              if (!isSelected) return null;
 
-            {/* Diagnostic Results Overlay */}
+              return (
+                <div 
+                  key={z.id}
+                  className="absolute border-4 border-white rounded-lg bg-primary/40 shadow-2xl ring-4 ring-primary/10 animate-in zoom-in duration-300"
+                  style={{ 
+                    left: `${z.x}%`, 
+                    top: `${z.y}%`, 
+                    width: `${z.width}%`, 
+                    height: `${z.height}%` 
+                  }}
+                />
+              );
+            })}
+
+            {/* Diagnostic Results Overlay (Review Phase) */}
             {reviewMode && zones.map((z) => {
-              const isHit = userCoords && 
-                userCoords.x >= z.x && userCoords.x <= z.x + z.width &&
-                userCoords.y >= z.y && userCoords.y <= z.y + z.height;
-              
+              const isSelected = selectedZoneIds.includes(z.id);
               const isCorrect = z.isCorrect;
               
-              // Protocol Logic:
-              // - Green: Correct node successfully hit
-              // - Red: Incorrect node hit OR Correct node missed
-              // - Grey: Correct node (if none hit yet) or standard distractor
+              // Diagnostic State Protocol:
+              // - Green: Correct node selected (isSelected && isCorrect)
+              // - Red: Correct node missed (!isSelected && isCorrect)
+              // - Orange: Wrong node selected (isSelected && !isCorrect)
               
-              let borderColor = "border-slate-300/30";
+              let borderColor = "border-transparent";
               let bgColor = "bg-transparent";
+              let labelColor = "bg-slate-600";
 
-              if (isHit && isCorrect) {
+              if (isSelected && isCorrect) {
                 borderColor = "border-emerald-500";
                 bgColor = "bg-emerald-500/20";
-              } else if (isHit && !isCorrect) {
+                labelColor = "bg-emerald-600";
+              } else if (!isSelected && isCorrect) {
                 borderColor = "border-rose-500";
-                bgColor = "bg-rose-500/20";
-              } else if (!isHit && isCorrect) {
-                borderColor = "border-rose-500/50";
                 bgColor = "bg-rose-500/10";
+                labelColor = "bg-rose-600";
+              } else if (isSelected && !isCorrect) {
+                borderColor = "border-orange-500";
+                bgColor = "bg-orange-500/20";
+                labelColor = "bg-orange-600";
+              } else {
+                // Distractor not touched
+                borderColor = "border-slate-300/20";
               }
 
               return (
@@ -146,33 +173,29 @@ export const HotspotModule: React.FC<Props> = ({ question, value, onChange, revi
                   <div className="flex flex-col items-center gap-1">
                     <span className={cn(
                       "option-text text-[9px] font-black text-white px-2 py-0.5 rounded-sm border shadow-xl backdrop-blur-md",
-                      isCorrect ? "bg-emerald-600 border-emerald-400" : "bg-slate-600 border-slate-400"
+                      labelColor
                     )}>
                       {z.label}
                     </span>
-                    {isHit && (
-                      <div className="w-2 h-2 rounded-full bg-white shadow-xl animate-pulse" />
-                    )}
                   </div>
                 </div>
               );
             })}
-
-            {/* Final Interaction Trace (Review Mode Only) */}
-            {reviewMode && userCoords && (
-              <div 
-                className="absolute w-4 h-4 border-2 border-white rounded-full bg-slate-900 shadow-2xl -translate-x-1/2 -translate-y-1/2 opacity-50"
-                style={{ left: `${userCoords.x}%`, top: `${userCoords.y}%` }}
-              />
-            )}
           </div>
         </div>
       </div>
       
       {!reviewMode && (
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">
-          {userCoords ? "Position Logged" : "Click to Identify Target Node"}
-        </p>
+        <div className="flex flex-col items-center gap-2">
+          <div className="px-4 py-1.5 bg-white rounded-full border border-slate-200 shadow-sm">
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+              {selectedZoneIds.length} / {maxSelections} selected
+            </p>
+          </div>
+          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">
+            Click nodes to toggle identification
+          </p>
+        </div>
       )}
     </div>
   );
