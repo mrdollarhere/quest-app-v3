@@ -17,7 +17,7 @@ interface Props {
  * Matrix Choice Interaction Module
  * 
  * Features a high-precision grid system for mapping attributes across multiple rows.
- * Implements the High-Fidelity Matrix Choice Protocol (v18.5) with advanced wide-table support.
+ * Implements the High-Fidelity Matrix Choice Protocol (v18.6) with absolute equal-width columns.
  */
 export const MatrixChoiceModule: React.FC<Props> = ({ question, value, onChange, reviewMode }) => {
   const shuffledRows = useMemo(() => {
@@ -41,10 +41,10 @@ export const MatrixChoiceModule: React.FC<Props> = ({ question, value, onChange,
     onChange({ ...responses, [row]: col });
   };
 
-  // Structural Protocol: Use CSS grid for wide-table tracking and sticky alignment
+  // Balanced Geometry Protocol: All columns (label + N answer columns) share equal width (1fr)
   const gridStyle = {
     display: 'grid',
-    gridTemplateColumns: `auto repeat(${columns.length}, minmax(80px, auto))`,
+    gridTemplateColumns: `repeat(${columns.length + 1}, 1fr)`,
     alignItems: 'stretch'
   };
 
@@ -55,14 +55,13 @@ export const MatrixChoiceModule: React.FC<Props> = ({ question, value, onChange,
           {/* Header Row: Sticky left for row labels, bottom border for separation */}
           <div style={gridStyle} className="bg-slate-50/80 dark:bg-slate-800/80 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700">
             <div 
-              style={{ minWidth: '120px' }}
               className="sticky left-0 bg-slate-50 dark:bg-slate-800 z-20 pl-6 pr-4 py-6 flex items-center border-r border-slate-200 dark:border-slate-700"
             >
                {/* Parameter header intentionally left empty per Protocol v18.5 */}
             </div>
             {columns.map((col, i) => (
               <div key={i} className="text-center px-4 py-6 border-r border-slate-200/50 dark:border-slate-700/50 last:border-r-0 flex items-center justify-center">
-                <span className="option-text text-[11px] font-black uppercase text-slate-600 dark:text-slate-300 tracking-wider leading-tight line-clamp-2 overflow-hidden">
+                <span className="option-text text-[11px] font-black uppercase text-slate-600 dark:text-slate-300 tracking-wider leading-tight text-center line-clamp-2 overflow-hidden">
                   {col}
                 </span>
               </div>
@@ -89,14 +88,13 @@ export const MatrixChoiceModule: React.FC<Props> = ({ question, value, onChange,
                 >
                   {/* Parameter Label: Sticky implementation for horizontal tracing */}
                   <div 
-                    style={{ minWidth: '120px' }}
                     className={cn(
                       "sticky left-0 z-10 pl-6 pr-4 py-5 flex items-center transition-colors border-r border-slate-200 dark:border-slate-700 shadow-[2px_0_5px_rgba(0,0,0,0.02)]",
                       i % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-slate-50 dark:bg-slate-800/50",
                       "group-hover:bg-primary/[0.03]"
                     )}
                   >
-                    <p className="option-text text-sm font-medium text-slate-700 dark:text-slate-200 leading-tight">
+                    <p className="option-text text-sm font-medium text-slate-700 dark:text-slate-200 leading-tight text-left">
                       {row}
                     </p>
                   </div>
