@@ -1,3 +1,8 @@
+/**
+ * GAS Version Snapshot: v18.6
+ * Date: 2025-05-24
+ * Changes: Added certificate_enabled and passing_threshold headers with dynamic migration.
+ */
 export const GAS_CODE = `/**
  * QUESTFLOW BACKEND v18.6 - GRANULAR PERSISTENCE PROTOCOL
  * 
