@@ -44,7 +44,7 @@ export const MatrixChoiceModule: React.FC<Props> = ({ question, value, onChange,
   // Structural Protocol: Use CSS grid for wide-table tracking and sticky alignment
   const gridStyle = {
     display: 'grid',
-    gridTemplateColumns: `1fr repeat(${columns.length}, minmax(80px, auto))`,
+    gridTemplateColumns: `auto repeat(${columns.length}, minmax(80px, auto))`,
     alignItems: 'stretch'
   };
 
@@ -54,7 +54,10 @@ export const MatrixChoiceModule: React.FC<Props> = ({ question, value, onChange,
         <div className="min-w-full inline-block align-middle">
           {/* Header Row: Sticky left for row labels, bottom border for separation */}
           <div style={gridStyle} className="bg-slate-50/80 dark:bg-slate-800/80 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700">
-            <div className="sticky left-0 bg-slate-50 dark:bg-slate-800 z-20 p-6 flex items-center border-r border-slate-200 dark:border-slate-700">
+            <div 
+              style={{ minWidth: '120px' }}
+              className="sticky left-0 bg-slate-50 dark:bg-slate-800 z-20 pl-6 pr-4 py-6 flex items-center border-r border-slate-200 dark:border-slate-700"
+            >
                {/* Parameter header intentionally left empty per Protocol v18.5 */}
             </div>
             {columns.map((col, i) => (
@@ -85,11 +88,14 @@ export const MatrixChoiceModule: React.FC<Props> = ({ question, value, onChange,
                   )}
                 >
                   {/* Parameter Label: Sticky implementation for horizontal tracing */}
-                  <div className={cn(
-                    "sticky left-0 z-10 px-6 py-5 flex items-center transition-colors border-r border-slate-200 dark:border-slate-700 shadow-[2px_0_5px_rgba(0,0,0,0.02)]",
-                    i % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-slate-50 dark:bg-slate-800/50",
-                    "group-hover:bg-primary/[0.03]"
-                  )}>
+                  <div 
+                    style={{ minWidth: '120px' }}
+                    className={cn(
+                      "sticky left-0 z-10 pl-6 pr-4 py-5 flex items-center transition-colors border-r border-slate-200 dark:border-slate-700 shadow-[2px_0_5px_rgba(0,0,0,0.02)]",
+                      i % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-slate-50 dark:bg-slate-800/50",
+                      "group-hover:bg-primary/[0.03]"
+                    )}
+                  >
                     <p className="option-text text-sm font-medium text-slate-700 dark:text-slate-200 leading-tight">
                       {row}
                     </p>
