@@ -17,7 +17,8 @@ import {
   AlertCircle,
   XCircle,
   FileBadge,
-  Download
+  Download,
+  CheckCircle2
 } from "lucide-react";
 import Link from 'next/link';
 import { cn } from "@/lib/utils";
@@ -124,45 +125,13 @@ export function QuizResults({
     return `${remainingSeconds}s`;
   };
 
-  const renderVerdictMessage = (msg: string, highlight: string, colorClass: string) => {
-    const parts = msg.split(highlight);
-    return (
-      <>
-        {parts[0]}
-        <span className={cn("font-black", colorClass)}>{highlight}</span>
-        {parts[1]}
-      </>
-    );
-  };
-
-  const handleDownloadCertificate = async () => {
-    if (!certificateId) return;
-    setIsGenerating(true);
-    try {
-      await generateCertificatePDF({
-        studentName: userName,
-        testName: title,
-        score,
-        total: totalQuestions,
-        date: new Date(endTime || Date.now()),
-        certificateId,
-        platformName: String(settings.platform_name || "DNTRNG")
-      });
-    } catch (e) {
-      console.error("Certificate generation failed", e);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
   const IconMap = {
     Trophy,
-    Zap,
+    CheckCircle2,
     Target,
-    AlertCircle,
     XCircle
   };
-  const VerdictIcon = IconMap[verdict.iconName as keyof typeof IconMap];
+  const VerdictIcon = (IconMap as any)[verdict.iconName] || AlertCircle;
 
   const isBenchmarkingEnabled = String(settings.enable_benchmarking ?? 'true') !== 'false';
 
@@ -204,17 +173,22 @@ export function QuizResults({
             <Card className="flex-1 border-none shadow-2xl rounded-[3rem] bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 p-12 flex flex-col justify-center relative overflow-hidden transition-all duration-500">
               {/* Verdict Module */}
               <div className={cn(
-                "p-8 rounded-[2rem] border-l-4 mb-10 transition-all duration-500 shadow-sm",
+                "p-10 rounded-[2rem] border-l-[6px] mb-10 transition-all duration-500 shadow-sm",
                 verdict.border,
                 verdict.bg
               )}>
-                <div className="flex items-center gap-3 mb-4">
+                <div className="flex items-center gap-3 mb-6">
                   <VerdictIcon className={cn("w-5 h-5", verdict.color)} />
-                  <h4 className={cn("text-[10px] font-black uppercase tracking-[0.3em]", verdict.color)}>Your Result</h4>
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Your Result</h4>
                 </div>
-                <p className="text-slate-900 dark:text-slate-100 font-black text-2xl leading-tight tracking-tight">
-                  "{renderVerdictMessage(verdict.message, verdict.highlight, verdict.color)}"
-                </p>
+                <div className="space-y-3">
+                  <h3 className={cn("text-3xl font-black uppercase tracking-tight", verdict.color)}>
+                    {verdict.title}
+                  </h3>
+                  <p className="text-slate-600 dark:text-slate-300 font-medium text-lg leading-relaxed max-w-xl">
+                    {verdict.message}
+                  </p>
+                </div>
               </div>
 
               {/* Benchmarking Module */}
