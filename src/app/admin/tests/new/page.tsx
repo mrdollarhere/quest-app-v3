@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from 'react';
@@ -19,6 +18,7 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { ArrowLeft, Save, Loader2, Sparkles, LayoutGrid, Image as ImageIcon, Clock, Gauge, X, Trophy } from "lucide-react";
+import { useSettings } from '@/context/settings-context';
 
 export default function NewTestPage() {
   const [loading, setLoading] = useState(false);
@@ -28,6 +28,7 @@ export default function NewTestPage() {
   const [certEnabled, setCertEnabled] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const { settings } = useSettings();
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -40,6 +41,11 @@ export default function NewTestPage() {
     // Explicitly add controlled values
     data.difficulty = difficulty;
     data.certificate_enabled = certEnabled ? "TRUE" : "FALSE";
+    
+    // Protocol: Ensure passing_threshold is always present in the payload
+    if (!data.passing_threshold) {
+      data.passing_threshold = settings.default_pass_threshold || "70";
+    }
     
     // Auto-formatting duration suffix if only number provided
     if (data.duration && !String(data.duration).includes('m')) {
@@ -174,7 +180,7 @@ export default function NewTestPage() {
                       <Input 
                         name="passing_threshold" 
                         type="number" 
-                        defaultValue={70} 
+                        defaultValue={settings.default_pass_threshold || 70} 
                         className="rounded-xl h-12 bg-white dark:bg-slate-900 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-black" 
                       />
                     </div>

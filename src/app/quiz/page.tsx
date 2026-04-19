@@ -14,6 +14,7 @@ import { calculateTotalScore, calculateScoreForQuestion } from '@/lib/quiz-utils
 import { AILoader } from '@/components/ui/ai-loader';
 import { AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useSettings } from '@/context/settings-context';
 import Link from 'next/link';
 
 function QuizContent() {
@@ -21,6 +22,7 @@ function QuizContent() {
   const testId = searchParams.get('id');
   const { user } = useAuth();
   const { toast } = useToast();
+  const { settings } = useSettings();
   
   const [loading, setLoading] = useState(true);
   const [isStarted, setIsStarted] = useState(false);
@@ -256,11 +258,12 @@ function QuizContent() {
     const finalName = (user?.displayName || guestName?.trim() || 'Guest User');
     const finalEmail = (user?.email || 'Anonymous');
     const timestamp = Date.now();
-    const finalPercentage = Math.round((finalScore / quiz.questions.length) * 100);
+    const finalPercentage = Math.round((finalScore / (quiz.questions.length || 1)) * 100);
     
     let certId = "";
-    const threshold = Number(testMetadata?.passing_threshold || 70);
-    const certEnabled = String(testMetadata?.certificate_enabled) === "TRUE";
+    const globalThreshold = Number(settings.default_pass_threshold || 70);
+    const threshold = Number(testMetadata?.passing_threshold ?? globalThreshold);
+    const certEnabled = String(testMetadata?.certificate_enabled || "").toUpperCase() === "TRUE";
     
     if (certEnabled && finalPercentage >= threshold) {
       const cleanEmail = finalEmail.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8);
@@ -290,7 +293,6 @@ function QuizContent() {
             certificateId: certId
           })
         });
-        toast({ title: "Intelligence Synced", description: "Assessment results have been committed." });
       } catch (e) {
         // Submission logged but network trace hidden per Protocol v18.5
       }

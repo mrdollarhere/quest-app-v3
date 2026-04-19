@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Save, Settings2, Trophy, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSettings } from '@/context/settings-context';
 
 interface TestDialogProps {
   open: boolean;
@@ -27,10 +28,12 @@ interface TestDialogProps {
 
 export function TestDialog({ open, onOpenChange, editingItem, onSave, loading }: TestDialogProps) {
   const [certEnabled, setCertEnabled] = useState(false);
+  const { settings } = useSettings();
 
   useEffect(() => {
     if (open && editingItem) {
-      setCertEnabled(String(editingItem.certificate_enabled) === "TRUE" || editingItem.certificate_enabled === true);
+      // Protocol: Normalize string values from GAS registry
+      setCertEnabled(String(editingItem.certificate_enabled || "").toUpperCase() === "TRUE");
     } else if (open) {
       setCertEnabled(false);
     }
@@ -43,6 +46,11 @@ export function TestDialog({ open, onOpenChange, editingItem, onSave, loading }:
     const data = Object.fromEntries(formData.entries());
     
     data.certificate_enabled = certEnabled ? "TRUE" : "FALSE";
+    
+    // Ensure passing_threshold is always included in payload even if input is unmounted
+    if (!data.passing_threshold) {
+      data.passing_threshold = String(editingItem?.passing_threshold ?? settings.default_pass_threshold ?? 70);
+    }
     
     onSave(data);
   };
@@ -159,7 +167,7 @@ export function TestDialog({ open, onOpenChange, editingItem, onSave, loading }:
                 <Input 
                   name="passing_threshold" 
                   type="number" 
-                  defaultValue={editingItem?.passing_threshold || 70} 
+                  defaultValue={editingItem?.passing_threshold ?? settings.default_pass_threshold ?? 70} 
                   disabled={loading}
                   className="rounded-xl h-12 bg-white dark:bg-slate-900 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-black" 
                 />
