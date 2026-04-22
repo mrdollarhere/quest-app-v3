@@ -154,15 +154,42 @@ export default function TestsLibrary() {
             <Button onClick={fetchTests} className="h-16 px-12 rounded-full bg-slate-900">Re-initialize Connection</Button>
           </div>
         ) : (
-          <div className="space-y-12">
-            <div className="px-4 space-y-8">
-              <div>
-                <h1 className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase mb-4">{t('chooseTest')}</h1>
-                <p className="text-slate-500 dark:text-slate-400 font-medium text-lg max-w-2xl">{t('testSubtitle')}</p>
-              </div>
+          <div className="space-y-10">
+            {/* Redesigned Hero Section */}
+            <div className="px-4 pt-7 pb-5">
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div className="flex-1 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Registry Active</span>
+                  </div>
+                  
+                  <h1 className="text-[36px] font-bold text-[#1a2340] dark:text-white leading-tight">
+                    {t('chooseTest')}
+                  </h1>
+                  
+                  <p className="text-[15px] text-slate-500 dark:text-slate-400 max-w-[480px] leading-relaxed font-medium">
+                    {t('testSubtitle')}
+                  </p>
 
-              {/* Category Tab Selector */}
-              {!search && (
+                  <div className="flex items-center gap-2 text-[12px] text-slate-400 font-medium pt-1">
+                    <span>{tests.length} tests available</span>
+                    <span className="opacity-30">•</span>
+                    <span>Start immediately</span>
+                  </div>
+                </div>
+                
+                <div className="hidden md:block">
+                   <span className="text-[80px] font-black text-[#1a2340] opacity-[0.06] select-none leading-none tabular-nums">
+                     {tests.length.toString().padStart(2, '0')}
+                   </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Category Tab Selector - Separated from Hero Spacing */}
+            {!search && (
+              <div className="px-4">
                 <div className="flex items-center gap-3 overflow-x-auto pb-4 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
                   {categories.map((cat) => {
                     const isActive = selectedCategory === cat;
@@ -192,8 +219,8 @@ export default function TestsLibrary() {
                     );
                   })}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
             
             {filteredTests.length > 0 ? (
               <div className="animate-in fade-in duration-700 px-4">
