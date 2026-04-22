@@ -1,121 +1,84 @@
-# DNTRNG — Precision Assessment Platform
+# DNTRNG — Quiz & Assessment Platform
 
-## What is DNTRNG?
-DNTRNG (pronounced "Dan-Truong") is a high-performance assessment and intelligence engine designed to transform Google Sheets™ into a real-time relational database. It allows organizations to manage complex tests, student registries, and forensic analytics without traditional backend infrastructure.
+Welcome to **DNTRNG** (pronounced "Dan-Truong"). This is a professional quiz and testing platform that uses Google Sheets as its brain. It is designed to be powerful for schools and businesses, yet simple enough for anyone to set up in less than 30 minutes.
 
 ## Live Demo
-Experience the platform at: [quest-dntrng.vercel.app](https://quest-dntrng.vercel.app)
+Experience the platform as a student here: [quest-dntrng.vercel.app](https://quest-dntrng.vercel.app)
 
-## Features
-- **High-Fidelity Quiz Player**: A professional terminal supporting 11+ interaction types and multiple modes (Practice, Test, Race).
-- **Admin Command Center**: Full structural oversight for managing tests, questions, and students.
-- **Real-Time Registry Bridge**: Instant synchronization with Google Sheets via a specialized REST API.
-- **Automated Certification**: Generation of high-precision PDF certificates for passing students.
-- **Forensic Analytics**: Visual dashboards for performance trends, pass rates, and question-level success metrics.
-- **Security Protocols**: Rotating daily access keys and domain-restricted authentication.
-- **Global Localization**: Full support for English (US), Tiếng Việt, and Español.
-- **Dynamic Branding**: Centralized control over platform names, logos, colors, and announcement banners.
+## What You Get
+With this platform, you can create interactive tests and track your students' results in real-time.
 
-## Question Types Supported
-- **Single Choice**: Standard one-to-one response mapping.
-- **Multiple Choice**: Multi-select interaction with high-fidelity checkboxes.
-- **True/False**: Simple boolean verification.
-- **Multiple T/F**: A vertical registry of multiple boolean claims.
-- **Short Text**: Manual entry with exact-match logic.
-- **Dropdown**: Collapsed selection from a defined pool.
-- **Ordering**: Drag-and-drop sequence reordering.
-- **Matching**: High-precision pair allocation between clusters.
-- **Matrix Choice**: A grid system for mapping attributes across multiple rows.
-- **Hotspot (Spatial)**: Precision identification on images using rectangular zones.
-- **Rating**: Five-star qualitative evaluation scale.
+*   **11 Question Types**: Includes simple multiple-choice, drag-and-drop ordering, matching pairs, and "Hotspots" where students click on parts of an image.
+*   **Automatic Certificates**: Give students a professional PDF certificate automatically when they pass a test.
+*   **Admin Dashboard**: A private "control center" where you can create tests, manage student lists, and see charts of everyone's scores.
+*   **No Database Needed**: Your data lives in a Google Sheet you own. No complex server setup required.
+*   **Works Everywhere**: Looks great on phones, tablets, and computers.
 
-## Tech Stack
-- **Framework**: Next.js 15 (App Router)
-- **Library**: React 19
-- **Styling**: Tailwind CSS & Shadcn UI
-- **Storage**: Google Sheets (via Google Apps Script REST Bridge)
-- **Charts**: Recharts
-- **PDF Engine**: jsPDF
-- **Icons**: Lucide React
-- **Deployment**: Vercel / Firebase App Hosting
+## What You Need Before Starting
+You don't need to be a coder to set this up. You just need:
+1.  **A Google Account** (Free) — to hold your data in Google Sheets.
+2.  **A Vercel Account** (Free) — to host your website.
+3.  **Node.js** installed on your computer (Free) — only needed if you want to run it locally first.
+4.  **30 Minutes** of focused time.
 
-## Getting Started
+---
 
-### Prerequisites
-- **Node.js**: v18.17.0 or higher
-- **NPM**: v9.0.0 or higher
-- **Google Account**: Required for the Google Sheets backend
+## Setup Guide (Step by Step)
 
-### Installation
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/your-username/dntrng-platform.git
-   cd dntrng-platform
-   ```
+### Step 1 — Deploy the Website
+The easiest way to get your site online is using **Vercel**.
+1.  Upload this project to your GitHub account.
+2.  Log in to [Vercel.com](https://vercel.com).
+3.  Click **"Add New"** and then **"Project"**.
+4.  Import your GitHub repository.
+5.  **Stop!** Before clicking "Deploy," move to Step 2 to get your connection link.
 
-2. **Install dependencies**:
-   ```bash
-   npm install
-   ```
+### Step 2 — Set Up the Google Sheets "Brain"
+This connects your website to your Google Sheet so it can save results.
+1.  Create a new **Google Sheet**.
+2.  Create 5 tabs (pages) at the bottom and name them exactly: `Tests`, `Users`, `Responses`, `Activity`, and `Settings`.
+3.  In the top menu, go to **Extensions** > **Apps Script**.
+4.  Delete any code you see there.
+5.  Open the file in this project called `src/lib/gas/latest.ts`.
+6.  Copy **everything** inside the backticks (the actual code) and paste it into your Google Apps Script window.
+7.  Click the blue **"Deploy"** button at the top right, then choose **"New Deployment"**.
+8.  Click the "Select type" gear icon and choose **"Web App"**.
+9.  Set "Execute as" to **"Me"**.
+10. Set "Who has access" to **"Anyone"** (this is important!).
+11. Click **Deploy**. Google will ask you to "Authorize access"—click through the prompts to allow it.
+12. Copy the **Web App URL** provided at the end. It should look like `https://script.google.com/macros/s/.../exec`.
 
-3. **Configure environment variables**:
-   Create a `.env.local` file in the root directory:
-   ```bash
-   touch .env.local
-   ```
-   Add your Registry Bridge URL (see GAS Setup below):
-   ```env
-   NEXT_PUBLIC_API_URL=your_google_apps_script_url
-   ```
+### Step 3 — Connect Everything
+Now we tell your website where to find your Google Sheet.
+1.  Go back to your **Vercel** project settings.
+2.  Look for the **"Environment Variables"** section.
+3.  Add a new variable:
+    *   **Key**: `NEXT_PUBLIC_API_URL`
+    *   **Value**: Paste the URL you copied in Step 2.
+4.  Now click **Deploy** in Vercel.
 
-4. **Run development server**:
-   ```bash
-   npm run dev
-   ```
-   Open [http://localhost:9002](http://localhost:9002) in your browser.
+### Step 4 — Your First Login
+Once the site is live, you need to log in as an administrator.
+1.  Go to your Google Sheet in the `Users` tab.
+2.  Manually add a row:
+    *   **email**: your@email.com
+    *   **name**: Your Name
+    *   **role**: `admin`
+    *   **password**: a-strong-password
+3.  Go to your new website, click **"Sign In"**, and use those credentials.
+4.  You can now access the **Admin Console** to start building tests!
 
-## Environment Variables
-| Variable | Description | Example |
-| :--- | :--- | :--- |
-| `NEXT_PUBLIC_API_URL` | The deployed Web App URL from Google Apps Script. | `https://script.google.com/macros/s/.../exec` |
+---
 
-## Google Apps Script Setup
-DNTRNG uses Google Apps Script (GAS) as its backend engine.
-1. Create a new **Google Sheet**.
-2. Create five tabs named exactly: `Tests`, `Users`, `Responses`, `Activity`, `Settings`.
-3. Open **Extensions > Apps Script**.
-4. Copy the code from `src/lib/gas/latest.ts` and paste it into the script editor.
-5. Click **Deploy > New Deployment**.
-6. Select **Type: Web App**.
-7. Set **Execute as: Me** and **Who has access: Anyone**.
-8. Copy the provided **Web App URL** and paste it into your `NEXT_PUBLIC_API_URL` environment variable.
+## Customization
+You can change almost everything without touching code:
+*   **Branding**: Go to the "Settings" page in your Admin Console to change the Site Name, Logo URL, and colors.
+*   **Access Keys**: You can set a "Daily Key" so only people you give the password to can take your tests.
+*   **Certificates**: Toggle this on/off for each individual test in the test editor.
 
-## Project Structure
-```
-src/
-├── app/          — Routing, layouts, and page-level logic
-├── components/   — Interaction modules, admin tabs, and UI atoms
-├── context/      — Auth, Language, and Settings providers
-├── lib/          — Registry Bridge (GAS), security logic, and utils
-├── hooks/        — Custom React hooks for filtering and state
-└── types/        — TypeScript interfaces for the assessment schema
-public/
-└── brand/        — Official logos, favicons, and visual assets
-```
+## Need Help?
+If you run into trouble or have questions about using the platform:
+*   **Email**: support@yourdomain.com
+*   **Documentation**: Check the `DOCUMENTATION.md` file for more advanced details.
 
-## Admin Panel
-The Admin Panel is accessible at `/admin`. To initialize your first admin account:
-1. Manually add a row to the `Users` tab in your Google Sheet.
-2. Set the `role` column to `admin`.
-3. Sign in via the `/login` page with the credentials defined in the sheet.
-4. From the console, you can manage the intelligence library, audit student history, and calibrate system settings.
-
-## Contributing
-We welcome contributions to the DNTRNG protocol.
-1. Fork the repository.
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`).
-3. Commit your changes following the **Technical Standard** in `RULES.md`.
-4. Open a Pull Request for review.
-
-## License
-Distributed under the **MIT License**. See `LICENSE` for more information.
+*Created with ❤️ for teachers and trainers everywhere.*
