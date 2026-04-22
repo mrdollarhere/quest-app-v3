@@ -15,7 +15,11 @@ import {
   RotateCcw,
   CheckCircle2,
   XCircle,
-  FileText
+  FileText,
+  Star,
+  Shield,
+  Diamond,
+  Check
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -162,45 +166,58 @@ export default function ProfilePage() {
         <div className="bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-white">
           
           {/* Top Section: Identity Mark */}
-          <div className="p-8 border-b border-slate-100">
+          <div className="p-8 border-b border-slate-100 bg-[#f9fafb] relative">
+            <div className="absolute left-0 top-8 bottom-8 w-1 bg-[#3B5BDB] rounded-r" />
+            
             <div className="flex items-start justify-between">
-              <div className="flex items-center gap-5">
-                <div className="w-[56px] h-[56px] rounded-[12px] bg-[#1a2340] flex items-center justify-center text-white text-2xl font-black shadow-xl">
+              <div className="flex items-center gap-6">
+                <div className="w-[64px] h-[64px] shrink-0 rounded-[12px] bg-[#1a2340] flex items-center justify-center text-white text-2xl font-bold shadow-xl">
                   {user.displayName?.charAt(0).toUpperCase()}
                 </div>
-                <div>
-                  <h1 className="text-[15px] font-black text-[#1a2340] uppercase tracking-tight leading-none mb-1">
+                <div className="space-y-1.5">
+                  <h1 className="text-[18px] font-bold text-[#1a2340] uppercase tracking-tight leading-none">
                     {user.displayName}
                   </h1>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                    {user.email} • <span className="text-primary">{user.role}</span>
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-[12px] font-medium text-slate-400">
+                      {user.email}
+                    </p>
+                    {user.role === 'admin' && (
+                      <Badge className="bg-[#3B5BDB] text-white text-[9px] font-bold px-2 py-0.5 rounded-full border-none shadow-sm h-4">
+                        ADMIN
+                      </Badge>
+                    )}
+                  </div>
                   
                   <div className="flex flex-wrap gap-2 mt-3">
                     {stats.highest === 100 && (
-                      <Badge className="bg-amber-100 text-amber-600 border-none font-black text-[8px] uppercase tracking-widest px-2 py-0.5 rounded-md">
+                      <div className="flex items-center gap-1.5 bg-[#fef9c3] text-[#854f0b] border border-[#854f0b]/30 px-3 py-1 rounded-full text-[11px] font-medium shadow-sm">
+                        <Star className="w-3 h-3 fill-current" />
                         Top Scorer
-                      </Badge>
+                      </div>
                     )}
                     {user.role === 'admin' && (
-                      <Badge className="bg-blue-100 text-blue-600 border-none font-black text-[8px] uppercase tracking-widest px-2 py-0.5 rounded-md">
+                      <div className="flex items-center gap-1.5 bg-[#dbeafe] text-[#1d4ed8] border border-[#1d4ed8]/30 px-3 py-1 rounded-full text-[11px] font-medium shadow-sm">
+                        <Shield className="w-3 h-3" />
                         Admin
-                      </Badge>
+                      </div>
                     )}
                     {stats.perfectCount > 0 && (
-                      <Badge className="bg-purple-100 text-purple-600 border-none font-black text-[8px] uppercase tracking-widest px-2 py-0.5 rounded-md">
+                      <div className="flex items-center gap-1.5 bg-[#f3e8ff] text-[#7c3aed] border border-[#7c3aed]/30 px-3 py-1 rounded-full text-[11px] font-medium shadow-sm">
+                        <Diamond className="w-3 h-3 fill-current" />
                         Perfect x{stats.perfectCount}
-                      </Badge>
+                      </div>
                     )}
                     {stats.total >= 10 && (
-                      <Badge className="bg-emerald-100 text-emerald-600 border-none font-black text-[8px] uppercase tracking-widest px-2 py-0.5 rounded-md">
+                      <div className="flex items-center gap-1.5 bg-[#dcfce7] text-[#15803d] border border-[#15803d]/30 px-3 py-1 rounded-full text-[11px] font-medium shadow-sm">
+                        <Check className="w-3 h-3" />
                         Consistent
-                      </Badge>
+                      </div>
                     )}
                   </div>
                 </div>
               </div>
-              <Button onClick={logout} variant="ghost" size="icon" className="rounded-full text-slate-300 hover:text-destructive hover:bg-destructive/5">
+              <Button onClick={logout} variant="ghost" size="icon" className="rounded-full text-slate-300 hover:text-slate-600 hover:bg-slate-200/50 transition-colors">
                 <LogOut className="w-5 h-5" />
               </Button>
             </div>
