@@ -1,24 +1,21 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { API_URL } from '@/lib/api-config';
 import { AVAILABLE_TESTS as DEMO_TESTS } from '@/app/lib/demo-data';
 import { LibraryHeader } from '@/components/library/LibraryHeader';
-import { CardView } from '@/components/library/CardView';
-import { ListView } from '@/components/library/ListView';
 import { EmptyState } from '@/components/library/EmptyState';
+import { CategorySection } from '@/components/library/CategorySection';
 import { AILoader } from '@/components/ui/ai-loader';
-import { Sparkles, AlertCircle, RefreshCcw, Database, Filter, LayoutGrid } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/context/language-context';
 import { useSettings } from '@/context/settings-context';
-import { cn } from '@/lib/utils';
 
 /**
- * INTELLIGENCE LIBRARY PROTOCOL
+ * INTELLIGENCE LIBRARY PROTOCOL - CATEGORICAL REFACTOR
  * 
- * This component manages the retrieval and presentation of assessment modules.
+ * This component manages the retrieval and grouped presentation of assessment modules.
  */
 export default function TestsLibrary() {
   const { t } = useLanguage();
@@ -31,8 +28,6 @@ export default function TestsLibrary() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastSync, setLastSync] = useState<Date | null>(null);
-
-  const brandName = String(settings.platform_name || "DNTRNG");
 
   useEffect(() => {
     const saved = localStorage.getItem('dntrng_test_view') as 'card' | 'list';
@@ -75,15 +70,6 @@ export default function TestsLibrary() {
     }
   };
 
-  const categories = useMemo(() => {
-    const cats = new Set<string>();
-    tests.forEach(t_item => {
-      const cat = String(t_item.category || "").trim();
-      if (cat) cats.add(cat);
-    });
-    return ["all", ...Array.from(cats).sort()];
-  }, [tests]);
-
   const filteredTests = useMemo(() => {
     return tests.filter(t_item => {
       const title = String(t_item.title || "");
@@ -93,6 +79,35 @@ export default function TestsLibrary() {
       return matchesSearch && matchesDifficulty && matchesCategory;
     });
   }, [tests, search, difficultyFilter, categoryFilter]);
+
+  // CATEGORY GROUPING ENGINE
+  const groupedTests = useMemo(() => {
+    const groups: Record<string, any[]> = {};
+    
+    filteredTests.forEach(test => {
+      const cat = (test.category || "General").trim();
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(test);
+    });
+
+    const getLevelScore = (cat: string) => {
+      const match = cat.match(/(LV|Level)\s*(\d+)/i);
+      return match ? parseInt(match[2]) : 999;
+    };
+
+    // Sort categories: LV1 -> LV2 -> LV3 -> Alphabetical
+    return Object.keys(groups)
+      .sort((a, b) => {
+        const scoreA = getLevelScore(a);
+        const scoreB = getLevelScore(b);
+        if (scoreA !== scoreB) return scoreA - scoreB;
+        return a.localeCompare(b);
+      })
+      .map(name => ({
+        name,
+        tests: groups[name]
+      }));
+  }, [filteredTests]);
 
   return (
     <div className="min-h-screen bg-slate-50/30 dark:bg-slate-950 flex flex-col transition-colors duration-300">
@@ -124,16 +139,19 @@ export default function TestsLibrary() {
               </div>
             )}
             
-            {filteredTests.length > 0 ? (
-              viewMode === 'card' ? (
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4 px-4">
-                  <CardView tests={filteredTests} />
-                </div>
-              ) : (
-                <div className="flex flex-col gap-[10px] px-4">
-                  <ListView tests={filteredTests} />
-                </div>
-              )
+            {groupedTests.length > 0 ? (
+              <div className="space-y-8">
+                {groupedTests.map((group, idx) => (
+                  <CategorySection 
+                    key={group.name}
+                    name={group.name}
+                    tests={group.tests}
+                    viewMode={viewMode}
+                    isDefaultExpanded={idx === 0 || search.length > 0}
+                    isSearching={search.length > 0}
+                  />
+                ))}
+              </div>
             ) : (
               <EmptyState onClear={() => { setSearch(""); setDifficultyFilter("all"); setCategoryFilter("all"); }} />
             )}
