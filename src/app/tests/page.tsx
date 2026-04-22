@@ -23,7 +23,7 @@ export default function TestsLibrary() {
   const [search, setSearch] = useState("");
   const [difficultyFilter, setDifficultyFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [viewMode, setViewMode] = mystery as any;
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
   const [tests, setTests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
