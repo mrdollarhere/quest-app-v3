@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -12,34 +13,17 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer, 
-  Cell,
-  Legend
-} from "recharts";
 import { cn } from "@/lib/utils";
 import { 
   Trophy, 
   Users, 
   Target, 
-  TrendingUp, 
   FileText,
   AlertCircle,
   Search,
-  ChevronUp,
-  ChevronDown,
-  ArrowUpDown,
   Trash2,
-  Download,
   RefreshCcw,
-  Eye,
-  BarChart3
+  Eye
 } from "lucide-react";
 import Link from 'next/link';
 import { useLanguage } from '@/context/language-context';
@@ -59,6 +43,18 @@ import { Pagination } from './Pagination';
 import { useRegistryFilter } from '@/hooks/useRegistryFilter';
 import { calculateResponseStats } from '@/lib/analytics-utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ChartSkeleton } from './analytics/ChartSkeleton';
+
+// Performance: Lazy load heavy Recharts components with skeleton fallback
+const ResponsesAnalytics = dynamic(() => import('./analytics/ResponsesAnalytics'), {
+  ssr: false,
+  loading: () => (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <ChartSkeleton />
+      <ChartSkeleton />
+    </div>
+  )
+});
 
 interface ResponsesTabProps {
   responses: any[];
@@ -79,7 +75,8 @@ export function ResponsesTab(props: ResponsesTabProps) {
 function ResponsesTabContent({ responses, tests, loading, onRefresh, onDelete }: ResponsesTabProps) {
   const { t } = useLanguage();
   const { settings } = useSettings();
-  const [deleteConfirm, setDeleteConfirm] = React.useState<{ timestamp: string, email: string } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ timestamp: string, email: string } | null>(null);
+  const [isAnalyticsInView, setIsAnalyticsInView] = useState(false);
 
   const threshold = Number(settings.default_pass_threshold || '70');
   const stats = useMemo(() => calculateResponseStats(responses || [], tests || [], threshold), [responses, tests, threshold]);
@@ -98,17 +95,23 @@ function ResponsesTabContent({ responses, tests, loading, onRefresh, onDelete }:
     initialSort: { key: 'Timestamp', direction: 'desc' }
   });
 
-  const truncate = (str: string, max: number = 15) => {
-    return str.length > max ? str.substring(0, max) + "..." : str;
-  };
+  // Performance: Only render charts when they are likely to be viewed
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsAnalyticsInView(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '200px' }
+    );
 
-  const getEfficiencyColor = (name: string) => {
-    const n = name.toUpperCase();
-    if (n.includes("LV1")) return "#22C55E";
-    if (n.includes("LV2")) return "#3B5BDB";
-    if (n.includes("LV3")) return "#7C3AED";
-    return "#1a2340";
-  };
+    const el = document.getElementById('analytics-viewport');
+    if (el) observer.observe(el);
+
+    return () => observer.disconnect();
+  }, []);
 
   if (!stats) return (
     <div className="flex flex-col items-center justify-center py-32 bg-slate-50 dark:bg-slate-900 rounded-[3rem] border-4 border-dashed border-slate-100 dark:border-slate-800">
@@ -123,6 +126,12 @@ function ResponsesTabContent({ responses, tests, loading, onRefresh, onDelete }:
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700 pb-24">
+      {/* Page Heading Protocol */}
+      <div className="px-2">
+        <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{t('results')}</h1>
+        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2">Registry Analytics & Global Telemetry</p>
+      </div>
+
       {/* Top Stats Layer */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <AnalysisCard icon={Users} label="Global Sessions" value={stats.total} color="blue" />
@@ -131,118 +140,55 @@ function ResponsesTabContent({ responses, tests, loading, onRefresh, onDelete }:
       </div>
 
       {/* Analytics Visualization Layer */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Chart 1: Performance Distribution */}
-        <Card className="border-none shadow-sm bg-white dark:bg-slate-900 overflow-hidden rounded-[2.5rem] border dark:border-slate-800">
-          <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b p-8">
-            <CardTitle className="text-xl font-black flex items-center gap-3 text-slate-900 dark:text-white uppercase tracking-tight">
-              <TrendingUp className="w-5 h-5 text-primary" /> Grade Distribution
-            </CardTitle>
-            <CardDescription className="text-slate-400 font-bold text-[10px] uppercase tracking-widest">Frequency of results per tier</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-10 h-[350px]">
-            <ErrorBoundary>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats.gradeData} layout="vertical" margin={{ left: 20, right: 40 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
-                  <XAxis type="number" hide />
-                  <YAxis 
-                    dataKey="name" 
-                    type="category" 
-                    width={140} 
-                    tick={{ fontSize: 11, fontWeight: 800, fill: '#64748b' }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Tooltip 
-                    cursor={{ fill: 'transparent' }}
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                  />
-                  <Bar dataKey="value" radius={[0, 12, 12, 0]} barSize={40}>
-                    {stats.gradeData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </ErrorBoundary>
-          </CardContent>
-        </Card>
-
-        {/* Chart 2: Module Efficiency */}
-        <Card className="border-none shadow-sm bg-white dark:bg-slate-900 overflow-hidden rounded-[2.5rem] border dark:border-slate-800">
-          <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b p-8">
-            <CardTitle className="text-xl font-black flex items-center gap-3 text-slate-900 dark:text-white uppercase tracking-tight">
-              <BarChart3 className="w-5 h-5 text-primary" /> Module Precision
-            </CardTitle>
-            <CardDescription className="text-slate-400 font-bold text-[10px] uppercase tracking-widest">Average score per assessment module</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-10 h-[350px]">
-            <ErrorBoundary>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats.testPerformanceData} margin={{ bottom: 40 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis 
-                    dataKey="name" 
-                    tickFormatter={(val) => truncate(val, 12)}
-                    tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
-                    interval={0}
-                    angle={-45}
-                    textAnchor="end"
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis 
-                    domain={[0, 100]}
-                    tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Tooltip 
-                    formatter={(val) => [`${val}%`, 'Mean Score']}
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                  />
-                  <Bar dataKey="avg" radius={[12, 12, 0, 0]} barSize={32}>
-                    {stats.testPerformanceData.map((entry, i) => (
-                      <Cell key={i} fill={getEfficiencyColor(entry.name)} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </ErrorBoundary>
-          </CardContent>
-        </Card>
+      <div id="analytics-viewport">
+        {isAnalyticsInView ? (
+          <ResponsesAnalytics stats={stats} />
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <ChartSkeleton />
+            <ChartSkeleton />
+          </div>
+        )}
       </div>
 
       {/* Chronological History Layer */}
       <Card className="border-none shadow-sm bg-white dark:bg-slate-900 rounded-[3rem] overflow-hidden border dark:border-slate-800">
         <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b p-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <CardTitle className="font-black text-3xl text-slate-900 dark:text-white uppercase tracking-tight">Mission History</CardTitle>
+            <h2 className="font-black text-3xl text-slate-900 dark:text-white uppercase tracking-tight">Mission History</h2>
             <CardDescription className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mt-1">Audit trail of all assessment submissions</CardDescription>
           </div>
           <div className="flex items-center gap-3">
-            <div className="relative w-full md:w-64">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <div className="relative w-full md:w-64" role="search">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" aria-hidden="true" />
               <Input 
                 placeholder="Filter by student or test..." 
+                aria-label="Filter results by student name, email, or test ID"
                 className="h-12 pl-12 rounded-full border-none ring-1 ring-slate-200 dark:ring-slate-700 bg-white dark:bg-slate-800 focus:ring-primary/40 text-sm font-bold shadow-sm"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Button variant="outline" size="icon" onClick={onRefresh} className="rounded-full h-12 w-12 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={onRefresh} 
+              aria-label="Refresh response registry"
+              className="rounded-full h-12 w-12 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
+            >
               <RefreshCcw className={cn("w-4 h-4 text-slate-400", loading && "animate-spin text-primary")} />
             </Button>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
+          <Table aria-label="Assessment module submissions">
             <TableHeader>
               <TableRow className="bg-slate-50/30 dark:bg-slate-800/20 hover:bg-transparent border-none">
-                <TableHead className="px-10 py-5 font-black uppercase text-[10px] tracking-widest text-slate-400">Timestamp</TableHead>
-                <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">Student Identity</TableHead>
-                <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">Assessment Module</TableHead>
-                <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">Precision</TableHead>
-                <TableHead className="px-10 text-right font-black uppercase text-[10px] tracking-widest text-slate-400">Actions</TableHead>
+                <TableHead scope="col" className="px-10 py-5 font-black uppercase text-[10px] tracking-widest text-slate-400">Timestamp</TableHead>
+                <TableHead scope="col" className="font-black uppercase text-[10px] tracking-widest text-slate-400">Student Identity</TableHead>
+                <TableHead scope="col" className="font-black uppercase text-[10px] tracking-widest text-slate-400">Assessment Module</TableHead>
+                <TableHead scope="col" className="font-black uppercase text-[10px] tracking-widest text-slate-400">Precision</TableHead>
+                <TableHead scope="col" className="px-10 text-right font-black uppercase text-[10px] tracking-widest text-slate-400">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -254,7 +200,7 @@ function ResponsesTabContent({ responses, tests, loading, onRefresh, onDelete }:
                   <TableCell>
                     <Link href={`/admin/users/detail?email=${encodeURIComponent(r['User Email'])}`} className="font-black uppercase text-slate-700 dark:text-slate-300 hover:text-primary transition-colors flex items-center gap-2 group/link">
                       {r['User Name']}
-                      <Eye className="w-3 h-3 text-slate-300 opacity-0 group-hover:opacity-100 group-hover/link:text-primary transition-all" />
+                      <Eye className="w-3 h-3 text-slate-300 opacity-0 group-hover:opacity-100 group-hover/link:text-primary transition-all" aria-hidden="true" />
                     </Link>
                   </TableCell>
                   <TableCell className="font-bold text-slate-500 dark:text-slate-400">{r['Test ID']}</TableCell>
@@ -273,6 +219,7 @@ function ResponsesTabContent({ responses, tests, loading, onRefresh, onDelete }:
                     <Button 
                       variant="ghost" 
                       size="icon" 
+                      aria-label={`Delete submission for ${r['User Name']}`}
                       className="opacity-0 group-hover:opacity-100 h-9 w-9 rounded-xl text-destructive hover:bg-rose-50 hover:text-rose-600 transition-all" 
                       onClick={() => setDeleteConfirm({ timestamp: r.Timestamp, email: r['User Email'] })}
                     >
@@ -285,7 +232,7 @@ function ResponsesTabContent({ responses, tests, loading, onRefresh, onDelete }:
                 <TableRow>
                   <TableCell colSpan={5} className="py-24 text-center bg-slate-50/20">
                     <div className="flex flex-col items-center gap-4 opacity-20">
-                      <FileText className="w-12 h-12" />
+                      <FileText className="w-12 h-12" aria-hidden="true" />
                       <p className="font-black uppercase tracking-[0.3em] text-xs">No entries match your search registry</p>
                     </div>
                   </TableCell>
@@ -332,9 +279,12 @@ function AnalysisCard({ icon: Icon, label, value, color }: any) {
     purple: "bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border-purple-100 dark:border-purple-900"
   };
   return (
-    <Card className="border-none shadow-sm bg-white dark:bg-slate-900 rounded-[2.5rem] border dark:border-slate-800 transition-all hover:shadow-md">
+    <Card 
+      className="border-none shadow-sm bg-white dark:bg-slate-900 rounded-[2.5rem] border dark:border-slate-800 transition-all hover:shadow-md"
+      aria-label={`${label}: ${value}`}
+    >
       <CardContent className="pt-8 flex items-center gap-8 px-8">
-        <div className={cn("p-6 rounded-[2rem] border-2", colors[color])}><Icon className="w-8 h-8" /></div>
+        <div className={cn("p-6 rounded-[2rem] border-2", colors[color])} aria-hidden="true"><Icon className="w-8 h-8" /></div>
         <div>
           <p className="text-[10px] font-black uppercase text-muted-foreground dark:text-slate-500 tracking-[0.3em] mb-1">{label}</p>
           <p className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter tabular-nums">{value}</p>
