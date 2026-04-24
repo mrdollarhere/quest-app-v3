@@ -7,7 +7,8 @@ interface QuizTimerProps {
   timeLeft: number;
 }
 
-export function QuizTimer({ timeLeft }: QuizTimerProps) {
+// Memoized to prevent cascading re-renders on each tick
+export const QuizTimer = React.memo(({ timeLeft }: QuizTimerProps) => {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -19,9 +20,18 @@ export function QuizTimer({ timeLeft }: QuizTimerProps) {
   const dashArray = 2 * Math.PI * 18;
   const dashOffset = dashArray - (dashArray * (timeLeft / totalSessionTime));
 
+  const minutes = Math.floor(timeLeft / 60);
+  const seconds = timeLeft % 60;
+  const timeLabel = `Time remaining: ${minutes} minutes ${seconds} seconds`;
+
   return (
-    <div className="relative flex items-center justify-center w-14 h-14 shrink-0">
-      <svg className="w-full h-full -rotate-90">
+    <div 
+      className="relative flex items-center justify-center w-14 h-14 shrink-0" 
+      role="timer" 
+      aria-label={timeLabel}
+      aria-live="off"
+    >
+      <svg className="w-full h-full -rotate-90" aria-hidden="true">
         <circle
           cx="28"
           cy="28"
@@ -51,4 +61,6 @@ export function QuizTimer({ timeLeft }: QuizTimerProps) {
       </span>
     </div>
   );
-}
+});
+
+QuizTimer.displayName = 'QuizTimer';

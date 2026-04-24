@@ -29,6 +29,7 @@ export const TrueFalseModule: React.FC<Props> = ({ question, value, onChange, re
       onValueChange={onChange} 
       disabled={reviewMode} 
       className="flex flex-col gap-[10px]"
+      aria-label="True or false assessment"
     >
        {['True', 'False'].map((o) => {
          const isSelected = value === o;
@@ -40,7 +41,7 @@ export const TrueFalseModule: React.FC<Props> = ({ question, value, onChange, re
              isSelected 
                ? "bg-[#EFF6FF] border-[#2563EB] shadow-sm" 
                : "bg-white border-slate-100 hover:bg-[#EFF6FF] hover:border-[#2563EB]"
-           )}>
+           )} onClick={() => !reviewMode && onChange(o)}>
             <RadioGroupItem 
               value={o} 
               id={inputId} 

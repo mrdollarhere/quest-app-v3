@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { QuizState } from '@/types/quiz';
 import { QuestionRenderer } from '@/components/quiz/QuestionRenderer';
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,14 @@ interface QuizActiveProps {
   onJump: (idx: number) => void;
   onToggleFlag: (id: string) => void;
 }
+
+// Optimized Progress Bar for performance
+const QuizProgressBar = React.memo(({ progress }: { progress: number }) => (
+  <div className="w-full h-1.5 bg-slate-100 relative overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)}>
+    <div className="absolute top-0 left-0 h-full bg-primary transition-all duration-500 ease-out" style={{ width: `${progress}%` }} />
+  </div>
+));
+QuizProgressBar.displayName = 'QuizProgressBar';
 
 export function QuizActive({
   quiz,
@@ -63,7 +71,7 @@ export function QuizActive({
   };
   
   const currentQuestion = quiz.questions[quiz.currentQuestionIndex];
-  const progress = quiz.questions.length > 0 ? ((quiz.currentQuestionIndex + 1) / quiz.questions.length) * 100 : 0;
+  const progress = useMemo(() => quiz.questions.length > 0 ? ((quiz.currentQuestionIndex + 1) / quiz.questions.length) * 100 : 0, [quiz.currentQuestionIndex, quiz.questions.length]);
   const currentResponse = quiz.responses.find(r => r.questionId === currentQuestion?.id)?.answer;
   const isFlagged = quiz.flaggedQuestionIds?.includes(currentQuestion?.id);
 
@@ -80,20 +88,30 @@ export function QuizActive({
 
   return (
     <div className="min-h-screen bg-[#F4F5F7] flex flex-col items-center transition-colors duration-300">
-      {/* SEO: Exactly one H1 per page protocol */}
       <h1 className="sr-only">{quizTitle} Assessment Terminal</h1>
 
       <header className="w-full bg-white border-b border-slate-100 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto h-20 px-4 md:px-8 flex items-center justify-between">
           <div className="flex items-center gap-2 md:gap-6">
-            <Button variant="ghost" onClick={onPrev} disabled={quiz.currentQuestionIndex === 0 || quiz.mode === 'race'} className="rounded-xl h-12 px-2 md:px-4 text-slate-400 font-bold hover:bg-slate-50 disabled:opacity-30">
+            <Button 
+              variant="ghost" 
+              onClick={onPrev} 
+              disabled={quiz.currentQuestionIndex === 0 || quiz.mode === 'race'} 
+              aria-label="Previous question"
+              className="rounded-xl h-12 px-2 md:px-4 text-slate-400 font-bold hover:bg-slate-50 disabled:opacity-30"
+            >
               <ChevronLeft className="w-5 h-5 mr-1" /> <span className="hidden sm:inline">Trước</span>
             </Button>
-            <Button variant="secondary" onClick={() => onResponseChange(null)} className="bg-[#E8EEF5] text-primary font-bold h-12 rounded-xl px-4 gap-2 border-none hidden md:flex">
+            <Button 
+              variant="secondary" 
+              onClick={() => onResponseChange(null)} 
+              aria-label="Reset current answer"
+              className="bg-[#E8EEF5] text-primary font-bold h-12 rounded-xl px-4 gap-2 border-none hidden md:flex"
+            >
               <RotateCcw className="w-4 h-4" /> Đặt lại
             </Button>
             <div className="h-6 w-px bg-slate-100 hidden md:block" />
-            <div className="flex flex-col md:flex-row md:items-baseline gap-1 md:gap-2">
+            <div className="flex flex-col md:flex-row md:items-baseline gap-1 md:gap-2" role="status" aria-label={`Question ${quiz.currentQuestionIndex + 1} of ${quiz.questions.length}`}>
               <span className="text-sm md:text-base font-black text-primary">{quiz.currentQuestionIndex + 1}/{quiz.questions.length}</span>
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden sm:inline">(ID: {currentQuestion?.id})</span>
             </div>
@@ -101,28 +119,60 @@ export function QuizActive({
 
           <div className="flex items-center gap-2 md:gap-8">
             <div className="flex items-center gap-1 md:gap-4 text-slate-400">
-              <Button variant="ghost" size="icon" className="rounded-full h-10 w-10 hover:bg-slate-50"><Save className="w-5 h-5" /></Button>
-              <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(true)} className="rounded-full h-10 w-10 hover:bg-slate-50"><LayoutGrid className="w-5 h-5" /></Button>
-              <Button variant="ghost" size="icon" onClick={toggleTextSize} className="rounded-full h-10 w-10 hidden sm:flex hover:bg-slate-50 flex-col items-center justify-center pt-1">
-                <Type className={cn("transition-all", textSize === 'small' ? "w-4 h-4" : textSize === 'large' ? "w-6 h-6" : "w-5 h-5")} />
-                <span className="text-[7px] font-black uppercase tracking-tighter leading-none -mt-0.5">{textSize === 'small' ? 'A-' : textSize === 'large' ? 'A+' : 'A'}</span>
-              </Button>
+              <Button variant="ghost" size="icon" aria-label="Save progress" className="rounded-full h-10 w-10 hover:bg-slate-50"><Save className="w-5 h-5" /></Button>
+              <Button variant="ghost" size="icon" aria-label="Open question navigator" onClick={() => setIsSidebarOpen(true)} className="rounded-full h-10 w-10 hover:bg-slate-50"><LayoutGrid className="w-5 h-5" /></Button>
+              <div className="hidden sm:flex gap-1">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  aria-label={textSize === 'small' ? "Currently small text size" : "Decrease text size"}
+                  aria-pressed={textSize === 'small'}
+                  onClick={() => { setTextSize('small'); localStorage.setItem('dntrng_text_size', 'small'); }}
+                  className={cn("rounded-full h-10 w-10 hover:bg-slate-50", textSize === 'small' && "text-primary bg-primary/5")}
+                >
+                  <span className="text-xs font-black">A-</span>
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  aria-label={textSize === 'normal' ? "Currently normal text size" : "Reset text size to normal"}
+                  aria-pressed={textSize === 'normal'}
+                  onClick={() => { setTextSize('normal'); localStorage.setItem('dntrng_text_size', 'normal'); }}
+                  className={cn("rounded-full h-10 w-10 hover:bg-slate-50", textSize === 'normal' && "text-primary bg-primary/5")}
+                >
+                  <span className="text-sm font-black">A</span>
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  aria-label={textSize === 'large' ? "Currently large text size" : "Increase text size"}
+                  aria-pressed={textSize === 'large'}
+                  onClick={() => { setTextSize('large'); localStorage.setItem('dntrng_text_size', 'large'); }}
+                  className={cn("rounded-full h-10 w-10 hover:bg-slate-50", textSize === 'large' && "text-primary bg-primary/5")}
+                >
+                  <span className="text-base font-black">A+</span>
+                </Button>
+              </div>
             </div>
             <QuizTimer timeLeft={timeLeft} />
             <div className="h-6 w-px bg-slate-100 hidden md:block" />
-            <Button variant="ghost" onClick={() => currentQuestion && onToggleFlag(currentQuestion.id)} className={cn("rounded-xl h-12 gap-2 font-bold border-none hidden lg:flex transition-all", isFlagged ? "bg-orange-500 text-white hover:bg-orange-600" : "text-slate-500 bg-[#F1F5F9] hover:bg-slate-200")}>
+            <Button 
+              variant="ghost" 
+              onClick={() => currentQuestion && onToggleFlag(currentQuestion.id)} 
+              aria-label="Mark question for later review"
+              aria-pressed={isFlagged}
+              className={cn("rounded-xl h-12 gap-2 font-bold border-none hidden lg:flex transition-all", isFlagged ? "bg-orange-500 text-white hover:bg-orange-600" : "text-slate-500 bg-[#F1F5F9] hover:bg-slate-200")}
+            >
               <Flag className={cn("w-4 h-4", isFlagged && "fill-current")} /> {isFlagged ? 'Flagged' : 'Mark for Later'}
             </Button>
             {quiz.currentQuestionIndex === quiz.questions.length - 1 ? (
               <Button onClick={() => setIsConfirmOpen(true)} className="bg-primary hover:bg-primary/90 text-white rounded-xl h-12 px-8 font-black shadow-xl shadow-primary/20 transition-all hover:scale-105 border-none">COMMIT</Button>
             ) : (
-              <Button onClick={onNext} className="bg-[#366DC7] hover:bg-[#2D5AB0] text-white rounded-xl h-12 px-4 md:px-8 font-black gap-3 transition-all border-none">Tiếp <ChevronRight className="w-5 h-5" /></Button>
+              <Button onClick={onNext} aria-label="Next question" className="bg-[#366DC7] hover:bg-[#2D5AB0] text-white rounded-xl h-12 px-4 md:px-8 font-black gap-3 transition-all border-none">Tiếp <ChevronRight className="w-5 h-5" /></Button>
             )}
           </div>
         </div>
-        <div className="w-full h-1.5 bg-slate-100 relative overflow-hidden">
-          <div className="absolute top-0 left-0 h-full bg-primary transition-all duration-500 ease-out" style={{ width: `${progress}%` }} />
-        </div>
+        <QuizProgressBar progress={progress} />
       </header>
 
       <main className="flex-1 w-full max-w-5xl py-12 md:py-20 px-6 md:px-12 animate-in fade-in slide-in-from-bottom-4 duration-700">

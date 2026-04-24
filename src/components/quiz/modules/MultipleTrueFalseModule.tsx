@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { Question } from '@/types/quiz';
-import { CheckCircle2, AlertCircle } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { parseRegistryArray, shuffleArray } from '@/lib/quiz-utils';
 
@@ -44,15 +44,17 @@ export const MultipleTrueFalseModule: React.FC<Props> = ({ question, value, onCh
         
         return (
           <div key={i} className="flex flex-col">
-            <div className={cn(
-              "flex flex-row items-start justify-between gap-4 p-4 transition-all border-b border-slate-100 last:border-none rounded-r-xl",
-              // Interaction Styles
-              !userVal && !reviewMode && "bg-white border-l-[3px] border-l-transparent",
-              userVal === 'True' && !reviewMode && "bg-[#F0FDF4] border-l-[3px] border-l-[#22C55E]",
-              userVal === 'False' && !reviewMode && "bg-[#FEF2F2] border-l-[3px] border-l-[#EF4444]",
-              // Review Styles
-              reviewMode && (isCorrect ? "bg-emerald-50/50 border-l-[3px] border-l-emerald-500" : "bg-rose-50/50 border-l-[3px] border-l-rose-500")
-            )}>
+            <div 
+              role="radiogroup" 
+              aria-label={`Select true or false for: ${s}`}
+              className={cn(
+                "flex flex-row items-start justify-between gap-4 p-4 transition-all border-b border-slate-100 last:border-none rounded-r-xl",
+                !userVal && !reviewMode && "bg-white border-l-[3px] border-l-transparent",
+                userVal === 'True' && !reviewMode && "bg-[#F0FDF4] border-l-[3px] border-l-[#22C55E]",
+                userVal === 'False' && !reviewMode && "bg-[#FEF2F2] border-l-[3px] border-l-[#EF4444]",
+                reviewMode && (isCorrect ? "bg-emerald-50/50 border-l-[3px] border-l-emerald-500" : "bg-rose-50/50 border-l-[3px] border-l-rose-500")
+              )}
+            >
               <div className="flex-1 pt-1">
                 <p className="option-text font-normal text-base text-slate-700 leading-tight">{s}</p>
               </div>
@@ -64,6 +66,9 @@ export const MultipleTrueFalseModule: React.FC<Props> = ({ question, value, onCh
                     <button
                       key={opt}
                       type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      aria-label={`${opt} — ${s}`}
                       onClick={() => handleUpdate(s, opt)}
                       disabled={reviewMode}
                       className={cn(

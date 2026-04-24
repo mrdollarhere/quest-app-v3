@@ -2,20 +2,51 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import { Question } from '@/types/quiz';
-import { ImageIcon, Maximize2 } from "lucide-react";
+import { ImageIcon, Maximize2, AlertCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { SingleChoiceModule } from './modules/SingleChoiceModule';
-import { MultipleChoiceModule } from './modules/MultipleChoiceModule';
-import { RatingModule } from './modules/RatingModule';
-import { OrderingModule } from './modules/OrderingModule';
-import { MatchingModule } from './modules/MatchingModule';
-import { MultipleTrueFalseModule } from './modules/MultipleTrueFalseModule';
-import { MatrixChoiceModule } from './modules/MatrixChoiceModule';
-import { HotspotModule } from './modules/HotspotModule';
-import { ShortTextModule } from './modules/ShortTextModule';
-import { DropdownModule } from './modules/DropdownModule';
-import { TrueFalseModule } from './modules/TrueFalseModule';
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Lazy Load interaction modules for performance
+const SingleChoiceModule = dynamic(() => import('./modules/SingleChoiceModule').then(m => m.SingleChoiceModule), { 
+  ssr: false, 
+  loading: () => <Skeleton className="h-40 w-full rounded-2xl" /> 
+});
+const MultipleChoiceModule = dynamic(() => import('./modules/MultipleChoiceModule').then(m => m.MultipleChoiceModule), { 
+  ssr: false, 
+  loading: () => <Skeleton className="h-40 w-full rounded-2xl" /> 
+});
+const RatingModule = dynamic(() => import('./modules/RatingModule').then(m => m.RatingModule), { 
+  ssr: false 
+});
+const OrderingModule = dynamic(() => import('./modules/OrderingModule').then(m => m.OrderingModule), { 
+  ssr: false, 
+  loading: () => <Skeleton className="h-60 w-full rounded-2xl" /> 
+});
+const MatchingModule = dynamic(() => import('./modules/MatchingModule').then(m => m.MatchingModule), { 
+  ssr: false, 
+  loading: () => <Skeleton className="h-80 w-full rounded-2xl" /> 
+});
+const MultipleTrueFalseModule = dynamic(() => import('./modules/MultipleTrueFalseModule').then(m => m.MultipleTrueFalseModule), { 
+  ssr: false 
+});
+const MatrixChoiceModule = dynamic(() => import('./modules/MatrixChoiceModule').then(m => m.MatrixChoiceModule), { 
+  ssr: false, 
+  loading: () => <Skeleton className="h-80 w-full rounded-2xl" /> 
+});
+const HotspotModule = dynamic(() => import('./modules/HotspotModule').then(m => m.HotspotModule), { 
+  ssr: false 
+});
+const ShortTextModule = dynamic(() => import('./modules/ShortTextModule').then(m => m.ShortTextModule), { 
+  ssr: false 
+});
+const DropdownModule = dynamic(() => import('./modules/DropdownModule').then(m => m.DropdownModule), { 
+  ssr: false 
+});
+const TrueFalseModule = dynamic(() => import('./modules/TrueFalseModule').then(m => m.TrueFalseModule), { 
+  ssr: false 
+});
 
 interface Props {
   question: Question;
@@ -71,10 +102,15 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
 
   return (
     <div className="w-full">
-      <div className="p-6 bg-[#EFF6FF] border-l-[4px] border-[#2563EB] rounded-r-2xl mb-10">
-        <h2 className="question-text text-lg md:text-xl font-bold leading-[1.65] text-slate-900 w-full">
+      <div className="p-6 bg-[#EFF6FF] border-l-[4px] border-[#2563EB] rounded-r-2xl mb-10" role="group" aria-labelledby={`q-text-${question.id}`}>
+        <h2 id={`q-text-${question.id}`} className="question-text text-lg md:text-xl font-bold leading-[1.65] text-slate-900 w-full">
           {question.question_text}
-          {question.required && <span className="text-destructive ml-2" aria-label="required">*</span>}
+          {question.required && (
+            <span className="text-destructive ml-2" aria-hidden="true">
+              *
+              <span className="sr-only"> (required)</span>
+            </span>
+          )}
         </h2>
       </div>
 
@@ -90,6 +126,7 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
                 src={imgSrc} 
                 alt="Assessment Visual Asset" 
                 fill
+                priority={true}
                 className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"
                 onError={handleImageError}
               />

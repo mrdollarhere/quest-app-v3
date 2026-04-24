@@ -20,11 +20,6 @@ interface QuizSidebarProps {
 }
 
 export function QuizSidebar({ quiz, isOpen, onOpenChange, onJump, isAnswered }: QuizSidebarProps) {
-  const truncateText = (text: string, length: number) => {
-    if (text.length <= length) return text;
-    return text.substring(0, length) + '...';
-  };
-
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-[320px] sm:w-[450px] p-0 flex flex-col bg-white border-l border-slate-100">
@@ -33,7 +28,7 @@ export function QuizSidebar({ quiz, isOpen, onOpenChange, onJump, isAnswered }: 
             <SheetTitle className="text-2xl font-black tracking-tighter uppercase text-slate-900">Questions</SheetTitle>
           </div>
           
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4" aria-hidden="true">
             <div className="flex items-center gap-1.5">
               <div className="w-2 h-2 rounded-full bg-slate-200" />
               <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Unread</span>
@@ -50,47 +45,35 @@ export function QuizSidebar({ quiz, isOpen, onOpenChange, onJump, isAnswered }: 
         </SheetHeader>
 
         <ScrollArea className="flex-1">
-          <div className="p-2 pb-24">
-            {quiz.questions.map((q, idx) => {
-              const answered = isAnswered(q.id);
-              const flagged = quiz.flaggedQuestionIds?.includes(q.id);
-              const active = quiz.currentQuestionIndex === idx;
+          <nav className="p-6 pb-24" aria-label="Question navigator">
+            <div className="grid grid-cols-5 gap-2">
+              {quiz.questions.map((q, idx) => {
+                const answered = isAnswered(q.id);
+                const flagged = quiz.flaggedQuestionIds?.includes(q.id);
+                const active = quiz.currentQuestionIndex === idx;
+                
+                const statusLabel = flagged ? 'flagged' : (answered ? 'answered' : 'unanswered');
+                const ariaLabel = `Question ${idx + 1}, ${statusLabel}${active ? ', current' : ''}`;
 
-              return (
-                <button
-                  key={q.id}
-                  onClick={() => { onJump(idx); onOpenChange(false); }}
-                  className={cn(
-                    "w-full flex items-center gap-4 p-4 rounded-2xl text-left transition-all group mb-1",
-                    active 
-                      ? "bg-primary/5 ring-1 ring-primary/20" 
-                      : "hover:bg-slate-50"
-                  )}
-                >
-                  <span className={cn(
-                    "text-xs font-black w-7 text-right shrink-0",
-                    active ? "text-primary" : "text-slate-300"
-                  )}>
+                return (
+                  <button
+                    key={q.id}
+                    onClick={() => { onJump(idx); onOpenChange(false); }}
+                    aria-label={ariaLabel}
+                    aria-current={active ? 'step' : undefined}
+                    className={cn(
+                      "aspect-square rounded-xl flex items-center justify-center text-xs font-black transition-all border-2",
+                      active 
+                        ? "border-primary bg-primary/5 text-primary" 
+                        : (flagged ? "bg-orange-500 border-orange-500 text-white" : (answered ? "bg-green-500 border-green-500 text-white" : "bg-white border-slate-100 text-slate-400 hover:border-slate-200"))
+                    )}
+                  >
                     {idx + 1}
-                  </span>
-                  
-                  <div className="flex-1 min-w-0">
-                    <p className={cn(
-                      "text-[13px] font-medium truncate",
-                      active ? "text-slate-900" : "text-slate-500"
-                    )}>
-                      {truncateText(q.question_text, 45)}
-                    </p>
-                  </div>
-
-                  <div className={cn(
-                    "w-2.5 h-2.5 rounded-full shrink-0 transition-all",
-                    flagged ? "bg-orange-500" : (answered ? "bg-green-500" : "bg-slate-200")
-                  )} />
-                </button>
-              );
-            })}
-          </div>
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
         </ScrollArea>
       </SheetContent>
     </Sheet>
