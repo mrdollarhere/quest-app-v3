@@ -31,17 +31,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const savedUser = localStorage.getItem('questflow_user');
       const loginTs = localStorage.getItem('questflow_login_ts');
       
-      if (savedUser && loginTs) {
-        // Session Integrity Protocol
-        const timeoutHours = Number(settings.session_timeout_hours || '24');
-        const elapsed = Date.now() - Number(loginTs);
-        const timeoutMs = timeoutHours * 60 * 60 * 1000;
+      if (savedUser && savedUser.trim() !== "" && loginTs) {
+        try {
+          // Session Integrity Protocol
+          const timeoutHours = Number(settings.session_timeout_hours || '24');
+          const elapsed = Date.now() - Number(loginTs);
+          const timeoutMs = timeoutHours * 60 * 60 * 1000;
 
-        if (elapsed > timeoutMs) {
-          // Authentication cycle expired
+          if (elapsed > timeoutMs) {
+            // Authentication cycle expired
+            logout();
+          } else {
+            setUser(JSON.parse(savedUser));
+          }
+        } catch (e) {
+          console.error('[Auth Registry] Identity hydration failed. Clearing session.');
           logout();
-        } else {
-          setUser(JSON.parse(savedUser));
         }
       }
       setLoading(false);

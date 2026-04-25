@@ -3,6 +3,7 @@
  * 
  * Manages the forensic trail of administrative actions.
  * Logs are persisted in localStorage for immediate oversight.
+ * Includes defensive parsing to prevent data corruption crashes.
  */
 
 export interface AdminLog {
@@ -19,7 +20,16 @@ export function logActivity(action: string, target: string) {
 
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    const logs: AdminLog[] = raw ? JSON.parse(raw) : [];
+    let logs: AdminLog[] = [];
+    
+    if (raw && raw.trim() !== "") {
+      try {
+        logs = JSON.parse(raw);
+        if (!Array.isArray(logs)) logs = [];
+      } catch (e) {
+        logs = [];
+      }
+    }
     
     const newEntry: AdminLog = {
       action,
@@ -41,7 +51,9 @@ export function getAdminLogs(): AdminLog[] {
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (!raw || raw.trim() === "") return [];
+    const logs = JSON.parse(raw);
+    return Array.isArray(logs) ? logs : [];
   } catch (e) {
     return [];
   }
