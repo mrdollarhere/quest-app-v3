@@ -128,7 +128,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] py-12 px-6 pb-32">
       <div className="max-w-5xl mx-auto space-y-10 animate-in fade-in duration-700">
-        <ProfileHeader logout={logout} router={router} />
+        <ProfileHeader user={user} logout={logout} router={router} />
         
         <ProfileIdentity user={user} stats={stats} hasHistory={hasHistory} />
         
