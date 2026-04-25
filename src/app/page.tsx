@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from "@/components/ui/button";
@@ -26,11 +26,16 @@ export default function LandingPage() {
   const { t, language, setLanguage } = useLanguage();
   const { settings } = useSettings();
   const [systemStatus, setSystemStatus] = useState<SystemStatus>('Optimal');
+  const lastTracked = useRef<string | null>(null);
 
   const brandName = String(settings.platform_name || "DNTRNG");
 
   useEffect(() => {
+    const key = 'page_view_home' + window.location.pathname + Math.floor(Date.now() / 2000);
+    if (lastTracked.current === key) return;
+    lastTracked.current = key;
     trackEvent('page_view_home');
+
     const checkHealth = async () => {
       try {
         const res = await fetch('/api/health');
@@ -123,7 +128,7 @@ export default function LandingPage() {
               <p className="text-xl md:text-2xl text-slate-500 max-w-2xl font-medium leading-relaxed">{t('heroSubtitle')}</p>
               <div className="flex flex-col sm:flex-row justify-center md:justify-start gap-4 pt-4">
                 <Link href="/tests"><Button size="lg" className="h-16 px-10 text-lg rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] font-black shadow-xl"> {t('browseTests')} </Button></Link>
-                <Link href="/quiz?id=demo-full" onClick={() => trackEvent('test_card_click', { test_id: 'demo-full', details: 'Hero Demo CTA' })}><Button size="lg" variant="outline" className="h-16 px-10 text-lg rounded-full bg-white border-2 border-slate-200 text-slate-900 font-black"> {t('tryDemo')} </Button></Link>
+                <Link href="/quiz?id=demo-full" onClick={() => trackEvent('test_card_click', { test_id: 'demo-full', test_name: 'Master Protocol Showcase' })}><Button size="lg" variant="outline" className="h-16 px-10 text-lg rounded-full bg-white border-2 border-slate-200 text-slate-900 font-black"> {t('tryDemo')} </Button></Link>
               </div>
             </div>
             <div className="flex-1 hidden md:block animate-in fade-in slide-in-from-right-8 duration-1000">

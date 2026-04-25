@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import useSWR from 'swr';
 import { useAuth } from '@/context/auth-context';
 import { useSettings } from '@/context/settings-context';
@@ -25,8 +25,12 @@ export default function ProfilePage() {
   const { user, logout, loading: authLoading } = useAuth();
   const { settings } = useSettings();
   const router = useRouter();
+  const lastTracked = useRef<string | null>(null);
 
   useEffect(() => {
+    const key = 'page_view_profile' + window.location.pathname + Math.floor(Date.now() / 2000);
+    if (lastTracked.current === key) return;
+    lastTracked.current = key;
     trackEvent('page_view_profile');
   }, []);
 

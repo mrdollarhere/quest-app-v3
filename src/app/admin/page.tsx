@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useRef } from 'react';
 import useSWR from 'swr';
 import { useToast } from '@/hooks/use-toast';
 import { API_URL } from '@/lib/api-config';
@@ -34,15 +34,12 @@ function AdminDashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { settings, refreshSettings } = useSettings();
-
-  const [dialogs, setDialogs] = useState({
-    test: false,
-    user: false,
-    question: false,
-    bulk: false
-  });
+  const lastTracked = useRef<string | null>(null);
 
   useEffect(() => {
+    const key = 'page_view_admin' + window.location.pathname + Math.floor(Date.now() / 2000);
+    if (lastTracked.current === key) return;
+    lastTracked.current = key;
     trackEvent('page_view', { details: 'Admin Dashboard Overview' });
   }, []);
 

@@ -1,5 +1,11 @@
 # DNTRNG Platform Changelog
 
+## v18.8 — 2025-05-24
+- Implemented Intelligence Deduplication Protocol
+- Added `logEvent` skip logic in GAS for identical events within 2s
+- Integrated `cleanDuplicates` forensic tool in Admin terminal
+- Added client-side `useRef` event lifecycle guards
+
 ## v18.6 — 2025-05-24
 - Expanded Test Registry Schema: Added certificate_enabled and passing_threshold columns
 - Implemented Dynamic Header Migration in Registry Bridge (GAS)

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import useSWR from 'swr';
 import { API_URL } from '@/lib/api-config';
 import { AVAILABLE_TESTS as DEMO_TESTS } from '@/app/lib/demo-data';
@@ -24,8 +24,12 @@ export default function TestsLibrary() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
   const [lastSync, setLastSync] = useState<Date | null>(null);
+  const lastTracked = useRef<string | null>(null);
 
   useEffect(() => {
+    const key = 'page_view_tests' + window.location.pathname + Math.floor(Date.now() / 2000);
+    if (lastTracked.current === key) return;
+    lastTracked.current = key;
     trackEvent('page_view_tests');
   }, []);
 

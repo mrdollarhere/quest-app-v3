@@ -1,12 +1,12 @@
 export const GAS_CODE = `/**
- * QUESTFLOW BACKEND v18.7 - GRANULAR PERSISTENCE & EVENT TRACKING PROTOCOL
+ * QUESTFLOW BACKEND v18.8 - DEDUPLICATION & FORENSIC CLEANUP PROTOCOL
  * 
  * ACTIONS SUPPORTED:
  * - GET: login, getTests, getUsers, getResponses, getQuestions, getActivity, getSettings, getVersion, getEvents
- * - POST: submitResponse, saveTest, deleteTest, saveUser, deleteUser, saveQuestion, saveQuestions, saveUsers, logActivity, saveSetting, deleteResponse, logEvent
+ * - POST: submitResponse, saveTest, deleteTest, saveUser, deleteUser, saveQuestion, saveQuestions, saveUsers, logActivity, saveSetting, deleteResponse, logEvent, cleanDuplicates
  */
 
-const GAS_VERSION = "18.7";
+const GAS_VERSION = "18.8";
 
 function doGet(e) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -23,7 +23,7 @@ function doGet(e) {
       const limit = parseInt(e.parameter.limit || "200");
       const type = e.parameter.event_type;
       let data = getRowsAsObjects(sheet).reverse();
-      if (type) {
+      if (type && type !== 'all') {
         data = data.filter(ev => ev.event_type === type);
       }
       return createResponse(data.slice(0, limit));
@@ -109,6 +109,20 @@ function doPost(e) {
       const headers = ['timestamp', 'session_id', 'user_id', 'user_name', 'user_role', 'event_type', 'page', 'test_id', 'test_name', 'question_id', 'score', 'details', 'device', 'browser'];
       if (sheet.getLastRow() === 0) sheet.appendRow(headers);
       
+      // SERVER-SIDE DEDUPLICATION PROTOCOL: Check last row for same session/type within 2 seconds
+      const lastRowIdx = sheet.getLastRow();
+      if (lastRowIdx > 1) {
+        const lastData = sheet.getRange(lastRowIdx, 1, 1, 6).getValues()[0];
+        const lastTime = new Date(lastData[0]).getTime();
+        const lastSess = String(lastData[1]);
+        const lastType = String(lastData[5]);
+        const now = new Date().getTime();
+        
+        if (lastSess === payload.session_id && lastType === payload.event_type && (now - lastTime < 2000)) {
+          return createResponse({ status: 'skipped_duplicate' });
+        }
+      }
+
       const rowData = headers.map(h => {
         let val = payload[h];
         if (h === 'details' && typeof val === 'object') val = JSON.stringify(val);
@@ -116,6 +130,33 @@ function doPost(e) {
       });
       sheet.appendRow(rowData);
       return createResponse({ status: 'success' });
+    }
+
+    if (action === 'cleanDuplicates') {
+      const sheet = ss.getSheetByName('Events');
+      if (!sheet) return createResponse({ status: 'no_sheet' });
+      const data = sheet.getDataRange().getValues();
+      if (data.length < 3) return createResponse({ count: 0 });
+
+      let removed = 0;
+      // Reverse loop to avoid index shifting after deletion
+      for (let i = data.length - 1; i >= 2; i--) {
+        const current = data[i];
+        const prev = data[i-1];
+        
+        const currTime = new Date(current[0]).getTime();
+        const prevTime = new Date(prev[0]).getTime();
+        const currSess = current[1];
+        const prevSess = prev[1];
+        const currType = current[5];
+        const prevType = prev[5];
+
+        if (currSess === prevSess && currType === prevType && Math.abs(currTime - prevTime) < 2000) {
+          sheet.deleteRow(i + 1);
+          removed++;
+        }
+      }
+      return createResponse({ status: 'success', count: removed });
     }
 
     if (action === 'logActivity') {
