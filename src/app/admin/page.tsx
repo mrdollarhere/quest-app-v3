@@ -35,6 +35,9 @@ function AdminDashboardContent() {
   const searchParams = useSearchParams();
   const { settings, refreshSettings } = useSettings();
   const lastTracked = useRef<string | null>(null);
+  
+  // Protocol: Define missing dialog state for administration terminal
+  const [dialogs, setDialogs] = useState({ test: false, user: false, question: false, bulk: false });
 
   useEffect(() => {
     const key = 'page_view_admin' + window.location.pathname + Math.floor(Date.now() / 2000);
