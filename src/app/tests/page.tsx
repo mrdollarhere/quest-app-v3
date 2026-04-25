@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -15,10 +14,8 @@ import { useLanguage } from '@/context/language-context';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
+import { trackEvent } from '@/lib/tracker';
 
-/**
- * INTELLIGENCE LIBRARY PROTOCOL - SWR CACHED & VIEWPORT AWARE
- */
 export default function TestsLibrary() {
   const { t } = useLanguage();
   const router = useRouter();
@@ -28,13 +25,15 @@ export default function TestsLibrary() {
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
   const [lastSync, setLastSync] = useState<Date | null>(null);
 
-  // SWR Registry Sync
+  useEffect(() => {
+    trackEvent('page_view_tests');
+  }, []);
+
   const { data, error, isLoading, isValidating, mutate } = useSWR(
     API_URL ? `${API_URL}?action=getTests` : 'tests-demo',
     async (url) => {
       if (!API_URL) return DEMO_TESTS;
       const res = await fetch(url);
-      if (!res.ok) throw new Error("Registry Handshake Rejected");
       const tests = await res.json();
       setLastSync(new Date());
       return Array.isArray(tests) ? tests : [];
@@ -43,46 +42,31 @@ export default function TestsLibrary() {
 
   const tests = data || [];
 
-  // Persistence & Prefetching Protocol
   useEffect(() => {
     const savedView = localStorage.getItem('dntrng_test_view') as 'card' | 'list';
     if (savedView) setViewMode(savedView);
-    
     const savedCat = localStorage.getItem('dntrng_selected_cat');
     if (savedCat) setSelectedCategory(savedCat);
   }, []);
 
-  // Prefetch first 4 cards for instant transition
-  useEffect(() => {
-    if (tests.length > 0) {
-      tests.slice(0, 4).forEach(test => {
-        router.prefetch(`/quiz?id=${test.id}`);
-      });
-    }
-  }, [tests, router]);
-
-  const handleViewChange = (mode: 'card' | 'list') => {
-    setViewMode(mode);
-    localStorage.setItem('dntrng_test_view', mode);
-  };
-
   const handleCategoryChange = (cat: string) => {
     setSelectedCategory(cat);
     localStorage.setItem('dntrng_selected_cat', cat);
+    trackEvent('test_filter', { details: `Category: ${cat}` });
   };
 
   useEffect(() => {
-    if (search && selectedCategory !== "All") {
-      setSelectedCategory("All");
+    if (search) {
+      const timer = setTimeout(() => {
+        trackEvent('test_search', { details: search });
+      }, 1000);
+      return () => clearTimeout(timer);
     }
   }, [search]);
 
   const categories = useMemo(() => {
     const cats = new Set<string>();
-    tests.forEach(t_item => {
-      const cat = (t_item.category || "General").trim();
-      cats.add(cat);
-    });
+    tests.forEach(t_item => cats.add((t_item.category || "General").trim()));
     return ["All", ...Array.from(cats).sort()];
   }, [tests]);
 
@@ -100,22 +84,11 @@ export default function TestsLibrary() {
       const title = String(t_item.title || "");
       const matchesSearch = title.toLowerCase().includes(search.toLowerCase());
       const matchesDifficulty = difficultyFilter === "all" || String(t_item.difficulty).toLowerCase() === difficultyFilter.toLowerCase();
-      
       if (search) return matchesSearch && matchesDifficulty;
       const cat = (t_item.category || "General").trim();
-      const matchesCategory = selectedCategory === "All" || cat === selectedCategory;
-      return matchesSearch && matchesDifficulty && matchesCategory;
+      return matchesSearch && matchesDifficulty && (selectedCategory === "All" || cat === selectedCategory);
     });
   }, [tests, search, difficultyFilter, selectedCategory]);
-
-  const getTabColor = (cat: string) => {
-    const n = cat.toUpperCase();
-    if (cat === "All") return "#1a2340";
-    if (n.includes("LV1")) return "#22C55E";
-    if (n.includes("LV2")) return "#3B5BDB";
-    if (n.includes("LV3")) return "#7C3AED";
-    return "#6B7280";
-  };
 
   return (
     <div className="min-h-screen bg-slate-50/30 dark:bg-slate-950 flex flex-col transition-colors duration-300">
@@ -123,7 +96,7 @@ export default function TestsLibrary() {
         search={search}
         setSearch={setSearch}
         viewMode={viewMode}
-        setViewMode={handleViewChange}
+        setViewMode={(mode) => { setViewMode(mode); localStorage.setItem('dntrng_test_view', mode); }}
         loading={isLoading}
         onRefresh={() => mutate()}
         lastSync={lastSync}
@@ -143,130 +116,61 @@ export default function TestsLibrary() {
               <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div className="flex-1 space-y-4">
                   <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Registry Active</span>
                   </div>
-                  
-                  <h1 className="text-[36px] font-bold text-[#1a2340] dark:text-white leading-tight">
-                    {t('chooseTest')}
-                  </h1>
-                  
-                  <p className="text-[15px] text-slate-500 dark:text-slate-400 max-w-[480px] leading-relaxed font-medium">
-                    {t('testSubtitle')}
-                  </p>
-
+                  <h1 className="text-[36px] font-bold text-[#1a2340] dark:text-white leading-tight">{t('chooseTest')}</h1>
+                  <p className="text-[15px] text-slate-500 dark:text-slate-400 max-w-[480px] leading-relaxed font-medium">{t('testSubtitle')}</p>
                   <div className="flex items-center gap-2 text-[12px] text-slate-400 font-medium pt-1">
                     <span>{tests.length} tests available</span>
-                    <span className="opacity-30" aria-hidden="true">•</span>
+                    <span className="opacity-30">•</span>
                     <span>Start immediately</span>
                   </div>
-                </div>
-                
-                <div className="hidden md:block" aria-hidden="true">
-                   <span className="text-[80px] font-black text-[#1a2340] opacity-[0.06] select-none leading-none tabular-nums">
-                     {tests.length.toString().padStart(2, '0')}
-                   </span>
                 </div>
               </div>
             </section>
 
             {!search && (
               <nav className="px-4" aria-label="Category Selection">
-                <div 
-                  className="flex items-center gap-3 overflow-x-auto pb-4 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0"
-                  role="tablist"
-                >
-                  {categories.map((cat) => {
-                    const isActive = selectedCategory === cat;
-                    const color = getTabColor(cat);
-                    const count = categoryCounts[cat] || 0;
-                    
-                    return (
-                      <button
-                        key={cat}
-                        role="tab"
-                        aria-selected={isActive}
-                        aria-controls="test-grid"
-                        id={`tab-${cat}`}
-                        onClick={() => handleCategoryChange(cat)}
-                        className={cn(
-                          "whitespace-nowrap px-6 py-3 rounded-full text-xs font-black uppercase tracking-widest transition-all duration-300 border flex items-center gap-3 focus-visible:ring-2 focus-visible:ring-offset-2",
-                          isActive 
-                            ? "text-white shadow-lg scale-105" 
-                            : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300"
-                        )}
-                        style={isActive ? { backgroundColor: color, borderColor: color } : {}}
-                      >
-                        {cat}
-                        <span className={cn(
-                          "px-2 py-0.5 rounded-full text-[10px] font-bold",
-                          isActive ? "bg-white/20" : "bg-slate-100 dark:bg-slate-800"
-                        )}>
-                          {count}
-                        </span>
-                      </button>
-                    );
-                  })}
+                <div className="flex items-center gap-3 overflow-x-auto pb-4 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0" role="tablist">
+                  {categories.map((cat) => (
+                    <button
+                      key={cat}
+                      role="tab"
+                      aria-selected={selectedCategory === cat}
+                      onClick={() => handleCategoryChange(cat)}
+                      className={cn(
+                        "whitespace-nowrap px-6 py-3 rounded-full text-xs font-black uppercase tracking-widest transition-all duration-300 border flex items-center gap-3",
+                        selectedCategory === cat ? "bg-[#1a2340] text-white shadow-lg scale-105" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400"
+                      )}
+                    >
+                      {cat}
+                      <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-bold", selectedCategory === cat ? "bg-white/20" : "bg-slate-100 dark:bg-slate-800")}>
+                        {categoryCounts[cat] || 0}
+                      </span>
+                    </button>
+                  ))}
                 </div>
               </nav>
             )}
             
-            <div id="test-grid" role="tabpanel" aria-labelledby={`tab-${selectedCategory}`}>
+            <div id="test-grid">
               {(isLoading && tests.length === 0) ? (
-                <div className={cn(
-                  "animate-in fade-in duration-700 px-4",
-                  viewMode === 'card' ? "grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4" : "flex flex-col gap-[10px]"
-                )}>
-                  {Array.from({ length: 8 }).map((_, i) => (
-                    <SkeletonTestCard key={i} viewMode={viewMode} />
-                  ))}
+                <div className={cn("px-4", viewMode === 'card' ? "grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4" : "flex flex-col gap-[10px]")}>
+                  {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-40 rounded-xl" />)}
                 </div>
               ) : filteredTests.length > 0 ? (
-                <div className="animate-in fade-in duration-700 px-4">
-                  {viewMode === 'card' ? (
-                    <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
-                      <CardView tests={filteredTests} />
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-[10px]">
-                      <ListView tests={filteredTests} />
-                    </div>
-                  )}
+                <div className="px-4" onClick={(e) => {
+                  const card = (e.target as HTMLElement).closest('a');
+                  if (card) trackEvent('test_card_click', { details: card.getAttribute('href') || '' });
+                }}>
+                  {viewMode === 'card' ? <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4"><CardView tests={filteredTests} /></div> : <div className="flex flex-col gap-[10px]"><ListView tests={filteredTests} /></div>}
                 </div>
-              ) : (
-                <EmptyState onClear={() => { setSearch(""); setDifficultyFilter("all"); setSelectedCategory("All"); }} />
-              )}
+              ) : <EmptyState onClear={() => { setSearch(""); handleCategoryChange("All"); }} />}
             </div>
           </div>
         )}
       </main>
-    </div>
-  );
-}
-
-function SkeletonTestCard({ viewMode }: { viewMode: 'card' | 'list' }) {
-  if (viewMode === 'list') {
-    return (
-      <div className="h-[100px] w-full rounded-[12px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 flex gap-4">
-        <Skeleton className="w-[80px] h-full rounded-lg" />
-        <div className="flex-1 space-y-3 py-1">
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-3 w-1/2" />
-        </div>
-      </div>
-    );
-  }
-  return (
-    <div className="h-[320px] rounded-[16px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden">
-      <Skeleton className="h-[130px] w-full rounded-none" />
-      <div className="p-4 space-y-4">
-        <Skeleton className="h-4 w-2/3" />
-        <Skeleton className="h-6 w-full" />
-        <div className="flex justify-between pt-4">
-          <Skeleton className="h-3 w-1/4" />
-          <Skeleton className="h-7 w-1/3 rounded-lg" />
-        </div>
-      </div>
     </div>
   );
 }

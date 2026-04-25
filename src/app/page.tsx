@@ -6,7 +6,6 @@ import Image from 'next/image';
 import { Button } from "@/components/ui/button";
 import { 
   Play, 
-  Database, 
   Zap,
   ArrowRight,
   Target,
@@ -19,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { useLanguage } from '@/context/language-context';
 import { useSettings } from '@/context/settings-context';
 import { JsonLd } from '@/components/SEO';
+import { trackEvent } from '@/lib/tracker';
 
 type SystemStatus = 'Optimal' | 'Degraded' | 'Offline';
 
@@ -30,6 +30,7 @@ export default function LandingPage() {
   const brandName = String(settings.platform_name || "DNTRNG");
 
   useEffect(() => {
+    trackEvent('page_view_home');
     const checkHealth = async () => {
       try {
         const res = await fetch('/api/health');
@@ -112,81 +113,21 @@ export default function LandingPage() {
 
       <main className="flex-1">
         <section className="relative pt-20 pb-24 md:pt-32 md:pb-40 px-6 overflow-hidden">
-          <div 
-            className="absolute inset-0 z-[-1]"
-            aria-hidden="true"
-            style={{
-              backgroundImage: "url('/brand/pattern.png')",
-              backgroundRepeat: "repeat",
-              backgroundSize: "400px 400px",
-              opacity: 0.05
-            }}
-          />
-
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12">
             <div className="flex-1 text-center md:text-left space-y-8">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 border border-blue-100 text-[#2563EB] text-[10px] font-black uppercase tracking-widest">
                 <Zap className="w-3 h-3 fill-current" aria-hidden="true" />
                 {t('heroBadge')}
               </div>
-              
-              <h1 className="text-5xl md:text-7xl font-black tracking-tight text-slate-900 leading-[1.1]">
-                {t('heroTitle')}
-              </h1>
-              
-              <p className="text-xl md:text-2xl text-slate-500 max-w-2xl font-medium leading-relaxed">
-                {t('heroSubtitle')}
-              </p>
-
+              <h1 className="text-5xl md:text-7xl font-black tracking-tight text-slate-900 leading-[1.1]">{t('heroTitle')}</h1>
+              <p className="text-xl md:text-2xl text-slate-500 max-w-2xl font-medium leading-relaxed">{t('heroSubtitle')}</p>
               <div className="flex flex-col sm:flex-row justify-center md:justify-start gap-4 pt-4">
-                <Link href="/tests">
-                  <Button size="lg" className="h-16 px-10 text-lg rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] font-black shadow-xl transition-all hover:scale-[1.02]">
-                    {t('browseTests')}
-                  </Button>
-                </Link>
-                <Link href="/quiz?id=demo-full">
-                  <Button size="lg" variant="outline" className="h-16 px-10 text-lg rounded-full bg-white border-2 border-slate-200 text-slate-900 font-black transition-all hover:bg-slate-50">
-                    {t('tryDemo')}
-                  </Button>
-                </Link>
+                <Link href="/tests"><Button size="lg" className="h-16 px-10 text-lg rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] font-black shadow-xl"> {t('browseTests')} </Button></Link>
+                <Link href="/quiz?id=demo-full" onClick={() => trackEvent('test_card_click', { test_id: 'demo-full', details: 'Hero Demo CTA' })}><Button size="lg" variant="outline" className="h-16 px-10 text-lg rounded-full bg-white border-2 border-slate-200 text-slate-900 font-black"> {t('tryDemo')} </Button></Link>
               </div>
             </div>
-
             <div className="flex-1 hidden md:block animate-in fade-in slide-in-from-right-8 duration-1000">
-              <Image 
-                src="/brand/hero-visual.png" 
-                alt="DNTRNG Interface Simulation" 
-                width={600} 
-                height={400} 
-                className="object-contain"
-                priority
-              />
-            </div>
-          </div>
-        </section>
-
-        <section className="bg-white py-32 border-y border-slate-200 px-6">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-20 space-y-4">
-              <h2 className="text-sm font-black uppercase tracking-[0.4em] text-[#2563EB]">{t('builtForLearning')}</h2>
-              <p className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">{t('featureSectionTitle')}</p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {[
-                { title: t('feature1Title'), desc: t('feature1Desc'), icon: Target, color: "bg-blue-500" },
-                { title: t('feature2Title'), desc: t('feature2Desc'), icon: ImageIcon, color: "bg-emerald-500" },
-                { title: t('feature3Title'), desc: t('feature3Desc'), icon: ListOrdered, color: "bg-orange-500" },
-                { title: t('feature4Title'), desc: t('feature4Desc'), icon: BarChart3, color: "bg-purple-500" }
-              ].map((feature, i) => (
-                <article key={i} className="group p-8 rounded-[2.5rem] bg-[#F4F5F7] hover:bg-white border-2 border-transparent hover:border-slate-100 transition-all duration-500 hover:shadow-2xl">
-                  <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center mb-8 shadow-lg transition-transform group-hover:scale-110", feature.color)}>
-                    <feature.icon className="w-6 h-6 text-white" aria-hidden="true" />
-                  </div>
-                  <h3 className="text-xl font-black text-slate-900 mb-4 tracking-tight">{feature.title}</h3>
-                  <p className="text-slate-500 font-medium leading-relaxed text-sm">{feature.desc}</p>
-                </article>
-              ))}
+              <Image src="/brand/hero-visual.png" alt="DNTRNG Interface" width={600} height={400} className="object-contain" priority />
             </div>
           </div>
         </section>
@@ -194,34 +135,13 @@ export default function LandingPage() {
 
       <footer className="py-20 border-t border-slate-200 bg-white">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row items-start gap-12 md:gap-32 mb-16">
-            <div className="space-y-6 max-w-sm">
-              <Link href="/" className="flex items-center">
-                <Image src="/brand/logo-horizontal.png" alt={brandName} width={140} height={35} />
-              </Link>
-              <p className="text-slate-500 font-medium text-sm leading-relaxed">{t('footerDesc')}</p>
-            </div>
-            
-            <div className="flex flex-1 gap-12 md:gap-24">
-              <div className="space-y-6">
-                <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-900">{t('platform')}</h4>
-                <nav className="flex flex-col gap-4 text-xs font-bold text-slate-500">
-                  <Link href="/tests" className="hover:text-[#2563EB] transition-colors">{t('library')}</Link>
-                  <Link href="/admin" className="hover:text-[#2563EB] transition-colors">{t('adminConsole')}</Link>
-                </nav>
-              </div>
-            </div>
-          </div>
-          
           <div className="flex flex-col md:flex-row justify-between items-center pt-12 border-t border-slate-100 gap-8">
             <p className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-400">
               {settings.custom_footer_text || `© ${new Date().getFullYear()} DNTRNG • PRECISION ASSESSMENT`}
             </p>
             <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-full border border-slate-100">
               <div className={cn("w-2 h-2 rounded-full animate-pulse", systemStatus === 'Optimal' ? "bg-emerald-500" : systemStatus === 'Degraded' ? "bg-amber-500" : "bg-red-500")} aria-hidden="true" />
-              <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">
-                {t('systemStatus')}: {t(systemStatus.toLowerCase())}
-              </span>
+              <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">{t('systemStatus')}: {t(systemStatus.toLowerCase())}</span>
             </div>
           </div>
         </div>

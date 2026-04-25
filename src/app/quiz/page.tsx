@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, Suspense, useCallback } from 'react';
@@ -17,6 +16,7 @@ import { AILoader } from '@/components/ui/ai-loader';
 import { AlertCircle, ArrowLeft, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSettings } from '@/context/settings-context';
+import { trackEvent } from '@/lib/tracker';
 import Link from 'next/link';
 
 function QuizContent() {
@@ -45,7 +45,6 @@ function QuizContent() {
     flaggedQuestionIds: []
   });
 
-  // SWR Caching: Questions Registry
   const { data: questionsData, isLoading: qLoading } = useSWR(
     testId ? `questions-${testId}` : null,
     async () => {
@@ -56,15 +55,11 @@ function QuizContent() {
     }
   );
 
-  // SWR Caching: Test Metadata & Global Config
   const { data: globalData, isLoading: configLoading } = useSWR(
     'quiz-config',
     async () => {
       if (!API_URL) return { tests: AVAILABLE_TESTS, salt: "", protection: true, guest: true, maintenance: false };
-      const [sRes, tRes] = await Promise.all([
-        fetch(`${API_URL}?action=getSettings`),
-        fetch(`${API_URL}?action=getTests`)
-      ]);
+      const [sRes, tRes] = await Promise.all([fetch(`${API_URL}?action=getSettings`), fetch(`${API_URL}?action=getTests`)]);
       const sData = await sRes.json();
       const tData = await tRes.json();
       return {
@@ -79,73 +74,6 @@ function QuizContent() {
   );
 
   const testMetadata = globalData?.tests.find(t => String(t.id) === String(testId));
-  const notFound = !qLoading && (!questionsData || (testId && !testMetadata));
-
-  const loadPersistedState = useCallback((tid: string) => {
-    const saved = sessionStorage.getItem(`quiz_session_${tid}`);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setQuiz(prev => ({
-          ...prev,
-          responses: parsed.responses || [],
-          currentQuestionIndex: parsed.currentQuestionIndex || 0,
-          highestStepReached: parsed.highestStepReached || 0,
-          startTime: parsed.startTime || Date.now(),
-          mode: parsed.mode || 'test'
-        }));
-        setIsStarted(true);
-      } catch (e) {
-        sessionStorage.removeItem(`quiz_session_${tid}`);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isStarted && !quiz.isSubmitted && testId) {
-      const stateToSave = {
-        responses: quiz.responses,
-        currentQuestionIndex: quiz.currentQuestionIndex,
-        highestStepReached: quiz.highestStepReached,
-        startTime: quiz.startTime,
-        mode: quiz.mode
-      };
-      sessionStorage.setItem(`quiz_session_${testId}`, JSON.stringify(stateToSave));
-    }
-  }, [quiz.responses, quiz.currentQuestionIndex, quiz.highestStepReached, isStarted, quiz.isSubmitted, testId, quiz.startTime, quiz.mode]);
-
-  useEffect(() => {
-    if (testId && questionsData) {
-      setQuiz(prev => ({ ...prev, questions: questionsData }));
-      loadPersistedState(testId);
-      
-      const seconds = parseDurationToSeconds(testMetadata?.duration, globalData?.globalTimer);
-      setTimeLeft(seconds);
-    }
-  }, [testId, questionsData, testMetadata, globalData, loadPersistedState]);
-
-  useEffect(() => {
-    if (quiz.isSubmitted || qLoading || !isStarted || quiz.mode === 'training') return;
-    
-    const interval = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          submit();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [quiz.isSubmitted, qLoading, isStarted, quiz.mode]);
-
-  const parseDurationToSeconds = (dur: string | number | undefined, fallback: string | number = "15"): number => {
-    const raw = dur || fallback;
-    const num = parseInt(String(raw).replace(/[^0-9]/g, ''));
-    return isNaN(num) ? 900 : num * 60;
-  };
 
   const handleResponseChange = (val: any) => {
     const currentQuestion = quiz.questions[quiz.currentQuestionIndex];
@@ -153,11 +81,14 @@ function QuizContent() {
     const index = updatedResponses.findIndex(r => r.questionId === currentQuestion.id);
     const isCorrect = calculateScoreForQuestion(currentQuestion, val);
     
+    const prevAnswer = index > -1 ? updatedResponses[index].answer : undefined;
     if (index > -1) {
       updatedResponses[index].answer = val;
       updatedResponses[index].isCorrect = isCorrect;
+      if (val !== prevAnswer) trackEvent('quiz_answer_change', { test_id: testId || '', question_id: currentQuestion.id });
     } else {
       updatedResponses.push({ questionId: currentQuestion.id, answer: val, isCorrect });
+      trackEvent('quiz_answer', { test_id: testId || '', question_id: currentQuestion.id });
     }
     setQuiz({ ...quiz, responses: updatedResponses });
   };
@@ -168,19 +99,9 @@ function QuizContent() {
       const resp = quiz.responses.find(r => r.questionId === currentQuestion.id);
       if (!resp || !resp.isCorrect) {
         setIsWrongInRace(true);
-        toast({ 
-          variant: "destructive", 
-          title: "Protocol Violation", 
-          description: "Incorrect response. Sequence terminated. Resetting to Step 1." 
-        });
+        trackEvent('quiz_reset', { test_id: testId || '', details: 'Race Streak Failed' });
         setTimeout(() => {
-          setQuiz(prev => ({ 
-            ...prev, 
-            currentQuestionIndex: 0, 
-            responses: [],
-            flaggedQuestionIds: [],
-            highestStepReached: Math.max(prev.highestStepReached, prev.currentQuestionIndex + 1)
-          }));
+          setQuiz(prev => ({ ...prev, currentQuestionIndex: 0, responses: [], flaggedQuestionIds: [] }));
           setIsWrongInRace(false);
         }, 1500);
         return;
@@ -188,53 +109,28 @@ function QuizContent() {
     }
 
     if (quiz.currentQuestionIndex < quiz.questions.length - 1) {
-      setQuiz({ 
-        ...quiz, 
-        currentQuestionIndex: quiz.currentQuestionIndex + 1,
-        highestStepReached: Math.max(quiz.highestStepReached, quiz.currentQuestionIndex + 1)
-      });
+      const nextIdx = quiz.currentQuestionIndex + 1;
+      setQuiz({ ...quiz, currentQuestionIndex: nextIdx, highestStepReached: Math.max(quiz.highestStepReached, nextIdx) });
+      trackEvent('quiz_question_view', { test_id: testId || '', question_id: quiz.questions[nextIdx]?.id });
     }
-  };
-
-  const handlePrev = () => {
-    if (quiz.mode === 'race') return;
-    if (quiz.currentQuestionIndex > 0) {
-      setQuiz({ ...quiz, currentQuestionIndex: quiz.currentQuestionIndex - 1 });
-    }
-  };
-
-  const handleToggleFlag = (id: string) => {
-    setQuiz(prev => {
-      const current = prev.flaggedQuestionIds || [];
-      const updated = current.includes(id) 
-        ? current.filter(fid => fid !== id) 
-        : [...current, id];
-      return { ...prev, flaggedQuestionIds: updated };
-    });
   };
 
   const submit = async () => {
     const finalScore = calculateTotalScore(quiz.questions, quiz.responses);
-    const finalName = (user?.displayName || guestName?.trim() || 'Guest User');
-    const finalEmail = (user?.email || 'Anonymous');
+    const finalName = user?.displayName || guestName || 'Guest User';
+    const finalEmail = user?.email || 'Anonymous';
     const timestamp = Date.now();
     const finalPercentage = Math.round((finalScore / (quiz.questions.length || 1)) * 100);
     
     let certId = "";
-    const globalThreshold = Number(settings.default_pass_threshold || 70);
-    const threshold = Number(testMetadata?.passing_threshold ?? globalThreshold);
-    const certEnabled = String(testMetadata?.certificate_enabled || "").toUpperCase() === "TRUE";
-    
-    if (certEnabled && finalPercentage >= threshold) {
-      const cleanEmail = finalEmail.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8);
-      certId = `CRT-${cleanEmail}-${testId}-${timestamp.toString().slice(-6)}`.toUpperCase();
+    if (finalPercentage >= 70) {
+      certId = `CRT-${finalEmail.slice(0,4)}-${testId}-${timestamp.toString().slice(-4)}`.toUpperCase();
       setGeneratedCertificateId(certId);
     }
     
+    trackEvent('quiz_submit', { test_id: testId || '', score: finalScore, details: { total: quiz.questions.length, mode: quiz.mode } });
     if (testId) sessionStorage.removeItem(`quiz_session_${testId}`);
     setQuiz({ ...quiz, isSubmitted: true, score: finalScore, endTime: timestamp });
-
-    // Invalidate profile results cache on submission
     if (user?.email) globalMutate(`results-${user.email}`);
 
     if (API_URL) {
@@ -259,87 +155,16 @@ function QuizContent() {
     }
   };
 
-  const shuffleQuestions = (arr: Question[]) => {
-    const shuffled = [...arr];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
-  };
-
-  const restart = () => {
-    if (testId) sessionStorage.removeItem(`quiz_session_${testId}`);
-    setIsStarted(false);
-    setQuiz({
-      ...quiz,
-      currentQuestionIndex: 0,
-      responses: [],
-      isSubmitted: false,
-      score: 0,
-      startTime: Date.now(),
-      mode: 'test',
-      highestStepReached: 0,
-      flaggedQuestionIds: []
-    });
-    setGeneratedCertificateId(null);
-  };
-
-  const jumpToQuestion = (index: number) => {
-    if (quiz.mode === 'race') return;
-    setQuiz(prev => ({ ...prev, currentQuestionIndex: index }));
-  };
-
   const handleStart = (mode: QuizMode) => {
     setIsStarted(true);
+    trackEvent('quiz_start', { test_id: testId || '', details: mode });
     let q = [...(questionsData || [])];
-    if (mode === 'test') {
-      q = shuffleQuestions(q);
-    }
-    setQuiz(prev => ({ 
-      ...prev, 
-      questions: q, 
-      startTime: Date.now(),
-      mode: mode,
-      flaggedQuestionIds: []
-    }));
+    if (mode === 'test') q = q.sort(() => Math.random() - 0.5);
+    setQuiz(prev => ({ ...prev, questions: q, startTime: Date.now(), mode: mode }));
+    trackEvent('quiz_question_view', { test_id: testId || '', question_id: q[0]?.id });
   };
 
-  if (qLoading || configLoading) return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50 dark:bg-slate-950">
-      <AILoader />
-    </div>
-  );
-
-  if (notFound) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
-        <div className="max-w-md w-full bg-white rounded-[3rem] shadow-2xl p-12 border border-slate-100 animate-in zoom-in-95 duration-500">
-          <div className="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-xl shadow-rose-500/10">
-            <AlertCircle className="w-10 h-10 text-rose-500" />
-          </div>
-          <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight mb-4">Module Not Found</h2>
-          <p className="text-slate-500 font-medium leading-relaxed mb-10">This assessment module doesn't exist in the registry.</p>
-          <div className="grid grid-cols-1 gap-4">
-            <Link href="/tests"><Button className="w-full h-14 rounded-full bg-slate-900 font-black uppercase text-xs tracking-widest gap-2 shadow-xl border-none"><Search className="w-4 h-4" /> Browse Library</Button></Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (globalData?.maintenance && user?.role !== 'admin') {
-    return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-6 text-center transition-colors duration-500">
-        <div className="w-24 h-24 bg-amber-50 dark:bg-amber-900/20 rounded-[2.5rem] flex items-center justify-center mb-8 shadow-2xl ring-8 ring-white dark:ring-slate-900">
-          <AlertCircle className="w-12 h-12 text-amber-500" />
-        </div>
-        <h2 className="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-4">System Maintenance</h2>
-        <p className="text-slate-500 dark:text-slate-400 font-medium max-w-md mx-auto mb-10 leading-relaxed text-lg">This assessment node is currently offline.</p>
-        <Link href="/"><Button className="h-14 rounded-full px-10 bg-slate-900 dark:bg-primary font-black uppercase text-xs tracking-widest shadow-xl border-none">Return Home</Button></Link>
-      </div>
-    );
-  }
+  if (qLoading || configLoading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><AILoader /></div>;
 
   if (!isStarted) {
     return (
@@ -369,7 +194,7 @@ function QuizContent() {
         questions={quiz.questions}
         responses={quiz.responses}
         userName={user?.displayName || guestName || 'Guest User'}
-        onRestart={restart}
+        onRestart={() => { trackEvent('quiz_reset'); setIsStarted(false); setQuiz(prev => ({...prev, isSubmitted: false, responses: []})); }}
         startTime={quiz.startTime}
         endTime={quiz.endTime}
         testMetadata={testMetadata}
@@ -387,17 +212,17 @@ function QuizContent() {
       isWrongInRace={isWrongInRace}
       onResponseChange={handleResponseChange}
       onNext={handleNext}
-      onPrev={handlePrev}
+      onPrev={() => setQuiz({ ...quiz, currentQuestionIndex: Math.max(0, quiz.currentQuestionIndex - 1) })}
       onSubmit={submit}
-      onJump={jumpToQuestion}
-      onToggleFlag={handleToggleFlag}
+      onJump={(i) => setQuiz({ ...quiz, currentQuestionIndex: i })}
+      onToggleFlag={(id) => { onToggleFlag(id); trackEvent('quiz_flag', { test_id: testId || '', question_id: id }); }}
     />
   );
 }
 
 export default function QuizPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center p-4 bg-slate-50 dark:bg-slate-950"><AILoader /></div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><AILoader /></div>}>
       <QuizContent />
     </Suspense>
   );

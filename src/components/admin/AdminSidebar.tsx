@@ -10,7 +10,8 @@ import {
   MessageSquare,
   History,
   Languages,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Activity
 } from "lucide-react";
 import { 
   Sidebar, 
@@ -38,7 +39,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Image from 'next/image';
 
-export type AdminTab = 'overview' | 'tests' | 'users' | 'responses' | 'activity' | 'settings';
+export type AdminTab = 'overview' | 'tests' | 'users' | 'responses' | 'activity' | 'settings' | 'events';
 
 interface AdminSidebarProps {
   activeTab: AdminTab;
@@ -46,7 +47,6 @@ interface AdminSidebarProps {
   logout: () => void;
 }
 
-// Performance: Memoize sidebar to prevent re-renders on dashboard updates
 export const AdminSidebar = React.memo(({ activeTab, user, logout }: AdminSidebarProps) => {
   const { language, setLanguage, t } = useLanguage();
   const { settings } = useSettings();
@@ -58,6 +58,7 @@ export const AdminSidebar = React.memo(({ activeTab, user, logout }: AdminSideba
     { id: 'tests', label: t('testLibrary'), icon: ClipboardList, href: '/admin/tests' },
     { id: 'users', label: t('students'), icon: UsersIcon, href: '/admin/users' },
     { id: 'responses', label: t('results'), icon: MessageSquare, href: '/admin/responses' },
+    { id: 'events', label: 'Intelligence Feed', icon: Activity, href: '/admin/events' },
     { id: 'activity', label: t('activity'), icon: History, href: '/admin/activity' },
     { id: 'settings', label: t('settings'), icon: SettingsIcon, href: '/admin/settings' }
   ];

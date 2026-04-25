@@ -1,12 +1,12 @@
 export const GAS_CODE = `/**
- * QUESTFLOW BACKEND v18.6 - GRANULAR PERSISTENCE PROTOCOL
+ * QUESTFLOW BACKEND v18.7 - GRANULAR PERSISTENCE & EVENT TRACKING PROTOCOL
  * 
  * ACTIONS SUPPORTED:
- * - GET: login, getTests, getUsers, getResponses, getQuestions, getActivity, getSettings, getVersion
- * - POST: submitResponse, saveTest, deleteTest, saveUser, deleteUser, saveQuestion, saveQuestions, saveUsers, logActivity, saveSetting, deleteResponse
+ * - GET: login, getTests, getUsers, getResponses, getQuestions, getActivity, getSettings, getVersion, getEvents
+ * - POST: submitResponse, saveTest, deleteTest, saveUser, deleteUser, saveQuestion, saveQuestions, saveUsers, logActivity, saveSetting, deleteResponse, logEvent
  */
 
-const GAS_VERSION = "18.6";
+const GAS_VERSION = "18.7";
 
 function doGet(e) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -15,6 +15,18 @@ function doGet(e) {
   try {
     if (action === 'getVersion') {
       return createResponse({ version: GAS_VERSION });
+    }
+
+    if (action === 'getEvents') {
+      const sheet = ss.getSheetByName('Events');
+      if (!sheet) return createResponse([]);
+      const limit = parseInt(e.parameter.limit || "200");
+      const type = e.parameter.event_type;
+      let data = getRowsAsObjects(sheet).reverse();
+      if (type) {
+        data = data.filter(ev => ev.event_type === type);
+      }
+      return createResponse(data.slice(0, limit));
     }
 
     if (action === 'login') {
@@ -39,7 +51,6 @@ function doGet(e) {
       const sheet = ss.getSheetByName('Tests');
       if (!sheet) return createResponse([]);
       const tests = getRowsAsObjects(sheet);
-      // Protocol: Enrich test objects with real-time question counts from their respective tabs
       return createResponse(tests.map(t => {
         const qSheet = ss.getSheetByName(t.id);
         t.questions_count = qSheet ? Math.max(0, qSheet.getLastRow() - 1) : 0;
@@ -50,7 +61,6 @@ function doGet(e) {
     if (action === 'getUsers') {
       const sheet = ss.getSheetByName('Users');
       if (!sheet) return createResponse([]);
-      // v18.2 Transparency: Passwords included for administrative oversight in the dashboard
       return createResponse(getRowsAsObjects(sheet));
     }
 
@@ -93,6 +103,20 @@ function doPost(e) {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const payload = JSON.parse(e.postData.contents);
     const action = payload.action;
+
+    if (action === 'logEvent') {
+      let sheet = ss.getSheetByName('Events') || ss.insertSheet('Events');
+      const headers = ['timestamp', 'session_id', 'user_id', 'user_name', 'user_role', 'event_type', 'page', 'test_id', 'test_name', 'question_id', 'score', 'details', 'device', 'browser'];
+      if (sheet.getLastRow() === 0) sheet.appendRow(headers);
+      
+      const rowData = headers.map(h => {
+        let val = payload[h];
+        if (h === 'details' && typeof val === 'object') val = JSON.stringify(val);
+        return (val !== undefined && val !== null) ? val : "";
+      });
+      sheet.appendRow(rowData);
+      return createResponse({ status: 'success' });
+    }
 
     if (action === 'logActivity') {
       let sheet = ss.getSheetByName('Activity') || ss.insertSheet('Activity');
@@ -144,18 +168,12 @@ function doPost(e) {
     if (action === 'submitResponse') {
       let sheet = ss.getSheetByName('Responses') || ss.insertSheet('Responses');
       const headers = ['Timestamp', 'User Name', 'User Email', 'Test ID', 'Score', 'Total', 'Duration (ms)', 'Raw Responses', 'Certificate ID'];
-      
-      if (sheet.getLastRow() === 0) {
-        sheet.appendRow(headers);
-      }
-      
-      const userName = (payload.userName || payload.name || '').trim() || 'Guest User';
-      const userEmail = (payload.userEmail || payload.email || '').trim() || 'Anonymous';
+      if (sheet.getLastRow() === 0) sheet.appendRow(headers);
       
       const rowData = [
         new Date(), 
-        userName,
-        userEmail, 
+        payload.userName || 'Guest User',
+        payload.userEmail || 'Anonymous', 
         payload.testId || 'Unknown', 
         payload.score || 0, 
         payload.total || 0, 
@@ -163,7 +181,6 @@ function doPost(e) {
         JSON.stringify(payload.responses || []),
         payload.certificateId || ''
       ];
-      
       sheet.appendRow(rowData);
       return createResponse({ status: 'success' });
     }
@@ -176,7 +193,6 @@ function doPost(e) {
       if (sheet.getLastRow() === 0) {
         sheet.appendRow(headers);
       } else {
-        // v18.6 Schema Migration: Ensure all headers exist physically in the sheet
         const currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
         headers.forEach(h => {
           if (currentHeaders.indexOf(h) === -1) {
@@ -229,11 +245,9 @@ function doPost(e) {
 
     if (action === 'saveQuestion') {
       const sheet = ss.getSheetByName(payload.testId) || ss.insertSheet(payload.testId);
-      
       if (sheet.getLastRow() === 0) {
         sheet.appendRow(['id', 'question_text', 'question_type', 'options', 'correct_answer', 'order_group', 'image_url', 'metadata', 'required']);
       }
-
       upsertRow(sheet, 'id', payload.question.id, payload.question);
       return createResponse({ status: 'success' });
     }
@@ -241,11 +255,9 @@ function doPost(e) {
     if (action === 'saveQuestions') {
       const sheet = ss.getSheetByName(payload.testId) || ss.insertSheet(payload.testId);
       sheet.clear();
-      
       const questions = payload.questions;
       const headers = ['id', 'question_text', 'question_type', 'options', 'correct_answer', 'order_group', 'image_url', 'metadata', 'required'];
       sheet.appendRow(headers);
-      
       if (Array.isArray(questions) && questions.length > 0) {
         questions.forEach(q => {
           const row = headers.map(h => {
@@ -293,12 +305,10 @@ function upsertRow(sheet, idKey, idValue, data) {
   }
   
   const rowData = headers.map((h, i) => {
-    // v18.1 Persistence: Only update columns present in the payload data
     if (h in data) {
       const val = data[h];
       return (val !== undefined && val !== null) ? val : "";
     }
-    // If column key is missing from payload, preserve the existing registry value
     return (rowIndex > -1) ? existingRow[i] : "";
   });
 

@@ -1,7 +1,6 @@
-
 "use client";
 
-import React, { useState, useEffect, Suspense, useCallback } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import useSWR from 'swr';
 import { useToast } from '@/hooks/use-toast';
 import { API_URL } from '@/lib/api-config';
@@ -9,13 +8,14 @@ import { OverviewTab } from '@/components/admin/OverviewTab';
 import { AdminDialogs } from '@/components/admin/AdminDialogs';
 import { ChangelogPanel } from '@/components/admin/ChangelogPanel';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { DEMO_QUESTIONS, AVAILABLE_TESTS } from '@/app/lib/demo-data';
+import { AVAILABLE_TESTS } from '@/app/lib/demo-data';
 import { useSettings } from '@/context/settings-context';
 import { logActivity } from '@/lib/activity-log';
+import { trackEvent } from '@/lib/tracker';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
+import { LiveActivityWidget } from '@/components/admin/LiveActivityWidget';
 
-// Performance: Lazy load heavy chart components
 const DashboardCharts = dynamic(() => 
   import('@/components/admin/DashboardCharts').then(mod => mod.DashboardCharts), 
   { 
@@ -42,7 +42,10 @@ function AdminDashboardContent() {
     bulk: false
   });
 
-  // SWR Parallel Data Registry
+  useEffect(() => {
+    trackEvent('page_view', { details: 'Admin Dashboard Overview' });
+  }, []);
+
   const { data, mutate, isLoading } = useSWR(
     API_URL ? 'admin-dashboard-data' : null,
     async () => {
@@ -70,11 +73,7 @@ function AdminDashboardContent() {
   useEffect(() => {
     const error = searchParams.get('error');
     if (error === 'route-not-found') {
-      toast({
-        variant: "destructive",
-        title: "Navigation Error",
-        description: "The requested administrative route was not found.",
-      });
+      toast({ variant: "destructive", title: "Navigation Error", description: "The requested route was not found." });
       router.replace('/admin');
     }
   }, [searchParams, router, toast]);
@@ -87,11 +86,9 @@ function AdminDashboardContent() {
         mode: 'no-cors',
         body: JSON.stringify({ action, ...payload })
       });
-      // Registry Cache Invalidation Protocol
       mutate();
       return true;
     } catch (err) {
-      console.error(err);
       return false;
     }
   };
@@ -99,8 +96,9 @@ function AdminDashboardContent() {
   const handleSaveSetting = async (key: string, value: string) => {
     const ok = await handlePost('saveSetting', { key, value });
     if (ok) {
-      toast({ title: "Success", description: "System settings updated." });
+      toast({ title: "Success", description: "Settings updated." });
       logActivity("Settings updated", key);
+      trackEvent('admin_settings_save', { details: key });
       refreshSettings();
     }
   };
@@ -111,7 +109,7 @@ function AdminDashboardContent() {
       for (const test of AVAILABLE_TESTS) {
         await handlePost('saveTest', { data: { ...test, image_url: test.image }});
       }
-      toast({ title: "Sync Complete", description: "All assessment modules are now live." });
+      toast({ title: "Sync Complete", description: "Demo library synchronized." });
       mutate();
     } catch (error) {
       toast({ variant: "destructive", title: "Seed Error" });
@@ -133,7 +131,14 @@ function AdminDashboardContent() {
         loading={isLoading}
       />
 
-      <DashboardCharts responses={dashboardData.responses} onSeeAll={() => router.push('/admin/responses')} />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-8">
+          <DashboardCharts responses={dashboardData.responses} onSeeAll={() => router.push('/admin/responses')} />
+        </div>
+        <div className="lg:col-span-4">
+          <LiveActivityWidget />
+        </div>
+      </div>
 
       <ChangelogPanel />
 
@@ -151,6 +156,7 @@ function AdminDashboardContent() {
           }
           const ok = await handlePost('saveTest', { data: payload });
           if (ok) {
+            trackEvent('admin_test_create', { test_id: payload.id, test_name: payload.title });
             toast({ title: "Success", description: "Test record updated." });
             setDialogs(prev => ({ ...prev, test: false }));
           }
@@ -158,6 +164,7 @@ function AdminDashboardContent() {
         onSaveUser={async (userData) => {
           const ok = await handlePost('saveUser', { data: userData });
           if (ok) {
+            trackEvent('admin_student_add', { details: userData.email });
             toast({ title: "Success", description: "Student record updated." });
             setDialogs(prev => ({ ...prev, user: false }));
           }

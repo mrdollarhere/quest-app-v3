@@ -12,6 +12,7 @@ import { LanguageProvider } from '@/context/language-context';
 import { AILoader } from '@/components/ui/ai-loader';
 import { API_URL } from '@/lib/api-config';
 import { REQUIRED_GAS_VERSION, GAS_CHANGELOG_URL } from '@/lib/gas-version';
+import { trackEvent } from '@/lib/tracker';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading, logout } = useAuth();
@@ -22,7 +23,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [currentGasVersion, setCurrentGasVersion] = useState<string | null>(null);
   const [showBanner, setShowBanner] = useState(false);
 
-  // Redirection Protocol: Force unauthenticated users to the identity registry
   useEffect(() => {
     if (!authLoading && !user) {
       const fullPath = window.location.pathname + window.location.search;
@@ -30,27 +30,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   }, [user, authLoading, router]);
 
-  // Version Check Protocol: Verify GAS registry integrity
   useEffect(() => {
     if (!API_URL || !user || user.role !== 'admin') return;
 
     const checkGasVersion = async () => {
-      // Check reminder persistence (24h snooze)
       const lastDismissed = localStorage.getItem('dntrng_gas_reminder_dismissed');
       if (lastDismissed) {
         const dismissedAt = parseInt(lastDismissed);
         if (Date.now() - dismissedAt < 24 * 60 * 60 * 1000) {
-          return; // Still snoozed
+          return;
         }
       }
 
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000);
-        
         const res = await fetch(`${API_URL}?action=getVersion`, { signal: controller.signal });
         const data = await res.json();
-        
         clearTimeout(timeoutId);
         
         if (data && data.version) {
@@ -60,9 +56,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             setShowBanner(true);
           }
         }
-      } catch (err) {
-        // Fail silently - do not block admin functionality if GAS is unreachable or old
-      }
+      } catch (err) {}
     };
 
     checkGasVersion();
@@ -73,16 +67,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     localStorage.setItem('dntrng_gas_reminder_dismissed', Date.now().toString());
   };
 
-  // Determine active tab from pathname
   const activeTab = pathname === '/admin' ? 'overview' : 
                     pathname.startsWith('/admin/tests') ? 'tests' :
                     pathname.startsWith('/admin/users') ? 'users' :
                     pathname.startsWith('/admin/responses') ? 'responses' :
                     pathname.startsWith('/admin/activity') ? 'activity' :
+                    pathname.startsWith('/admin/events') ? 'events' :
                     pathname.startsWith('/admin/settings') ? 'settings' : 'overview';
 
   const getHeaderTitle = () => {
     if (pathname === '/admin') return 'Dashboard';
+    if (pathname === '/admin/events') return 'Intelligence Feed';
     const last = pathname.split('/').pop() || '';
     if (last === 'new') return 'New Test';
     return last.replace(/-/g, ' ');
@@ -127,32 +122,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   <AlertTriangle className="w-5 h-5" />
                   <p className="text-xs font-bold leading-none">
                     Your GAS script needs updating. Current: <span className="font-black">v{currentGasVersion || 'Unknown'}</span> — Required: <span className="font-black">v{REQUIRED_GAS_VERSION}</span>. 
-                    Redeploy <code className="bg-white/50 px-1 rounded">src/lib/gas/latest.ts</code> to your Google Apps Script.
                   </p>
-                  <a 
-                    href={GAS_CHANGELOG_URL} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-[10px] font-black uppercase tracking-widest hover:underline flex items-center gap-1 ml-2"
-                  >
+                  <a href={GAS_CHANGELOG_URL} target="_blank" rel="noopener noreferrer" className="text-[10px] font-black uppercase tracking-widest hover:underline flex items-center gap-1 ml-2">
                     See what changed <ChevronRight className="w-3 h-3" />
                   </a>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button 
-                    onClick={handleDismissBanner}
-                    className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 bg-white/50 rounded-full hover:bg-white transition-colors"
-                  >
-                    Remind me later
-                  </button>
-                  <button onClick={() => setShowBanner(false)} className="p-1 hover:bg-white/50 rounded-full transition-colors">
-                    <X className="w-4 h-4" />
-                  </button>
+                  <button onClick={handleDismissBanner} className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 bg-white/50 rounded-full hover:bg-white">Remind me later</button>
+                  <button onClick={() => setShowBanner(false)} className="p-1 hover:bg-white/50 rounded-full"><X className="w-4 h-4" /></button>
                 </div>
               </div>
             )}
             
-            <header className="h-20 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-8 sticky top-[showBanner ? 48px : 0] z-50 backdrop-blur-sm bg-white/80 dark:bg-slate-900/80">
+            <header className="h-20 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-8 sticky top-0 z-50 backdrop-blur-sm bg-white/80 dark:bg-slate-900/80">
               <div className="flex items-center gap-4">
                 <SidebarTrigger className="lg:hidden" />
                 <div>
