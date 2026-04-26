@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { ArrowLeft, Save, Loader2, Sparkles, LayoutGrid, Image as ImageIcon, Clock, Gauge, X, Trophy } from "lucide-react";
 import { useSettings } from '@/context/settings-context';
+import { trackEvent } from '@/lib/tracker';
 
 export default function NewTestPage() {
   const [loading, setLoading] = useState(false);
@@ -57,13 +58,6 @@ export default function NewTestPage() {
       data.id = `${slug}-${Date.now().toString().slice(-4)}`;
     }
 
-    // Protocol Audit: Confirm payload integrity
-    console.log('[Registry Sync] Creating Test:', {
-      id: data.id,
-      certificate_enabled: data.certificate_enabled,
-      passing_threshold: data.passing_threshold
-    });
-
     try {
       await fetch(API_URL, {
         method: 'POST',
@@ -74,6 +68,18 @@ export default function NewTestPage() {
       toast({ 
         title: "Test Created", 
         description: "Redirecting to question editor..." 
+      });
+
+      // Track successful creation
+      trackEvent('admin_test_create', { 
+        test_id: data.id as string, 
+        test_name: data.title as string,
+        details: {
+          difficulty: data.difficulty,
+          duration: data.duration,
+          category: data.category,
+          certificate_enabled: data.certificate_enabled
+        }
       });
       
       router.push(`/admin/tests/${data.id}`);

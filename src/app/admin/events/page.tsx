@@ -36,6 +36,10 @@ export default function AdminEventsPage() {
         body: JSON.stringify({ action: 'cleanDuplicates' })
       });
       toast({ title: "Forensic Scan Triggered", description: "Request committed to registry. Refreshing feed..." });
+      
+      // Track action after success
+      trackEvent('admin_events_cleanup');
+      
       setTimeout(() => {
         mutate();
         setCleaning(false);

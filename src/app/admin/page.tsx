@@ -110,6 +110,7 @@ function AdminDashboardContent() {
         await handlePost('saveTest', { data: { ...test, image_url: test.image }});
       }
       toast({ title: "Sync Complete", description: "Demo library synchronized." });
+      trackEvent('admin_seed_data', { details: { count: AVAILABLE_TESTS.length } });
       mutate();
     } catch (error) {
       toast({ variant: "destructive", title: "Seed Error" });
@@ -156,7 +157,15 @@ function AdminDashboardContent() {
           }
           const ok = await handlePost('saveTest', { data: payload });
           if (ok) {
-            trackEvent('admin_test_create', { test_id: payload.id, test_name: payload.title });
+            trackEvent('admin_test_create', { 
+              test_id: payload.id, 
+              test_name: payload.title,
+              details: {
+                difficulty: payload.difficulty,
+                duration: payload.duration,
+                category: payload.category
+              }
+            });
             toast({ title: "Success", description: "Test record updated." });
             setDialogs(prev => ({ ...prev, test: false }));
           }
@@ -164,7 +173,7 @@ function AdminDashboardContent() {
         onSaveUser={async (userData) => {
           const ok = await handlePost('saveUser', { data: userData });
           if (ok) {
-            trackEvent('admin_student_add', { details: userData.email });
+            trackEvent('admin_student_add', { details: { studentEmail: userData.email, studentName: userData.name } });
             toast({ title: "Success", description: "Student record updated." });
             setDialogs(prev => ({ ...prev, user: false }));
           }

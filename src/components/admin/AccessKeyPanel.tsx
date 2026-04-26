@@ -33,6 +33,7 @@ import { addDays, format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/context/language-context';
 import { useSettings } from '@/context/settings-context';
+import { trackEvent } from '@/lib/tracker';
 
 interface AccessKeyPanelProps {
   settings: Record<string, string>;
@@ -82,8 +83,17 @@ export function AccessKeyPanel({ settings: initialSettings, lastSync, onSaveSett
   };
 
   const handleSaveAll = async () => {
+    // Audit check: Has salt changed?
+    const saltChanged = newSalt !== initialSettings.daily_key_salt;
+    
     onSaveSetting('daily_key_salt', newSalt);
     onSaveSetting('platform_name', platformName);
+    
+    // Telemetry node
+    if (saltChanged) {
+      trackEvent('admin_access_key_change');
+    }
+    
     setIsSettingsDialogOpen(false);
     setTimeout(refreshSettings, 1000);
   };

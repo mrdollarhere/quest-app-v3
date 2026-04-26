@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -6,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { API_URL } from '@/lib/api-config';
 import { ResponsesTab } from '@/components/admin/ResponsesTab';
 import { AILoader } from '@/components/ui/ai-loader';
+import { trackEvent } from '@/lib/tracker';
 
 export default function AdminResponsesPage() {
   const [loading, setLoading] = useState(false);
@@ -47,6 +47,12 @@ export default function AdminResponsesPage() {
         body: JSON.stringify({ action, ...payload })
       });
       toast({ title: "Success", description: "Registry updated." });
+      
+      // Track response deletion if applicable
+      if (action === 'deleteResponse') {
+        trackEvent('admin_response_delete', { details: { timestamp: payload.timestamp, email: payload.email } });
+      }
+
       setTimeout(fetchData, 1500);
     } catch (err) {
       toast({ variant: "destructive", title: "Error" });
