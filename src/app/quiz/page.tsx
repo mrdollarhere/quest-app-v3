@@ -204,6 +204,7 @@ function QuizContent() {
         isProtectionEnabled={globalData?.protection}
         guestAccessAllowed={globalData?.guest}
         onStart={handleStart}
+        testId={testId || undefined}
       />
     );
   }
