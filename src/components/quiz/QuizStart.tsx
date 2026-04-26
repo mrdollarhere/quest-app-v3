@@ -3,9 +3,6 @@
  * src/components/quiz/QuizStart.tsx
  * 
  * Purpose: Entry terminal for all assessment modules, handling security, identity, and mode configuration.
- * Key components: QuizGate, QuizIdentity, QuizModes.
- * Used by: src/app/quiz/page.tsx
- * Props: Standard QuizStartProps interface.
  */
 
 "use client";
@@ -37,11 +34,12 @@ interface QuizStartProps {
   isProtectionEnabled?: boolean;
   guestAccessAllowed?: boolean;
   onStart: (mode: QuizMode) => void;
+  testId?: string;
 }
 
 type Step = 'gate' | 'identity' | 'mode' | 'login_required';
 
-export function QuizStart({ title, questionsCount, duration, user, guestName, setGuestName, protocolSalt, isProtectionEnabled = true, guestAccessAllowed = true, onStart }: QuizStartProps) {
+export function QuizStart({ title, questionsCount, duration, user, guestName, setGuestName, protocolSalt, isProtectionEnabled = true, guestAccessAllowed = true, onStart, testId }: QuizStartProps) {
   const { t } = useLanguage();
   const { toast } = useToast();
   const pathname = usePathname();
@@ -53,7 +51,7 @@ export function QuizStart({ title, questionsCount, duration, user, guestName, se
     return user ? 'mode' : 'identity';
   });
   const [password, setPassword] = useState('');
-  const [selectedMode, setSelectedMode] = useState<QuizMode>('test');
+  const [selectedMode, setSelectedMode] = useState<QuizMode | 'live'>('test');
 
   const handleVerify = () => {
     if (password.trim().toUpperCase() === generateDailyPassword(undefined, protocolSalt).toUpperCase()) {
@@ -97,7 +95,7 @@ export function QuizStart({ title, questionsCount, duration, user, guestName, se
 
           {step === 'identity' && <QuizIdentity guestName={guestName} setGuestName={setGuestName} onContinue={() => setStep('mode')} questionsCount={questionsCount} duration={duration} />}
           
-          {step === 'mode' && <QuizModes selectedMode={selectedMode} setSelectedMode={setSelectedMode} onStart={onStart} />}
+          {step === 'mode' && <QuizModes selectedMode={selectedMode} setSelectedMode={setSelectedMode} onStart={onStart} testId={testId} testName={title} />}
         </CardContent>
       </Card>
     </div>
