@@ -343,24 +343,26 @@ export function EventsTab({ events, loading, onRefresh }: EventsTabProps) {
                             </div>
                           </div>
                         </TableCell>
-                      </React.Fragment>
-                    );
-                  })}
-                  {totalItems === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={5} className="py-32 text-center opacity-30">
-                        <Activity className="w-12 h-12 mx-auto mb-4" />
-                        <p className="font-black uppercase tracking-widest text-xs">Registry Clean — No Matching Events</p>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-              <Pagination currentPage={currentPage} totalItems={totalItems} pageSize={pageSize} onPageChange={setCurrentPage} />
-            </CardContent>
-          </Card>
-        </div>
-      );
+                      </TableRow>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+              {totalItems === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="py-32 text-center opacity-30">
+                    <Activity className="w-12 h-12 mx-auto mb-4" />
+                    <p className="font-black uppercase tracking-widest text-xs">Registry Clean — No Matching Events</p>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+          <Pagination currentPage={currentPage} totalItems={totalItems} pageSize={pageSize} onPageChange={setCurrentPage} />
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
 
 function DetailMini({ label, value }: { label: string, value: string }) {
