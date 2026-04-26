@@ -3,7 +3,7 @@
  * /api/live/create-room
  * 
  * Purpose: Orchestrates the creation of a new real-time classroom node.
- * Updated: v18.9 - Added infrastructure validation and forensic logging.
+ * Updated: v18.9 - Added descriptive parameter validation and infrastructure audit.
  */
 
 import { NextResponse } from 'next/server';
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
       !!process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
 
     if (!pusherConfigured) {
-      console.error('[Live Mode Error] Pusher environment variables are missing from .env.local');
+      console.error('[Live Mode Error] Pusher environment variables are missing');
       return NextResponse.json({ 
         error: 'Live mode not configured',
         message: 'Pusher environment variables are not set on the server.'
@@ -29,11 +29,20 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { testId, testName, hostId, hostName } = body;
     
-    // GRANULAR PARAMETER VALIDATION
-    if (!testId) return NextResponse.json({ error: 'Missing required field: testId' }, { status: 400 });
-    if (!testName) return NextResponse.json({ error: 'Missing required field: testName' }, { status: 400 });
-    if (!hostId) return NextResponse.json({ error: 'Missing required field: hostId' }, { status: 400 });
-    if (!hostName) return NextResponse.json({ error: 'Missing required field: hostName' }, { status: 400 });
+    // DESCRIPTIVE PARAMETER VALIDATION
+    const missing = [];
+    if (!testId) missing.push('testId');
+    if (!testName) missing.push('testName');
+    if (!hostId) missing.push('hostId');
+    if (!hostName) missing.push('hostName');
+
+    if (missing.length > 0) {
+      return NextResponse.json({ 
+        error: 'Missing parameters',
+        missing,
+        received: Object.keys(body)
+      }, { status: 400 });
+    }
 
     const roomCode = generateRoomCode();
     rooms.set(roomCode, {

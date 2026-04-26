@@ -3,10 +3,10 @@
  * QuizModes.tsx
  * 
  * Purpose: Final step before assessment start to select the protocol mode.
- * Features Live Mode injection (v18.9) with configuration awareness.
+ * Features Live Mode injection (v18.9) with configuration awareness and robust parameter passing.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Gamepad2, Target, Flame, Play, Radio, Users, Loader2, Info, ExternalLink } from 'lucide-react';
@@ -47,7 +47,6 @@ export function QuizModes({ selectedMode, setSelectedMode, onStart, testId, test
     { id: 'race' as const, title: 'Race', icon: Flame, desc: 'Speed & accuracy, one attempt', color: 'bg-orange-500', text: 'text-orange-600' }
   ];
 
-  // Logic: Always show Live button, but badge it if setup is required
   modes.push({ 
     id: 'live' as any, 
     title: 'Live', 
@@ -70,12 +69,25 @@ export function QuizModes({ selectedMode, setSelectedMode, onStart, testId, test
       return;
     }
 
+    // REGISTRY KEY AUDIT: Ensure all required parameters are available
+    const hostId = user.id || user.email;
+    const hostName = user.displayName || user.email.split('@')[0];
+
+    if (!testId || !testName) {
+      toast({ 
+        variant: "destructive", 
+        title: "Module Error", 
+        description: "Assessment context is missing. Please restart the mission." 
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch('/api/live/create-room', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ testId, testName, hostId: user.id || user.email, hostName: user.displayName })
+        body: JSON.stringify({ testId, testName, hostId, hostName })
       });
       
       const data = await res.json();
@@ -85,7 +97,13 @@ export function QuizModes({ selectedMode, setSelectedMode, onStart, testId, test
       } else if (res.ok) {
         router.push(`/live/host/${data.roomCode}`);
       } else {
-        toast({ variant: "destructive", title: "Room Creation Failed", description: data.error || "Registry rejected request." });
+        toast({ 
+          variant: "destructive", 
+          title: "Room Creation Failed", 
+          description: data.error === 'Missing parameters' 
+            ? `Required fields missing: ${data.missing.join(', ')}` 
+            : (data.error || "Registry rejected request.") 
+        });
       }
     } catch (err) {
       toast({ variant: "destructive", title: "Sync Error", description: "The live room registry could not be reached." });
@@ -151,7 +169,6 @@ export function QuizModes({ selectedMode, setSelectedMode, onStart, testId, test
         </>
       )}
 
-      {/* SETUP GUIDANCE DIALOG */}
       <Dialog open={showSetupModal} onOpenChange={setShowSetupModal}>
         <DialogContent className="sm:max-w-[480px] rounded-[2.5rem] p-10 border-none shadow-2xl bg-white">
           <DialogHeader className="text-center space-y-4">
