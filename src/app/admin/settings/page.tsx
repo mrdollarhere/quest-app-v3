@@ -143,7 +143,13 @@ export default function AdminSettingsPage() {
       logActivity("System settings updated", `${changedKeys.length} preference(s) calibrated`);
       
       // TELEMETRY: Track settings save and key changes
-      trackEvent('admin_settings_save', { details: { keys: changedKeys.join(', '), platform: formData.platform_name } });
+      trackEvent('admin_settings_save', { 
+        details: { 
+          changed_fields: changedKeys, 
+          platform_name: formData.platform_name 
+        } 
+      });
+
       if (changedKeys.includes('daily_key_salt')) {
         trackEvent('admin_access_key_change');
       }

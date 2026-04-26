@@ -109,7 +109,15 @@ export default function AdminTestDetailPage() {
             const ok = await handlePost('saveQuestions', { testId, questions: updated });
             if (ok) {
               logActivity("Question deleted", q?.question_text || qid);
-              trackEvent('admin_question_delete', { test_id: testId, question_id: qid });
+              trackEvent('admin_question_delete', { 
+                test_id: testId, 
+                test_name: tests.find(t => t.id === testId)?.title,
+                question_id: qid,
+                details: {
+                  question_type: q?.question_type,
+                  question_preview: (q?.question_text || '').slice(0, 60) + '...'
+                }
+              });
             }
           }}
           onAdd={() => { setEditingItem(null); setDialogs({ ...dialogs, question: true }); }}
@@ -132,10 +140,15 @@ export default function AdminTestDetailPage() {
           const ok = await handlePost('saveQuestion', { testId, question: prepared });
           if (ok) {
             logActivity(editingItem ? "Question edited" : "Question added", qData.question_text);
+            const testTitle = tests.find(t => t.id === testId)?.title;
             trackEvent(editingItem ? 'admin_question_edit' : 'admin_question_create', { 
               test_id: testId, 
+              test_name: testTitle,
               question_id: newId,
-              details: { questionType: prepared.question_type }
+              details: { 
+                question_type: prepared.question_type,
+                question_preview: qData.question_text.slice(0, 60) + (qData.question_text.length > 60 ? '...' : '')
+              }
             });
           }
         }}

@@ -50,7 +50,7 @@ export default function AdminEventsPage() {
     <div className="space-y-8 animate-in fade-in duration-700">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-2">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Intelligence Feed</h1>
+          <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Site Events</h1>
           <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2">Comprehensive System Telemetry</p>
         </div>
         <div className="flex items-center gap-4">

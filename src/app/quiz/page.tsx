@@ -68,7 +68,8 @@ function QuizContent() {
         protection: String(sData.access_key_protection_enabled ?? "true") !== "false",
         guest: String(sData.guest_access_allowed ?? "true") !== "false",
         maintenance: String(sData.maintenance_mode ?? "false") === "true",
-        globalTimer: sData.global_timer_limit || "15"
+        globalTimer: sData.global_timer_limit || "15",
+        defaultThreshold: sData.default_pass_threshold || "70"
       };
     }
   );
@@ -121,23 +122,29 @@ function QuizContent() {
     const finalEmail = user?.email || 'Anonymous';
     const timestamp = Date.now();
     const finalPercentage = Math.round((finalScore / (quiz.questions.length || 1)) * 100);
+    const timeTaken = Math.round((timestamp - quiz.startTime) / 1000);
+    const passingThreshold = Number(testMetadata?.passing_threshold || globalData?.defaultThreshold || 70);
+    const isPassed = finalPercentage >= passingThreshold;
     
     let certId = "";
-    if (finalPercentage >= 70) {
+    if (isPassed && testMetadata?.certificate_enabled !== 'FALSE') {
       certId = `CRT-${finalEmail.slice(0,4)}-${testId}-${timestamp.toString().slice(-4)}`.toUpperCase();
       setGeneratedCertificateId(certId);
     }
     
-    // TELEMETRY: Track final submission and completeness
+    // TELEMETRY: Track final submission with complete performance audit
     trackEvent('quiz_submit', { 
       test_id: testId || '', 
       test_name: testMetadata?.title,
       score: finalScore, 
       details: { 
-        total: quiz.questions.length, 
-        mode: quiz.mode,
+        score_percent: finalPercentage,
         correct: finalScore,
-        incorrect: quiz.questions.length - finalScore 
+        incorrect: quiz.questions.length - finalScore,
+        total: quiz.questions.length,
+        time_taken_seconds: timeTaken,
+        mode: quiz.mode,
+        passed: isPassed
       } 
     });
     
@@ -170,7 +177,11 @@ function QuizContent() {
 
   const handleStart = (mode: QuizMode) => {
     setIsStarted(true);
-    trackEvent('quiz_start', { test_id: testId || '', test_name: testMetadata?.title, details: { mode } });
+    trackEvent('quiz_start', { 
+      test_id: testId || '', 
+      test_name: testMetadata?.title, 
+      details: { mode } 
+    });
     let q = [...(questionsData || [])];
     if (mode === 'test') q = q.sort(() => Math.random() - 0.5);
     setQuiz(prev => ({ ...prev, questions: q, startTime: Date.now(), mode: mode }));

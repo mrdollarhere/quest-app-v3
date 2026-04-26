@@ -22,7 +22,9 @@ import {
   User, 
   RefreshCcw,
   Clock,
-  ExternalLink
+  ExternalLink,
+  ChevronDown,
+  Info
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from 'date-fns';
@@ -38,6 +40,14 @@ interface EventsTabProps {
 export function EventsTab({ events, loading, onRefresh }: EventsTabProps) {
   const [dateFilter, setDateFilter] = useState<'today' | 'week' | 'month' | 'all'>('all');
   const [eventTypeFilter, setEventTypeFilter] = useState('all');
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+
+  const toggleRow = (idx: number) => {
+    const next = new Set(expandedRows);
+    if (next.has(idx)) next.delete(idx);
+    else next.add(idx);
+    setExpandedRows(next);
+  };
 
   const eventTypes = useMemo(() => {
     const types = new Set<string>();
@@ -83,7 +93,8 @@ export function EventsTab({ events, loading, onRefresh }: EventsTabProps) {
       String(e.user_id || ''),
       String(e.event_type || ''),
       String(e.page || ''),
-      String(e.test_id || '')
+      String(e.test_id || ''),
+      String(e.test_name || '')
     ],
     pageSize: 20,
     initialSort: { key: 'timestamp', direction: 'desc' }
@@ -104,8 +115,73 @@ export function EventsTab({ events, loading, onRefresh }: EventsTabProps) {
     };
   }, [events]);
 
+  const renderContext = (e: any) => {
+    let details: any = null;
+    try {
+      details = typeof e.details === 'string' ? JSON.parse(e.details) : e.details;
+    } catch (err) {}
+
+    const type = e.event_type;
+
+    if (type === 'admin_test_edit') {
+      return (
+        <div className="flex flex-col max-w-[300px]">
+          <span className="text-[#1a2340] font-bold truncate">Test: {e.test_name || e.test_id}</span>
+          <span className="text-[11px] text-slate-500 truncate">Changed: {details?.changed_fields?.join(', ') || 'metadata'}</span>
+        </div>
+      );
+    }
+
+    if (type.startsWith('admin_question')) {
+      return (
+        <div className="flex flex-col max-w-[300px]">
+          <span className="text-[#1a2340] font-bold truncate">Test: {e.test_name || e.test_id}</span>
+          <span className="text-[11px] text-slate-500 truncate italic">{(details?.question_type || 'Node').replace('_', ' ')}: {details?.question_preview}</span>
+        </div>
+      );
+    }
+
+    if (type === 'quiz_submit') {
+      return (
+        <div className="flex flex-col max-w-[300px]">
+          <span className="text-[#1a2340] font-bold truncate">{e.test_name || e.test_id}</span>
+          <span className="text-[11px] text-slate-500 truncate">
+            Score: {details?.score_percent}% • {details?.correct}/{details?.total} • {Math.floor(details?.time_taken_seconds / 60)}m {details?.time_taken_seconds % 60}s
+          </span>
+        </div>
+      );
+    }
+
+    return <span className="text-slate-500 font-medium truncate max-w-[300px]">{e.page}</span>;
+  };
+
+  const formatDetails = (details: any) => {
+    if (!details) return <p className="text-[10px] text-slate-400 italic">No additional registry data.</p>;
+    let data = details;
+    try {
+      if (typeof details === 'string') data = JSON.parse(details);
+    } catch (e) {}
+
+    if (typeof data !== 'object' || data === null) {
+      return <p className="text-xs text-slate-600">{String(data)}</p>;
+    }
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2">
+        {Object.entries(data).map(([key, value]) => (
+          <div key={key} className="flex gap-4 text-[11px] py-1 border-b border-slate-100 last:border-none">
+            <span className="font-black uppercase tracking-widest text-slate-400 min-w-[140px]">{key.replace(/_/g, ' ')}:</span>
+            <span className="text-slate-700 font-bold truncate">
+              {Array.isArray(value) ? value.join(', ') : String(value)}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const handleExport = () => {
-    const headers = ['Timestamp', 'Session', 'User', 'Role', 'Event', 'Page', 'Test', 'Question', 'Score', 'Device', 'Browser'];
+    const headers = ['Timestamp', 'Session', 'User', 'Role', 'Event', 'Page', 'Test', 'Question', 'Score', 'Details', 'Device', 'Browser'];
     const rows = filteredByType.map(e => [
       e.timestamp,
       e.session_id,
@@ -116,6 +192,7 @@ export function EventsTab({ events, loading, onRefresh }: EventsTabProps) {
       e.test_id || '',
       e.question_id || '',
       e.score || '',
+      e.details,
       e.device,
       e.browser
     ]);
@@ -213,50 +290,84 @@ export function EventsTab({ events, loading, onRefresh }: EventsTabProps) {
                 <TableHead className="font-black uppercase text-[9px] tracking-[0.2em] text-slate-400">Identity</TableHead>
                 <TableHead className="font-black uppercase text-[9px] tracking-[0.2em] text-slate-400">Event</TableHead>
                 <TableHead className="font-black uppercase text-[9px] tracking-[0.2em] text-slate-400">Context</TableHead>
-                <TableHead className="px-10 text-right font-black uppercase text-[9px] tracking-[0.2em] text-slate-400">Source</TableHead>
+                <TableHead className="px-10 text-right font-black uppercase text-[9px] tracking-[0.2em] text-slate-400"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedData.map((e, i) => (
-                <TableRow key={i} className="hover:bg-slate-50/30 transition-colors border-b border-slate-50 last:border-none">
-                  <TableCell className="px-10 py-5 font-mono text-[10px] text-slate-400">
-                    {format(new Date(e.timestamp), 'HH:mm:ss')}
-                    <span className="block text-[8px] opacity-60 uppercase">{format(new Date(e.timestamp), 'MMM dd, yyyy')}</span>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="font-black text-slate-900 text-xs uppercase">{e.user_name}</span>
-                      <span className="text-[9px] font-bold text-slate-400">{e.user_id}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>{getEventBadge(e.event_type)}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-bold text-slate-600 truncate max-w-[200px]">{e.page}</span>
-                      {e.test_id && <span className="text-[8px] font-black text-primary uppercase">Module: {e.test_id}</span>}
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-10 text-right">
-                    <div className="flex flex-col items-end">
-                      <span className="text-[10px] font-black text-slate-700">{e.device}</span>
-                      <span className="text-[9px] font-bold text-slate-400">{e.browser}</span>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {totalItems === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="py-32 text-center opacity-30">
-                    <Activity className="w-12 h-12 mx-auto mb-4" />
-                    <p className="font-black uppercase tracking-widest text-xs">Registry Clean — No Matching Events</p>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-          <Pagination currentPage={currentPage} totalItems={totalItems} pageSize={pageSize} onPageChange={setCurrentPage} />
-        </CardContent>
-      </Card>
+              {paginatedData.map((e, i) => {
+                const isExpanded = expandedRows.has(i);
+                return (
+                  <React.Fragment key={i}>
+                    <TableRow className={cn(
+                      "hover:bg-slate-50/30 transition-colors border-b border-slate-50 last:border-none cursor-pointer group",
+                      isExpanded && "bg-slate-50/50"
+                    )} onClick={() => toggleRow(i)}>
+                      <TableCell className="px-10 py-5 font-mono text-[10px] text-slate-400">
+                        {format(new Date(e.timestamp), 'HH:mm:ss')}
+                        <span className="block text-[8px] opacity-60 uppercase">{format(new Date(e.timestamp), 'MMM dd, yyyy')}</span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-black text-slate-900 text-xs uppercase">{e.user_name}</span>
+                          <span className="text-[9px] font-bold text-slate-400">{e.user_id}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{getEventBadge(e.event_type)}</TableCell>
+                      <TableCell>{renderContext(e)}</TableCell>
+                      <TableCell className="px-10 text-right">
+                        <div className={cn(
+                          "p-2 rounded-full border border-slate-200 text-slate-400 transition-all duration-300 group-hover:border-primary group-hover:text-primary inline-flex",
+                          isExpanded && "rotate-180 bg-primary text-white border-primary"
+                        )}>
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                    {isExpanded && (
+                      <TableRow className="bg-slate-50/30 border-b border-slate-100">
+                        <TableCell colSpan={5} className="p-8 px-12">
+                          <div className="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-inner space-y-6">
+                            <div className="flex items-center gap-3">
+                              <Info className="w-4 h-4 text-primary" />
+                              <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Full Diagnostic Details</h4>
+                            </div>
+                            <div className="space-y-4">
+                              {formatDetails(e.details)}
+                              
+                              <div className="pt-4 mt-4 border-t border-slate-50 grid grid-cols-2 md:grid-cols-4 gap-6">
+                                <DetailMini label="Device" value={e.device} />
+                                <DetailMini label="Browser" value={e.browser} />
+                                <DetailMini label="Session" value={e.session_id} />
+                                <DetailMini label="Role" value={e.user_role} />
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+                      </React.Fragment>
+                    );
+                  })}
+                  {totalItems === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="py-32 text-center opacity-30">
+                        <Activity className="w-12 h-12 mx-auto mb-4" />
+                        <p className="font-black uppercase tracking-widest text-xs">Registry Clean — No Matching Events</p>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+              <Pagination currentPage={currentPage} totalItems={totalItems} pageSize={pageSize} onPageChange={setCurrentPage} />
+            </CardContent>
+          </Card>
+        </div>
+      );
+}
+
+function DetailMini({ label, value }: { label: string, value: string }) {
+  return (
+    <div className="space-y-1">
+      <p className="text-[8px] font-black uppercase text-slate-300 tracking-widest">{label}</p>
+      <p className="text-[10px] font-bold text-slate-500 truncate">{value || 'N/A'}</p>
     </div>
   );
 }

@@ -77,7 +77,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const getHeaderTitle = () => {
     if (pathname === '/admin') return 'Dashboard';
-    if (pathname === '/admin/events') return 'Intelligence Feed';
+    if (pathname === '/admin/events') return 'Site Events';
     const last = pathname.split('/').pop() || '';
     if (last === 'new') return 'New Test';
     return last.replace(/-/g, ' ');

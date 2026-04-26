@@ -94,7 +94,11 @@ export default function AdminTestsPage() {
           const ok = await handlePost('deleteTest', { id });
           if (ok) {
             logActivity("Test deleted", t?.title || id);
-            trackEvent('admin_test_delete', { test_id: id, test_name: t?.title });
+            trackEvent('admin_test_delete', { 
+              test_id: id, 
+              test_name: t?.title,
+              details: { question_count: t?.questions_count || 0 }
+            });
           }
         }}
         onManageQuestions={(id) => router.push(`/admin/tests/${id}`)}
@@ -121,10 +125,39 @@ export default function AdminTestsPage() {
           const ok = await handlePost('saveTest', { data: payload });
           if (ok) {
             logActivity(editingItem ? "Test edited" : "Test created", payload.title);
-            trackEvent(editingItem ? 'admin_test_edit' : 'admin_test_create', { 
-              test_id: payload.id, 
-              test_name: payload.title 
-            });
+            
+            if (editingItem) {
+              const changedFields = [];
+              if (editingItem.title !== payload.title) changedFields.push('title');
+              if (editingItem.difficulty !== payload.difficulty) changedFields.push('difficulty');
+              if (editingItem.duration !== payload.duration) changedFields.push('duration');
+              if (editingItem.category !== payload.category) changedFields.push('category');
+              if (editingItem.certificate_enabled !== payload.certificate_enabled) changedFields.push('certificate');
+              if (editingItem.passing_threshold !== payload.passing_threshold) changedFields.push('threshold');
+
+              trackEvent('admin_test_edit', { 
+                test_id: payload.id, 
+                test_name: payload.title,
+                details: {
+                  changed_fields: changedFields,
+                  old_title: editingItem.title,
+                  new_title: payload.title,
+                  old_difficulty: editingItem.difficulty,
+                  new_difficulty: payload.difficulty
+                }
+              });
+            } else {
+              trackEvent('admin_test_create', { 
+                test_id: payload.id, 
+                test_name: payload.title,
+                details: {
+                  difficulty: payload.difficulty,
+                  duration: payload.duration,
+                  category: payload.category,
+                  certificate_enabled: payload.certificate_enabled
+                }
+              });
+            }
           }
         }}
         onSaveUser={() => {}}
