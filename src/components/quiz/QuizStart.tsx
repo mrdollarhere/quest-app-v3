@@ -95,7 +95,15 @@ export function QuizStart({ title, questionsCount, duration, user, guestName, se
 
           {step === 'identity' && <QuizIdentity guestName={guestName} setGuestName={setGuestName} onContinue={() => setStep('mode')} questionsCount={questionsCount} duration={duration} />}
           
-          {step === 'mode' && <QuizModes selectedMode={selectedMode} setSelectedMode={setSelectedMode} onStart={onStart} testId={testId} testName={title} />}
+          {step === 'mode' && (
+            <QuizModes 
+              selectedMode={selectedMode} 
+              setSelectedMode={setSelectedMode} 
+              onStart={onStart} 
+              testId={testId} 
+              testName={title} 
+            />
+          )}
         </CardContent>
       </Card>
     </div>

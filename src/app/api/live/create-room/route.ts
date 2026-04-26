@@ -26,11 +26,14 @@ export async function POST(request: Request) {
       }, { status: 503 });
     }
 
-    const { testId, testName, hostId, hostName } = await request.json();
+    const body = await request.json();
+    const { testId, testName, hostId, hostName } = body;
     
-    if (!testId || !hostId) {
-      return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
-    }
+    // GRANULAR PARAMETER VALIDATION
+    if (!testId) return NextResponse.json({ error: 'Missing required field: testId' }, { status: 400 });
+    if (!testName) return NextResponse.json({ error: 'Missing required field: testName' }, { status: 400 });
+    if (!hostId) return NextResponse.json({ error: 'Missing required field: hostId' }, { status: 400 });
+    if (!hostName) return NextResponse.json({ error: 'Missing required field: hostName' }, { status: 400 });
 
     const roomCode = generateRoomCode();
     rooms.set(roomCode, {
