@@ -24,7 +24,9 @@ import {
   Clock,
   UserCheck,
   Palette,
-  AlignLeft
+  AlignLeft,
+  Database,
+  FileSpreadsheet
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -57,7 +59,8 @@ export default function AdminSettingsPage() {
     maintenance_mode: 'false',
     allowed_email_domains: '',
     session_timeout_hours: '24',
-    guest_access_allowed: 'true'
+    guest_access_allowed: 'true',
+    google_sheet_url: ''
   });
 
   useEffect(() => {
@@ -77,7 +80,8 @@ export default function AdminSettingsPage() {
         maintenance_mode: String(settings.maintenance_mode ?? 'false'),
         allowed_email_domains: settings.allowed_email_domains || '',
         session_timeout_hours: settings.session_timeout_hours || '24',
-        guest_access_allowed: String(settings.guest_access_allowed ?? 'true')
+        guest_access_allowed: String(settings.guest_access_allowed ?? 'true'),
+        google_sheet_url: settings.google_sheet_url || ''
       });
     }
   }, [settings, settingsLoading]);
@@ -97,7 +101,8 @@ export default function AdminSettingsPage() {
     maintenance_mode: String(settings.maintenance_mode ?? 'false'),
     allowed_email_domains: settings.allowed_email_domains || '',
     session_timeout_hours: settings.session_timeout_hours || '24',
-    guest_access_allowed: String(settings.guest_access_allowed ?? 'true')
+    guest_access_allowed: String(settings.guest_access_allowed ?? 'true'),
+    google_sheet_url: settings.google_sheet_url || ''
   };
 
   const hasChanges = Object.keys(formData).some(
@@ -306,6 +311,31 @@ export default function AdminSettingsPage() {
                     className="h-12 pl-11 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold text-sm"
                   />
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card id="sheet-url-field" className="border-none shadow-sm bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden border dark:border-slate-800">
+            <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b p-8">
+              <h2 className="text-xl font-black flex items-center gap-3">
+                <Database className="w-5 h-5 text-primary" aria-hidden="true" /> {t('integrations')}
+              </h2>
+              <CardDescription>Connect external data nodes</CardDescription>
+            </CardHeader>
+            <CardContent className="p-8 space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="google-sheet-url" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{t('googleSheetUrl')}</Label>
+                <div className="relative">
+                  <FileSpreadsheet className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" aria-hidden="true" />
+                  <Input 
+                    id="google-sheet-url"
+                    value={formData.google_sheet_url}
+                    onChange={(e) => setFormData({ ...formData, google_sheet_url: e.target.value })}
+                    placeholder="https://docs.google.com/spreadsheets/d/..."
+                    className="h-12 pl-11 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold text-xs"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">{t('googleSheetUrlHint')}</p>
               </div>
             </CardContent>
           </Card>

@@ -143,10 +143,10 @@ export const vi = {
   hard: "Khó",
   // Settings Page
   systemPreferences: "Cấu hình hệ thống",
-  platformConfig: "Thiết lập nền tảng",
+  platformConfig: "Thiết lập nền tầng",
   siteSettings: "Cài đặt trang",
   branding: "Thương hiệu",
-  platformName: "Tên nền tảng",
+  platformName: "Tên nền tầng",
   logoUrl: "Đường dẫn Logo (Ảnh bên ngoài)",
   announcementBanner: "Thông báo (Trang chủ)",
   registryBroadcast: "Thông báo hệ thống",
@@ -169,5 +169,14 @@ export const vi = {
   loginRequiredDesc: "Quyền truy cập cho khách đã bị tắt. Vui lòng đăng nhập để bắt đầu bài thi này.",
   goToLogin: "Đến trang đăng nhập",
   globalTimerLimit: "Thời gian làm bài mặc định (Phút)",
-  globalTimerLimitDesc: "Thời gian dự phòng cho các bài thi không có giới hạn thời gian cụ thể"
+  globalTimerLimitDesc: "Thời gian dự phòng cho các bài thi không có giới hạn thời gian cụ thể",
+  customFooterText: "Văn bản chân trang tùy chỉnh",
+  themePrimaryColor: "Màu chủ đạo giao diện",
+  // Integrations
+  integrations: "Tích hợp",
+  googleSheetUrl: "Đường dẫn Google Sheet",
+  googleSheetUrlHint: "Dán đường dẫn Google Sheet của bạn vào đây để truy cập nhanh từ thanh bên",
+  dataSheet: "Bảng dữ liệu",
+  connectSheet: "Kết nối Bảng tính",
+  addInSettings: "Thêm trong Cài đặt"
 };

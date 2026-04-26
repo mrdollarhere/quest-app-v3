@@ -28,7 +28,7 @@ export const es = {
   step1Desc: "Explore la biblioteca y elija un módulo de evaluación específico.",
   step2: "Ingresar Respuestas",
   step2Desc: "Complete las preguntas interactivas dentro de la terminal.",
-  step3: "Revisar Datos",
+  step3: "Review Data",
   step3Desc: "Acceda al resumen de resultados y al historial de respuestas.",
   // Final CTA
   finalCtaTitle: "Comenzar una evaluación.",
@@ -154,5 +154,14 @@ export const es = {
   loginRequiredDesc: "El acceso de invitados está desactivado. Inicia sesión con tu cuenta de estudiante para continuar.",
   goToLogin: "Ir al registro de acceso",
   globalTimerLimit: "Límite de tiempo global (Minutos)",
-  globalTimerLimitDesc: "Duración de respaldo para pruebas sin un límite de tiempo específico"
+  globalTimerLimitDesc: "Duración de respaldo para pruebas sin un límite de tiempo específico",
+  customFooterText: "Texto de pie de página personalizado",
+  themePrimaryColor: "Color primario del tema",
+  // Integrations
+  integrations: "Integraciones",
+  googleSheetUrl: "URL de Google Sheet",
+  googleSheetUrlHint: "Pegue la URL de su Google Sheet aquí para acceder rápidamente desde la barra lateral",
+  dataSheet: "Hoja de Datos",
+  connectSheet: "Conectar Hoja",
+  addInSettings: "Agregar en Ajustes"
 };

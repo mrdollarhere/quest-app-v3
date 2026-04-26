@@ -11,7 +11,9 @@ import {
   History,
   Languages,
   Settings as SettingsIcon,
-  Activity
+  Activity,
+  FileSpreadsheet,
+  ExternalLink
 } from "lucide-react";
 import { 
   Sidebar, 
@@ -26,6 +28,7 @@ import {
   SidebarGroupContent
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -52,6 +55,7 @@ export const AdminSidebar = React.memo(({ activeTab, user, logout }: AdminSideba
   const { settings } = useSettings();
 
   const brandName = settings.platform_name || "DNTRNG";
+  const sheetUrl = settings.google_sheet_url;
 
   const menuItems = [
     { id: 'overview', label: t('dashboard'), icon: BarChart3, href: '/admin' },
@@ -96,7 +100,39 @@ export const AdminSidebar = React.memo(({ activeTab, user, logout }: AdminSideba
                     </SidebarMenuButton>
                   </Link>
                 </SidebarMenuItem>
-              ))}
+              </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Registry</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                {sheetUrl ? (
+                  <SidebarMenuButton asChild className="h-14 px-5 rounded-2xl font-black text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all mb-2">
+                    <a href={sheetUrl} target="_blank" rel="noopener noreferrer">
+                      <FileSpreadsheet className="w-5 h-5 mr-4 text-primary" />
+                      <div className="flex flex-1 items-center justify-between">
+                        <span>{t('dataSheet')}</span>
+                        <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                    </a>
+                  </SidebarMenuButton>
+                ) : (
+                  <SidebarMenuButton asChild className="h-14 px-5 rounded-2xl font-black text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-300 transition-all mb-2">
+                    <Link href="/admin/settings#sheet-url-field">
+                      <FileSpreadsheet className="w-5 h-5 mr-4 opacity-40" />
+                      <div className="flex flex-1 items-center justify-between">
+                        <span>{t('connectSheet')}</span>
+                        <Badge variant="outline" className="text-[8px] font-black uppercase tracking-tighter px-1.5 py-0 rounded-md border-slate-200 dark:border-slate-800">
+                          {t('addInSettings')}
+                        </Badge>
+                      </div>
+                    </Link>
+                  </SidebarMenuButton>
+                )}
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

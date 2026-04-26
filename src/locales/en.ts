@@ -171,5 +171,12 @@ export const en = {
   globalTimerLimit: "Global Timer Limit (Minutes)",
   globalTimerLimitDesc: "Fallback duration for tests without a specific time limit",
   customFooterText: "Custom Footer Text",
-  themePrimaryColor: "Theme Primary Color"
+  themePrimaryColor: "Theme Primary Color",
+  // Integrations
+  integrations: "Integrations",
+  googleSheetUrl: "Google Sheet URL",
+  googleSheetUrlHint: "Paste your Google Sheet URL here to access it quickly from the sidebar",
+  dataSheet: "Data Sheet",
+  connectSheet: "Connect Sheet",
+  addInSettings: "Add in Settings"
 };
