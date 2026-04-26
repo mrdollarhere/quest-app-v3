@@ -3,7 +3,7 @@
  * 
  * Defines the required Google Apps Script version for the current frontend build.
  */
-export const REQUIRED_GAS_VERSION = "18.8";
+export const REQUIRED_GAS_VERSION = "18.9";
 
 /**
  * Technical documentation link for GAS changes.

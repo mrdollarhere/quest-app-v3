@@ -1,12 +1,12 @@
 export const GAS_CODE = `/**
- * QUESTFLOW BACKEND v18.8 - DEDUPLICATION & FORENSIC CLEANUP PROTOCOL
+ * QUESTFLOW BACKEND v18.9 - PUBLIC TELEMETRY & SUMMARY PROTOCOL
  * 
  * ACTIONS SUPPORTED:
- * - GET: login, getTests, getUsers, getResponses, getQuestions, getActivity, getSettings, getVersion, getEvents
+ * - GET: login, getTests, getUsers, getResponses, getQuestions, getActivity, getSettings, getVersion, getEvents, getPublicStats
  * - POST: submitResponse, saveTest, deleteTest, saveUser, deleteUser, saveQuestion, saveQuestions, saveUsers, logActivity, saveSetting, deleteResponse, logEvent, cleanDuplicates
  */
 
-const GAS_VERSION = "18.8";
+const GAS_VERSION = "18.9";
 
 function doGet(e) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -15,6 +15,21 @@ function doGet(e) {
   try {
     if (action === 'getVersion') {
       return createResponse({ version: GAS_VERSION });
+    }
+
+    if (action === 'getPublicStats') {
+      const eventSheet = ss.getSheetByName('Events');
+      const responseSheet = ss.getSheetByName('Responses');
+      const testSheet = ss.getSheetByName('Tests');
+      const userSheet = ss.getSheetByName('Users');
+
+      const stats = {
+        learningSessions: eventSheet ? Math.max(0, eventSheet.getLastRow() - 1) : 0,
+        studentsTrained: userSheet ? Math.max(0, userSheet.getLastRow() - 1) : 0,
+        assessmentsDone: responseSheet ? Math.max(0, responseSheet.getLastRow() - 1) : 0,
+        practiceModules: testSheet ? Math.max(0, testSheet.getLastRow() - 1) : 0
+      };
+      return createResponse(stats);
     }
 
     if (action === 'getEvents') {
@@ -109,7 +124,6 @@ function doPost(e) {
       const headers = ['timestamp', 'session_id', 'user_id', 'user_name', 'user_role', 'event_type', 'page', 'test_id', 'test_name', 'question_id', 'score', 'details', 'device', 'browser'];
       if (sheet.getLastRow() === 0) sheet.appendRow(headers);
       
-      // SERVER-SIDE DEDUPLICATION PROTOCOL: Check last row for same session/type within 2 seconds
       const lastRowIdx = sheet.getLastRow();
       if (lastRowIdx > 1) {
         const lastData = sheet.getRange(lastRowIdx, 1, 1, 6).getValues()[0];
@@ -139,7 +153,6 @@ function doPost(e) {
       if (data.length < 3) return createResponse({ count: 0 });
 
       let removed = 0;
-      // Reverse loop to avoid index shifting after deletion
       for (let i = data.length - 1; i >= 2; i--) {
         const current = data[i];
         const prev = data[i-1];
@@ -311,7 +324,7 @@ function doPost(e) {
       return createResponse({ status: 'success' });
     }
 
-    return createResponse({ error: 'Unknown POST action' }, 400);
+    return createResponse({ error: 'Unknown action' }, 400);
   } catch (err) {
     return createResponse({ error: err.toString() }, 500);
   }

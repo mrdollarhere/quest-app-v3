@@ -19,13 +19,74 @@ import { useLanguage } from '@/context/language-context';
 import { useSettings } from '@/context/settings-context';
 import { JsonLd } from '@/components/SEO';
 import { trackEvent } from '@/lib/tracker';
+import { API_URL } from '@/lib/api-config';
 
 type SystemStatus = 'Optimal' | 'Degraded' | 'Offline';
+
+const formatNumber = (num: number) => {
+  if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+  return num.toString();
+};
+
+function StatCounter({ value, label }: { value: number; label: string }) {
+  const [count, setCount] = useState(0);
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!isVisible) return;
+    let startTime: number | null = null;
+    const duration = 2000;
+
+    const animate = (currentTime: number) => {
+      if (!startTime) startTime = currentTime;
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+      setCount(Math.floor(easeOutQuart * value));
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, [isVisible, value]);
+
+  return (
+    <div ref={ref} className="flex flex-col items-center justify-center py-6 md:py-10 px-4 flex-1">
+      <span className="text-[32px] font-bold text-[#1a2340] leading-none mb-3 tabular-nums">
+        {formatNumber(count)}
+      </span>
+      <span className="text-[10px] md:text-[12px] text-slate-400 font-bold uppercase tracking-[0.2em] text-center px-2">
+        {label}
+      </span>
+    </div>
+  );
+}
 
 export default function LandingPage() {
   const { t, language, setLanguage } = useLanguage();
   const { settings } = useSettings();
   const [systemStatus, setSystemStatus] = useState<SystemStatus>('Optimal');
+  const [publicStats, setPublicStats] = useState<any>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
   const lastTracked = useRef<string | null>(null);
 
   const brandName = String(settings.platform_name || "DNTRNG");
@@ -47,6 +108,26 @@ export default function LandingPage() {
       }
     };
     checkHealth();
+
+    const fetchStats = async () => {
+      if (!API_URL) {
+        setStatsLoading(false);
+        return;
+      }
+      try {
+        const res = await fetch(`${API_URL}?action=getPublicStats`);
+        const data = await res.json();
+        // Hide row if values are 0 or empty to maintain professional appearance
+        if (data && (data.learningSessions > 0 || data.studentsTrained > 0)) {
+          setPublicStats(data);
+        }
+      } catch (e) {
+        console.warn('[Stats Sync Failed]');
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+    fetchStats();
   }, []);
 
   const structuredData = {
@@ -136,6 +217,25 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+
+        {/* Live Social Proof Stats Section */}
+        {!statsLoading && publicStats && (
+          <section className="py-12 bg-[#F4F5F7] animate-in fade-in slide-in-from-bottom-4 duration-1000">
+            <div className="max-w-6xl mx-auto px-6">
+              <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-wrap items-stretch divide-x divide-slate-100">
+                <StatCounter value={publicStats.learningSessions} label="Learning Sessions" />
+                <StatCounter value={publicStats.studentsTrained} label="Students Trained" />
+                <StatCounter value={publicStats.assessmentsDone} label="Assessments Done" />
+                <StatCounter value={publicStats.practiceModules} label="Practice Modules" />
+              </div>
+              <div className="mt-8 text-center">
+                <p className="text-[12px] text-slate-400 italic font-medium">
+                  Trusted by students and teachers across Vietnam
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
       </main>
 
       <footer className="py-20 border-t border-slate-200 bg-white">
