@@ -1,10 +1,11 @@
+
 /**
  * live/host/[roomCode]/page.tsx
  * 
  * Route: /live/host/[roomCode]
  * Purpose: Command terminal for teachers hosting a live session.
  * Used by: Admin operators.
- * Updated: v18.9.2 - Updated status transitions to recognize 'active' and 'revealed'.
+ * Updated: v18.9.3 - Verified state independence and button activation logic.
  */
 
 "use client";
@@ -121,11 +122,20 @@ export default function LiveHostPage() {
     initTerminal();
     const pusher = getPusherClient();
     const channel = pusher.subscribe(`room-${roomCode}`);
+    
     channel.bind('student-joined', (data: any) => {
       setRoom((prev: any) => ({ ...prev, students: data.students || prev.students, studentCount: data.totalStudents }));
     });
-    channel.bind('student-answered', (data: any) => setAnsweredCount(data.answeredCount));
-    channel.bind('answer-reveal', (data: any) => { setLeaderboard(data.leaderboard); setStatus('revealed'); });
+    
+    channel.bind('student-answered', (data: any) => {
+      setAnsweredCount(data.answeredCount);
+    });
+    
+    channel.bind('answer-reveal', (data: any) => { 
+      setLeaderboard(data.leaderboard); 
+      setStatus('revealed'); 
+    });
+    
     return () => { pusher.unsubscribe(`room-${roomCode}`); };
   }, [roomCode, user, router, initTerminal]);
 
@@ -143,7 +153,9 @@ export default function LiveHostPage() {
 
   const startQuiz = () => {
     if (!canStartAssessment) return;
-    setSessionStarted(true); setStatus('active'); setAnsweredCount(0);
+    setSessionStarted(true); 
+    setStatus('active'); 
+    setAnsweredCount(0);
     handleAction('start_question', { questionIndex: 0, questionData: questions[0], timeLimit: 30 });
   };
 
@@ -152,7 +164,9 @@ export default function LiveHostPage() {
   const nextQuestion = () => {
     const nextIdx = currentIdx + 1;
     if (nextIdx < questions.length) {
-      setCurrentIdx(nextIdx); setStatus('active'); setAnsweredCount(0);
+      setCurrentIdx(nextIdx); 
+      setStatus('active'); 
+      setAnsweredCount(0);
       handleAction('start_question', { questionIndex: nextIdx, questionData: questions[nextIdx], timeLimit: 30 });
     } else {
       setIsEndConfirmOpen(true);
