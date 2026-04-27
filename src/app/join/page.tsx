@@ -8,7 +8,7 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,13 +16,22 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Zap, ArrowRight, Loader2, User, Key } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { useAuth } from '@/context/auth-context';
 
 export default function JoinPage() {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [roomCode, setRoomCode] = useState('');
   const [name, setName] = useState('');
   const router = useRouter();
   const { toast } = useToast();
+
+  // Identity Auto-fill Protocol: Synchronize input with authenticated profile on load
+  useEffect(() => {
+    if (user?.displayName && !name) {
+      setName(user.displayName);
+    }
+  }, [user, name]);
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
