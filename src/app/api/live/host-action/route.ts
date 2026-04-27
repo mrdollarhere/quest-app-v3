@@ -1,4 +1,3 @@
-
 /**
  * /api/live/host-action
  * 
@@ -14,7 +13,7 @@ import { calculateScoreForQuestion } from '@/lib/quiz-utils';
 export async function POST(request: Request) {
   try {
     const { roomCode, action, data, hostId } = await request.json();
-    const room = rooms.get(roomCode);
+    const room = rooms.get(String(roomCode).toUpperCase());
 
     if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
     if (room.hostId !== hostId) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
@@ -25,8 +24,13 @@ export async function POST(request: Request) {
         room.currentQuestion = data.questionIndex;
         room.timeLimit = data.timeLimit;
         room.questionStartTime = Date.now();
-        // Clear previous answers for this specific step if any
-        room.students.forEach(s => delete s.answers[room.currentQuestion]);
+        room.activeQuestionData = data.questionData;
+        
+        // Reset responses for the current question
+        room.students.forEach(s => {
+          if (!s.answers) s.answers = {};
+          delete s.answers[room.currentQuestion];
+        });
         
         await pusherServer.trigger(`room-${roomCode}`, 'question-start', {
           questionIndex: room.currentQuestion,
@@ -37,9 +41,13 @@ export async function POST(request: Request) {
 
       case 'reveal_answer':
         room.status = 'revealed';
-        const qData = data.questionData;
+        const qData = room.activeQuestionData;
         
-        // Calculate points
+        if (!qData) {
+          return NextResponse.json({ error: 'No active question data found' }, { status: 400 });
+        }
+        
+        // Calculate points and updates
         room.students.forEach(student => {
           const ans = student.answers[room.currentQuestion];
           const isCorrect = calculateScoreForQuestion(qData, ans);
@@ -59,7 +67,7 @@ export async function POST(request: Request) {
         break;
 
       case 'next_question':
-        room.status = 'waiting'; // Preparing for next step
+        room.status = 'waiting';
         await pusherServer.trigger(`room-${roomCode}`, 'next-question', {});
         break;
 
@@ -67,34 +75,33 @@ export async function POST(request: Request) {
         room.status = 'ended';
         const finalLeaderboard = [...room.students].sort((a, b) => b.score - a.score);
         
-        // Save to GAS Registry
+        // Background push to GAS (Attempt-Best Protocol)
         if (API_URL) {
-          try {
-            await Promise.all(room.students.map(s => 
-              fetch(API_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                body: JSON.stringify({
-                  action: 'submitResponse',
-                  testId: room.testId,
-                  userName: s.name,
-                  userEmail: `live_${roomCode}_${s.id}@student.live`,
-                  score: s.score / 100, // Normalized for GAS
-                  total: finalLeaderboard.length > 0 ? room.currentQuestion + 1 : 0,
-                  mode: 'live'
-                })
+          room.students.forEach(s => {
+            fetch(API_URL, {
+              method: 'POST',
+              mode: 'no-cors',
+              body: JSON.stringify({
+                action: 'submitResponse',
+                testId: room.testId,
+                userName: s.name,
+                userEmail: `live_${roomCode}_${s.id}@student.live`,
+                score: s.score / 100, // Normalized for GAS (1 correct = 1 point)
+                total: room.currentQuestion + 1,
+                mode: 'live'
               })
-            ));
-          } catch (e) {}
+            }).catch(() => {});
+          });
         }
 
         await pusherServer.trigger(`room-${roomCode}`, 'session-ended', { finalLeaderboard });
-        rooms.delete(roomCode); // Clean up memory
+        rooms.delete(roomCode); 
         break;
     }
 
     return NextResponse.json({ status: 'success' });
   } catch (err) {
+    console.error('[Host Action Error]', err);
     return NextResponse.json({ error: 'Host operation failed' }, { status: 500 });
   }
 }
