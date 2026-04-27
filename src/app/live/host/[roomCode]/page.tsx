@@ -14,7 +14,7 @@ import { getPusherClient } from '@/lib/pusher';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Play, CheckCircle2, Clock, Trophy, Copy, LogOut, Loader2, Radio, ArrowRight, ListChecks } from 'lucide-react';
+import { Users, Play, CheckCircle2, Clock, Trophy, Copy, LogOut, Loader2, Radio, ArrowRight, ListChecks, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AILoader } from '@/components/ui/ai-loader';
 import { Question } from '@/types/quiz';
@@ -28,7 +28,8 @@ export default function LiveHostPage() {
   const { toast } = useToast();
   const router = useRouter();
 
-  const [room, setRoom] = useState<any>(null);
+  // Protocol: Initialize with structured defaults to prevent logical mismatch during hydration
+  const [room, setRoom] = useState<any>({ students: [], studentCount: 0 });
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [sessionStarted, setSessionStarted] = useState(false);
@@ -36,6 +37,24 @@ export default function LiveHostPage() {
   const [answeredCount, setAnsweredCount] = useState(0);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [status, setStatus] = useState<'lobby' | 'question' | 'revealed'>('lobby');
+
+  // Logic: Computed state for button accessibility
+  const hasStudents = room?.students && room.students.length > 0;
+  const hasQuestions = questions && questions.length > 0;
+  const buttonDisabled = !hasStudents || !hasQuestions || loading;
+
+  // Forensic Log: Audit state on every change
+  useEffect(() => {
+    if (status === 'lobby') {
+      console.log('[Lobby Registry Audit]', {
+        roomCode,
+        studentsCount: room?.students?.length || 0,
+        questionsCount: questions.length,
+        loadingState: loading,
+        finalDisabledStatus: buttonDisabled
+      });
+    }
+  }, [room, questions, loading, buttonDisabled, status, roomCode]);
 
   useEffect(() => {
     if (!user || user.role !== 'admin') {
@@ -59,14 +78,16 @@ export default function LiveHostPage() {
 
         // 2. Fetch Questions from Registry
         if (roomData.testId && API_URL) {
+          // GAS: getQuestions
           const qRes = await fetch(`${API_URL}?action=getQuestions&id=${roomData.testId}`);
           const qData = await qRes.json();
-          setQuestions(Array.isArray(qData) ? qData : []);
+          const validQuestions = Array.isArray(qData) ? qData : [];
+          setQuestions(validQuestions);
+          console.log(`[Registry Sync] Loaded ${validQuestions.length} intelligence nodes for ${roomData.testId}`);
         }
-
-        setLoading(false);
       } catch (err) {
         toast({ variant: "destructive", title: "Registry Sync Failure" });
+      } finally {
         setLoading(false);
       }
     };
@@ -76,8 +97,13 @@ export default function LiveHostPage() {
     const pusher = getPusherClient();
     const channel = pusher.subscribe(`room-${roomCode}`);
 
+    // Protocol: Use functional state updates to prevent Pusher events from wiping room metadata
     channel.bind('student-joined', (data: any) => {
-      setRoom((prev: any) => ({ ...prev, students: data.students, studentCount: data.totalStudents }));
+      setRoom((prev: any) => ({ 
+        ...prev, 
+        students: data.students, 
+        studentCount: data.totalStudents 
+      }));
     });
 
     channel.bind('student-answered', (data: any) => {
@@ -107,7 +133,10 @@ export default function LiveHostPage() {
   };
 
   const startQuiz = () => {
-    if (questions.length === 0) return;
+    if (questions.length === 0) {
+      toast({ variant: "destructive", title: "Empty Registry", description: "This test has no questions to synchronize." });
+      return;
+    }
     setSessionStarted(true);
     setStatus('question');
     setAnsweredCount(0);
@@ -217,17 +246,51 @@ export default function LiveHostPage() {
                </div>
 
                <div className="p-10 rounded-[3rem] bg-white/5 border-4 border-dashed border-white/10 flex flex-col items-center gap-8">
-                  <div className="space-y-2">
-                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Join URL</p>
-                    <p className="text-2xl font-bold text-white tracking-tight">questflow.vercel.app/join</p>
+                  <div className="flex flex-col gap-4">
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Join URL</p>
+                      <p className="text-2xl font-bold text-white tracking-tight">questflow.vercel.app/join</p>
+                    </div>
+                    {/* Status Diagnostics */}
+                    <div className="flex items-center justify-center gap-6 py-4 border-t border-white/10 mt-2">
+                      <div className="flex items-center gap-2">
+                        <Users className={cn("w-3.5 h-3.5", hasStudents ? "text-emerald-500" : "text-slate-500")} />
+                        <span className={cn("text-[9px] font-black uppercase tracking-widest", hasStudents ? "text-emerald-500" : "text-slate-500")}>
+                          {room?.students?.length || 0} Ready
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <ListChecks className={cn("w-3.5 h-3.5", hasQuestions ? "text-emerald-500" : "text-rose-500")} />
+                        <span className={cn("text-[9px] font-black uppercase tracking-widest", hasQuestions ? "text-emerald-500" : "text-rose-500")}>
+                          {questions.length} Items
+                        </span>
+                      </div>
+                    </div>
                   </div>
+
                   <Button 
                     onClick={startQuiz}
-                    disabled={!room?.students?.length || questions.length === 0}
-                    className="h-20 px-12 rounded-full bg-primary hover:bg-primary/90 text-white font-black text-2xl uppercase tracking-tighter shadow-2xl shadow-primary/30 transition-all hover:scale-[1.05] border-none"
+                    disabled={buttonDisabled}
+                    className={cn(
+                      "h-20 px-12 rounded-full font-black text-2xl uppercase tracking-tighter shadow-2xl transition-all border-none",
+                      buttonDisabled 
+                        ? "bg-slate-800 text-slate-500 cursor-not-allowed" 
+                        : "bg-primary hover:bg-primary/90 text-white hover:scale-[1.05] shadow-primary/30"
+                    )}
                   >
-                    <Play className="w-6 h-6 mr-3 fill-current" /> Start Assessment
+                    {loading ? (
+                      <Loader2 className="w-6 h-6 animate-spin mr-3" />
+                    ) : (
+                      <Play className="w-6 h-6 mr-3 fill-current" />
+                    )}
+                    Start Assessment
                   </Button>
+                  
+                  {!hasQuestions && !loading && (
+                    <p className="text-rose-500 text-[10px] font-black uppercase flex items-center gap-2 animate-pulse">
+                      <AlertCircle className="w-3 h-3" /> Error: Intelligence Nodes Not Synchronized
+                    </p>
+                  )}
                </div>
             </div>
           ) : (
