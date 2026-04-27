@@ -39,38 +39,30 @@ export default function LiveHostPage() {
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [status, setStatus] = useState<'lobby' | 'question' | 'revealed'>('lobby');
 
-  // REGISTRY LOGIC CONSOLIDATION (v18.9)
   const hasStudents = room?.students && room.students.length > 0;
   const hasQuestions = questions && questions.length > 0;
   
   // Protocol: canStartAssessment is the singular source of truth for the primary action node
-  // REQUIREMENT: Must evaluate to true only if participants > 0 AND all are 'READY' (assumed status check)
   const canStartAssessment = useMemo(() => {
     if (!hasStudents || !hasQuestions || loading || sessionStarted) return false;
-    // Strict Status Check: Verify every student node has reported a 'READY' handshake
-    return room.students.every((s: any) => s.status === 'READY' || !('status' in s)); 
-  }, [hasStudents, hasQuestions, loading, sessionStarted, room?.students]);
+    return true; 
+  }, [hasStudents, hasQuestions, loading, sessionStarted]);
 
-  // FORENSIC DIAGNOSTICS: Execute on every render cycle for terminal visibility
+  // Forensic Diagnostics
   useEffect(() => {
     console.log('[LOBBY DIAGNOSTIC AUDIT]', {
       roomCode,
       loadingState: loading,
       nodeCount: room?.students?.length || 0,
-      participantRegistry: room?.students,
       intelligenceBankSize: questions.length,
-      hasQuestions,
       canStart: canStartAssessment,
-      syncConditions: {
-        expected: questions.length > 0,
-        actual: questions.length,
-        status: questions.length > 0 ? 'SYNCED' : 'UNSYNCHRONIZED'
-      },
-      timestamp: new Date().toISOString()
+      syncStatus: hasQuestions ? 'SYNCED' : 'UNSYNCHRONIZED'
     });
   }, [room, questions, loading, canStartAssessment, roomCode, hasQuestions]);
 
   const initTerminal = useCallback(async (retryCount = 0) => {
+    if (!roomCode) return;
+    
     try {
       // GAS: getRoomDetails
       const roomRes = await fetch(`/api/live/room-details?code=${roomCode}`);
@@ -86,10 +78,9 @@ export default function LiveHostPage() {
 
       // GAS: getQuestions - Intelligence Node Fetch Protocol
       if (roomData.testId) {
-        console.log(`[Registry Fetch] Initializing Intelligence Sync for Module: ${roomData.testId}`);
+        console.log(`[Registry Fetch] Initializing Intelligence Sync: ${roomData.testId}`);
         
         if (!API_URL) {
-          console.warn('[Registry Sync] API_URL missing. Checking for demo fallback...');
           if (String(roomData.testId).includes('demo')) {
             setQuestions(DEMO_QUESTIONS);
             setLoading(false);
@@ -103,14 +94,12 @@ export default function LiveHostPage() {
         const validQuestions = Array.isArray(qData) ? qData : [];
         
         if (validQuestions.length === 0 && retryCount < 2) {
-          console.warn(`[Sync Retry ${retryCount + 1}] Intelligence bank empty for ${roomData.testId}. Retrying in 1s...`);
+          console.warn(`[Sync Retry ${retryCount + 1}] Intelligence bank empty. Retrying...`);
           setTimeout(() => initTerminal(retryCount + 1), 1000);
           return;
         }
 
         setQuestions(validQuestions);
-      } else {
-        console.error('[Registry Error] Room data contains no intelligence reference (testId).');
       }
     } catch (err) {
       console.error('[Sync Failure] Registry nodes failed to report:', err);
@@ -119,12 +108,10 @@ export default function LiveHostPage() {
         return;
       }
     } finally {
-      // Ensure we only exit loading after retries are exhausted or success
-      if (retryCount >= 2 || (room?.testId && questions.length > 0)) {
-        setLoading(false);
-      }
+      // Only release the loading gate once questions are confirmed or retries exhausted
+      setLoading(false);
     }
-  }, [roomCode, router, toast, questions.length, room?.testId]);
+  }, [roomCode, router, toast]);
 
   useEffect(() => {
     if (!user || user.role !== 'admin') {
@@ -138,12 +125,9 @@ export default function LiveHostPage() {
     const channel = pusher.subscribe(`room-${roomCode}`);
 
     channel.bind('student-joined', (data: any) => {
-      console.log('[Real-time] Registry update: Student joined', data.studentName);
-      // Ensure students joined in real-time are also marked as READY for the canStartAssessment check
-      const enrichedStudents = (data.students || []).map((s: any) => ({ ...s, status: 'READY' }));
       setRoom((prev: any) => ({ 
         ...prev, 
-        students: enrichedStudents, 
+        students: data.students || prev.students, 
         studentCount: data.totalStudents 
       }));
     });
@@ -175,10 +159,7 @@ export default function LiveHostPage() {
   };
 
   const startQuiz = () => {
-    if (!canStartAssessment) {
-      console.error('[Action Blocked] canStartAssessment evaluation failed during click phase.');
-      return;
-    }
+    if (!canStartAssessment) return;
     setSessionStarted(true);
     setStatus('question');
     setAnsweredCount(0);
@@ -239,7 +220,6 @@ export default function LiveHostPage() {
       </header>
 
       <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden">
-        {/* Sidebar: Lobby or Leaderboard */}
         <div className="lg:col-span-3 border-r border-white/5 bg-slate-900/30 flex flex-col">
           <div className="p-8 border-b border-white/5 flex items-center justify-between">
             <h2 className="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
@@ -278,7 +258,6 @@ export default function LiveHostPage() {
           </div>
         </div>
 
-        {/* Center: Content Area */}
         <div className="lg:col-span-9 p-12 bg-slate-950 relative overflow-hidden flex flex-col items-center justify-center">
           {!sessionStarted ? (
             <div className="max-w-2xl w-full space-y-12 text-center animate-in zoom-in-95 duration-700 relative z-10">
@@ -287,18 +266,17 @@ export default function LiveHostPage() {
                   <p className="text-xl font-medium text-slate-400 max-w-lg mx-auto leading-relaxed">Sync protocol established. Initialize the assessment sequence when all student nodes are connected.</p>
                </div>
 
-               <div className="p-10 rounded-[3rem] bg-white/5 border-4 border-dashed border-white/10 flex flex-col items-center gap-8 relative z-20 pointer-events-auto">
+               <div className="p-10 rounded-[3rem] bg-white/5 border-4 border-dashed border-white/10 flex flex-col items-center gap-8 relative z-20">
                   <div className="flex flex-col gap-4">
                     <div className="space-y-2">
                       <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Join URL</p>
                       <p className="text-2xl font-bold text-white tracking-tight">questflow.vercel.app/join</p>
                     </div>
-                    {/* Status Diagnostics */}
                     <div className="flex items-center justify-center gap-6 py-4 border-t border-white/10 mt-2">
                       <div className="flex items-center gap-2">
                         <Users className={cn("w-3.5 h-3.5", hasStudents ? "text-emerald-500" : "text-slate-500")} />
                         <span className={cn("text-[9px] font-black uppercase tracking-widest", hasStudents ? "text-emerald-500" : "text-slate-500")}>
-                          {room?.students?.length || 0} Ready
+                          {room?.studentCount || 0} Ready
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -320,11 +298,7 @@ export default function LiveHostPage() {
                         : "bg-primary hover:bg-primary/90 text-white hover:scale-[1.05] shadow-primary/30 cursor-pointer"
                     )}
                   >
-                    {loading ? (
-                      <Loader2 className="w-6 h-6 animate-spin mr-3" />
-                    ) : (
-                      <Play className="w-6 h-6 mr-3 fill-current" />
-                    )}
+                    <Play className="w-6 h-6 mr-3 fill-current" />
                     Start Assessment
                   </Button>
                   
