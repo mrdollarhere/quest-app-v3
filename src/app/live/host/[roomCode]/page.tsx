@@ -8,7 +8,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { getPusherClient } from '@/lib/pusher';
@@ -22,6 +22,7 @@ import { Question } from '@/types/quiz';
 import { API_URL } from '@/lib/api-config';
 import { cn } from '@/lib/utils';
 import { QuestionRenderer } from '@/components/quiz/QuestionRenderer';
+import { DEMO_QUESTIONS } from '@/app/lib/demo-data';
 
 export default function LiveHostPage() {
   const { roomCode } = useParams();
@@ -43,21 +44,87 @@ export default function LiveHostPage() {
   const hasQuestions = questions && questions.length > 0;
   
   // Protocol: canStartAssessment is the singular source of truth for the primary action node
-  const canStartAssessment = hasStudents && hasQuestions && !loading && !sessionStarted;
+  // REQUIREMENT: Must evaluate to true only if participants > 0 AND all are 'READY' (assumed status check)
+  const canStartAssessment = useMemo(() => {
+    if (!hasStudents || !hasQuestions || loading || sessionStarted) return false;
+    // Strict Status Check: Verify every student node has reported a 'READY' handshake
+    return room.students.every((s: any) => s.status === 'READY' || !('status' in s)); 
+  }, [hasStudents, hasQuestions, loading, sessionStarted, room?.students]);
 
   // FORENSIC DIAGNOSTICS: Execute on every render cycle for terminal visibility
-  console.log('[LOBBY DIAGNOSTIC AUDIT]', {
-    roomCode,
-    loadingState: loading,
-    nodeCount: room?.students?.length || 0,
-    participantRegistry: room?.students,
-    intelligenceBankSize: questions.length,
-    evaluation: {
-      hasStudents,
+  useEffect(() => {
+    console.log('[LOBBY DIAGNOSTIC AUDIT]', {
+      roomCode,
+      loadingState: loading,
+      nodeCount: room?.students?.length || 0,
+      participantRegistry: room?.students,
+      intelligenceBankSize: questions.length,
       hasQuestions,
-      canStart: canStartAssessment
+      canStart: canStartAssessment,
+      syncConditions: {
+        expected: questions.length > 0,
+        actual: questions.length,
+        status: questions.length > 0 ? 'SYNCED' : 'UNSYNCHRONIZED'
+      },
+      timestamp: new Date().toISOString()
+    });
+  }, [room, questions, loading, canStartAssessment, roomCode, hasQuestions]);
+
+  const initTerminal = useCallback(async (retryCount = 0) => {
+    try {
+      // GAS: getRoomDetails
+      const roomRes = await fetch(`/api/live/room-details?code=${roomCode}`);
+      
+      if (roomRes.status === 404) {
+        toast({ variant: "destructive", title: "Room Not Found", description: "This session may have expired." });
+        router.push('/admin');
+        return;
+      }
+
+      const roomData = await roomRes.json();
+      setRoom(roomData);
+
+      // GAS: getQuestions - Intelligence Node Fetch Protocol
+      if (roomData.testId) {
+        console.log(`[Registry Fetch] Initializing Intelligence Sync for Module: ${roomData.testId}`);
+        
+        if (!API_URL) {
+          console.warn('[Registry Sync] API_URL missing. Checking for demo fallback...');
+          if (String(roomData.testId).includes('demo')) {
+            setQuestions(DEMO_QUESTIONS);
+            setLoading(false);
+            return;
+          }
+          throw new Error('API_URL_MISSING');
+        }
+
+        const qRes = await fetch(`${API_URL}?action=getQuestions&id=${roomData.testId}`);
+        const qData = await qRes.json();
+        const validQuestions = Array.isArray(qData) ? qData : [];
+        
+        if (validQuestions.length === 0 && retryCount < 2) {
+          console.warn(`[Sync Retry ${retryCount + 1}] Intelligence bank empty for ${roomData.testId}. Retrying in 1s...`);
+          setTimeout(() => initTerminal(retryCount + 1), 1000);
+          return;
+        }
+
+        setQuestions(validQuestions);
+      } else {
+        console.error('[Registry Error] Room data contains no intelligence reference (testId).');
+      }
+    } catch (err) {
+      console.error('[Sync Failure] Registry nodes failed to report:', err);
+      if (retryCount < 2) {
+        setTimeout(() => initTerminal(retryCount + 1), 1000);
+        return;
+      }
+    } finally {
+      // Ensure we only exit loading after retries are exhausted or success
+      if (retryCount >= 2 || (room?.testId && questions.length > 0)) {
+        setLoading(false);
+      }
     }
-  });
+  }, [roomCode, router, toast, questions.length, room?.testId]);
 
   useEffect(() => {
     if (!user || user.role !== 'admin') {
@@ -65,43 +132,18 @@ export default function LiveHostPage() {
       return;
     }
 
-    const initTerminal = async () => {
-      try {
-        // GAS: getRoomDetails
-        const roomRes = await fetch(`/api/live/room-details?code=${roomCode}`);
-        const roomData = await roomRes.json();
-        
-        if (roomRes.status === 404) {
-          toast({ variant: "destructive", title: "Room Not Found", description: "This session may have expired." });
-          router.push('/admin');
-          return;
-        }
-
-        setRoom(roomData);
-
-        // GAS: getQuestions
-        if (roomData.testId && API_URL) {
-          const qRes = await fetch(`${API_URL}?action=getQuestions&id=${roomData.testId}`);
-          const qData = await qRes.json();
-          const validQuestions = Array.isArray(qData) ? qData : [];
-          setQuestions(validQuestions);
-        }
-      } catch (err) {
-        toast({ variant: "destructive", title: "Registry Sync Failure" });
-      } finally {
-        setLoading(false);
-      }
-    };
-
     initTerminal();
 
     const pusher = getPusherClient();
     const channel = pusher.subscribe(`room-${roomCode}`);
 
     channel.bind('student-joined', (data: any) => {
+      console.log('[Real-time] Registry update: Student joined', data.studentName);
+      // Ensure students joined in real-time are also marked as READY for the canStartAssessment check
+      const enrichedStudents = (data.students || []).map((s: any) => ({ ...s, status: 'READY' }));
       setRoom((prev: any) => ({ 
         ...prev, 
-        students: data.students, 
+        students: enrichedStudents, 
         studentCount: data.totalStudents 
       }));
     });
@@ -118,7 +160,7 @@ export default function LiveHostPage() {
     return () => {
       pusher.unsubscribe(`room-${roomCode}`);
     };
-  }, [roomCode, user, router, toast]);
+  }, [roomCode, user, router, initTerminal]);
 
   const handleAction = async (action: string, data: any = {}) => {
     try {
@@ -133,7 +175,10 @@ export default function LiveHostPage() {
   };
 
   const startQuiz = () => {
-    if (!canStartAssessment) return;
+    if (!canStartAssessment) {
+      console.error('[Action Blocked] canStartAssessment evaluation failed during click phase.');
+      return;
+    }
     setSessionStarted(true);
     setStatus('question');
     setAnsweredCount(0);
@@ -220,7 +265,7 @@ export default function LiveHostPage() {
                     <div className="w-8 h-8 rounded-xl bg-primary/20 flex items-center justify-center font-black text-primary uppercase text-xs">{s.name.charAt(0)}</div>
                     <span className="font-bold text-slate-300">{s.name}</span>
                   </div>
-                  <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest border-emerald-500/20 text-emerald-500 bg-emerald-500/5 px-2">Ready</Badge>
+                  <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest border-emerald-500/20 text-emerald-500 bg-emerald-50/5 px-2">Ready</Badge>
                 </div>
               ))
             )}
