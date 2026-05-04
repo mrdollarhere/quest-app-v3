@@ -23,7 +23,10 @@ import {
   Search,
   Trash2,
   RefreshCcw,
-  Eye
+  Eye,
+  ArrowUpDown,
+  ChevronUp,
+  ChevronDown
 } from "lucide-react";
 import Link from 'next/link';
 import { useLanguage } from '@/context/language-context';
@@ -88,12 +91,26 @@ function ResponsesTabContent({ responses, tests, loading, onRefresh, onDelete }:
     setCurrentPage,
     paginatedData,
     totalItems,
-    pageSize
+    pageSize,
+    sortConfig,
+    handleSort
   } = useRegistryFilter({
     data: responses || [],
     searchFields: (r) => [String(r['User Name'] || ''), String(r['User Email'] || ''), String(r['Test ID'] || '')],
     initialSort: { key: 'Timestamp', direction: 'desc' }
   });
+
+  const SortIcon = ({ column }: { column: string }) => {
+    if (sortConfig.key !== column) return <ArrowUpDown className="ml-2 h-3 w-3 opacity-30" aria-hidden="true" />;
+    return sortConfig.direction === 'asc' 
+      ? <ChevronUp className="ml-2 h-4 w-4 text-primary" aria-hidden="true" /> 
+      : <ChevronDown className="ml-2 h-4 w-4 text-primary" aria-hidden="true" />;
+  };
+
+  const getAriaSort = (column: string) => {
+    if (sortConfig.key !== column) return 'none';
+    return sortConfig.direction === 'asc' ? 'ascending' : 'descending';
+  };
 
   // Performance: Only render charts when they are likely to be viewed
   useEffect(() => {
@@ -184,10 +201,38 @@ function ResponsesTabContent({ responses, tests, loading, onRefresh, onDelete }:
           <Table aria-label="Assessment module submissions">
             <TableHeader>
               <TableRow className="bg-slate-50/30 dark:bg-slate-800/20 hover:bg-transparent border-none">
-                <TableHead scope="col" className="px-10 py-5 font-black uppercase text-[10px] tracking-widest text-slate-400">Timestamp</TableHead>
-                <TableHead scope="col" className="font-black uppercase text-[10px] tracking-widest text-slate-400">Student Identity</TableHead>
-                <TableHead scope="col" className="font-black uppercase text-[10px] tracking-widest text-slate-400">Assessment Module</TableHead>
-                <TableHead scope="col" className="font-black uppercase text-[10px] tracking-widest text-slate-400">Precision</TableHead>
+                <TableHead 
+                  scope="col" 
+                  className="px-10 py-5 font-black uppercase text-[10px] tracking-widest text-slate-400 cursor-pointer hover:text-primary transition-colors"
+                  aria-sort={getAriaSort('Timestamp')}
+                  onClick={() => handleSort('Timestamp')}
+                >
+                  <div className="flex items-center">Timestamp <SortIcon column="Timestamp" /></div>
+                </TableHead>
+                <TableHead 
+                  scope="col" 
+                  className="font-black uppercase text-[10px] tracking-widest text-slate-400 cursor-pointer hover:text-primary transition-colors"
+                  aria-sort={getAriaSort('User Name')}
+                  onClick={() => handleSort('User Name')}
+                >
+                  <div className="flex items-center">Student Identity <SortIcon column="User Name" /></div>
+                </TableHead>
+                <TableHead 
+                  scope="col" 
+                  className="font-black uppercase text-[10px] tracking-widest text-slate-400 cursor-pointer hover:text-primary transition-colors"
+                  aria-sort={getAriaSort('Test ID')}
+                  onClick={() => handleSort('Test ID')}
+                >
+                  <div className="flex items-center">Assessment Module <SortIcon column="Test ID" /></div>
+                </TableHead>
+                <TableHead 
+                  scope="col" 
+                  className="font-black uppercase text-[10px] tracking-widest text-slate-400 cursor-pointer hover:text-primary transition-colors"
+                  aria-sort={getAriaSort('Score')}
+                  onClick={() => handleSort('Score')}
+                >
+                  <div className="flex items-center">Precision <SortIcon column="Score" /></div>
+                </TableHead>
                 <TableHead scope="col" className="px-10 text-right font-black uppercase text-[10px] tracking-widest text-slate-400">Actions</TableHead>
               </TableRow>
             </TableHeader>
