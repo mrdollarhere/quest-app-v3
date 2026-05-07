@@ -82,6 +82,12 @@ export function QuizStart({ title, questionsCount, duration, user, guestName, se
     setStep('mode');
   };
 
+  const handleSwitchIdentity = () => {
+    localStorage.removeItem('dntrng_guest_name');
+    setGuestName('');
+    setStep('identity');
+  };
+
   const returnToUrl = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '');
 
   return (
@@ -130,6 +136,8 @@ export function QuizStart({ title, questionsCount, duration, user, guestName, se
               onStart={onStart} 
               testId={testId} 
               testName={title} 
+              guestName={user?.displayName || guestName}
+              onSwitchIdentity={!user ? handleSwitchIdentity : undefined}
             />
           )}
         </CardContent>

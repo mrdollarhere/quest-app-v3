@@ -1,4 +1,3 @@
-
 /**
  * QuizModes.tsx
  * 
@@ -9,7 +8,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
-import { Gamepad2, Target, Flame, Play, Radio, Users, Loader2, Info, ExternalLink } from 'lucide-react';
+import { Gamepad2, Target, Flame, Play, Radio, Users, Loader2, Info, ExternalLink, UserCircle } from 'lucide-react';
 import { QuizMode } from '@/types/quiz';
 import { cn } from "@/lib/utils";
 import { useToast } from '@/hooks/use-toast';
@@ -29,9 +28,11 @@ interface QuizModesProps {
   onStart: (mode: QuizMode) => void;
   testId?: string;
   testName?: string;
+  guestName?: string;
+  onSwitchIdentity?: () => void;
 }
 
-export function QuizModes({ selectedMode, setSelectedMode, onStart, testId, testName }: QuizModesProps) {
+export function QuizModes({ selectedMode, setSelectedMode, onStart, testId, testName, guestName, onSwitchIdentity }: QuizModesProps) {
   const router = useRouter();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -114,6 +115,25 @@ export function QuizModes({ selectedMode, setSelectedMode, onStart, testId, test
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* Identity Confirmation Layer */}
+      <div className="flex items-center justify-between px-6 py-4 bg-slate-50 rounded-2xl border border-slate-100">
+        <div className="flex items-center gap-3">
+          <UserCircle className="w-5 h-5 text-slate-400" />
+          <div className="flex flex-col">
+            <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Active Callsign</span>
+            <span className="text-sm font-black text-slate-900 truncate max-w-[200px]">{guestName || 'Anonymous'}</span>
+          </div>
+        </div>
+        {onSwitchIdentity && (
+          <button 
+            onClick={onSwitchIdentity}
+            className="text-[10px] font-black uppercase text-primary hover:underline underline-offset-4"
+          >
+            Switch
+          </button>
+        )}
+      </div>
+
       <div className="bg-slate-100/50 p-2 rounded-full flex flex-wrap items-center justify-between border gap-1">
         {modes.map((m) => (
           <button
