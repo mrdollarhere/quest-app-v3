@@ -82,14 +82,11 @@ function QuizContent() {
     const index = updatedResponses.findIndex(r => r.questionId === currentQuestion.id);
     const isCorrect = calculateScoreForQuestion(currentQuestion, val);
     
-    const prevAnswer = index > -1 ? updatedResponses[index].answer : undefined;
     if (index > -1) {
       updatedResponses[index].answer = val;
       updatedResponses[index].isCorrect = isCorrect;
-      if (val !== prevAnswer) trackEvent('quiz_answer_change', { test_id: testId || '', question_id: currentQuestion.id });
     } else {
       updatedResponses.push({ questionId: currentQuestion.id, answer: val, isCorrect });
-      trackEvent('quiz_answer', { test_id: testId || '', question_id: currentQuestion.id });
     }
     setQuiz({ ...quiz, responses: updatedResponses });
   };
@@ -112,7 +109,6 @@ function QuizContent() {
     if (quiz.currentQuestionIndex < quiz.questions.length - 1) {
       const nextIdx = quiz.currentQuestionIndex + 1;
       setQuiz({ ...quiz, currentQuestionIndex: nextIdx, highestStepReached: Math.max(quiz.highestStepReached, nextIdx) });
-      trackEvent('quiz_question_view', { test_id: testId || '', question_id: quiz.questions[nextIdx]?.id });
     }
   };
 
@@ -185,7 +181,6 @@ function QuizContent() {
     let q = [...(questionsData || [])];
     if (mode === 'test') q = q.sort(() => Math.random() - 0.5);
     setQuiz(prev => ({ ...prev, questions: q, startTime: Date.now(), mode: mode }));
-    trackEvent('quiz_question_view', { test_id: testId || '', question_id: q[0]?.id });
   };
 
   if (qLoading || configLoading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><AILoader /></div>;
