@@ -113,7 +113,7 @@ export const HotspotModule: React.FC<Props> = ({ question, value, onChange, revi
               return (
                 <div 
                   key={z.id}
-                  className="absolute border-4 border-white rounded-lg bg-primary/40 shadow-2xl ring-4 ring-primary/10 animate-in zoom-in duration-300"
+                  className="absolute border-4 border-white rounded-none bg-primary/40 shadow-2xl ring-4 ring-primary/10 animate-in zoom-in duration-300"
                   style={{ 
                     left: `${z.x}%`, 
                     top: `${z.y}%`, 
@@ -128,11 +128,6 @@ export const HotspotModule: React.FC<Props> = ({ question, value, onChange, revi
             {reviewMode && zones.map((z) => {
               const isSelected = selectedZoneIds.includes(z.id);
               const isCorrect = z.isCorrect;
-              
-              // Diagnostic State Protocol:
-              // - Green: Correct node selected (isSelected && isCorrect)
-              // - Red: Correct node missed (!isSelected && isCorrect)
-              // - Orange: Wrong node selected (isSelected && !isCorrect)
               
               let borderColor = "border-transparent";
               let bgColor = "bg-transparent";
@@ -151,7 +146,6 @@ export const HotspotModule: React.FC<Props> = ({ question, value, onChange, revi
                 bgColor = "bg-orange-500/20";
                 labelColor = "bg-orange-600";
               } else {
-                // Distractor not touched
                 borderColor = "border-slate-300/20";
               }
 
@@ -159,7 +153,7 @@ export const HotspotModule: React.FC<Props> = ({ question, value, onChange, revi
                 <div 
                   key={z.id} 
                   className={cn(
-                    "absolute border-2 transition-all duration-700 flex items-center justify-center rounded-sm",
+                    "absolute border-2 transition-all duration-700 flex items-center justify-center rounded-none",
                     borderColor,
                     bgColor
                   )} 
@@ -172,7 +166,7 @@ export const HotspotModule: React.FC<Props> = ({ question, value, onChange, revi
                 >
                   <div className="flex flex-col items-center gap-1">
                     <span className={cn(
-                      "option-text text-[9px] font-black text-white px-2 py-0.5 rounded-sm border shadow-xl backdrop-blur-md",
+                      "option-text text-[9px] font-black text-white px-2 py-0.5 rounded-none border shadow-xl backdrop-blur-md",
                       labelColor
                     )}>
                       {z.label}

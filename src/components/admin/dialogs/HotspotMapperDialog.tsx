@@ -169,7 +169,7 @@ function HotspotMapperContent({ open, onOpenChange, imageUrl, initialData, onSav
                   </div>
                 ) : (
                   <div 
-                    className="relative shadow-2xl rounded-2xl overflow-hidden bg-black w-full max-w-full"
+                    className="relative shadow-2xl rounded-none overflow-hidden bg-black w-full max-w-full"
                     style={{ paddingBottom: `${aspectRatio * 100}%`, height: 0 }}
                   >
                     <div 
@@ -183,14 +183,14 @@ function HotspotMapperContent({ open, onOpenChange, imageUrl, initialData, onSav
                         src={imageUrl} 
                         alt="Map" 
                         onLoad={handleImageLoad}
-                        className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
+                        className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none" 
                         draggable={false} 
                       />
                       
                       {/* Live Drawing Preview */}
                       {currentRect && (
                         <div 
-                          className="absolute border-2 border-dashed border-primary bg-primary/10 pointer-events-none"
+                          className="absolute border-2 border-dashed border-primary bg-primary/10 rounded-none pointer-events-none"
                           style={{ 
                             left: `${currentRect.x}%`, 
                             top: `${currentRect.y}%`, 
@@ -205,7 +205,7 @@ function HotspotMapperContent({ open, onOpenChange, imageUrl, initialData, onSav
                         <div 
                           key={z.id}
                           className={cn(
-                            "absolute border-2 transition-all flex items-center justify-center group/zone",
+                            "absolute border-2 transition-all flex items-center justify-center group/zone rounded-none",
                             z.isCorrect ? "border-green-400 bg-green-500/10" : "border-rose-400 bg-rose-500/10"
                           )}
                           style={{ 
@@ -215,7 +215,7 @@ function HotspotMapperContent({ open, onOpenChange, imageUrl, initialData, onSav
                             height: `${z.height}%` 
                           }}
                         >
-                          <div className="opacity-0 group-hover/zone:opacity-100 transition-opacity bg-slate-900/90 backdrop-blur-sm text-white text-[8px] font-black uppercase px-2 py-0.5 rounded-md shadow-xl whitespace-nowrap z-10">
+                          <div className="opacity-0 group-hover/zone:opacity-100 transition-opacity bg-slate-900/90 backdrop-blur-sm text-white text-[8px] font-black uppercase px-2 py-0.5 rounded-none shadow-xl whitespace-nowrap z-10">
                             {z.label} {z.isCorrect ? "(Correct)" : ""}
                           </div>
                         </div>
