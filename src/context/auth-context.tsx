@@ -1,7 +1,6 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { API_URL } from '@/lib/api-config';
 import { useSettings } from '@/context/settings-context';
 import { trackEvent } from '@/lib/tracker';
 
@@ -55,84 +54,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [settings, settingsLoading]);
 
-  const getDeviceDetails = () => {
-    if (typeof window === 'undefined') return 'N/A';
-    const ua = navigator.userAgent;
-    let device = "Unknown Device";
-    
-    if (/android/i.test(ua)) device = "Android";
-    else if (/iPad|iPhone|iPod/.test(ua)) device = "iOS";
-    else if (/Windows/i.test(ua)) device = "Windows";
-    else if (/Mac/i.test(ua)) device = "macOS";
-    else if (/Linux/i.test(ua)) device = "Linux";
-    
-    let browser = "Browser";
-    if (/chrome|crios/i.test(ua)) browser = "Chrome";
-    else if (/firefox|fxios/i.test(ua)) browser = "Firefox";
-    else if (/safari/i.test(ua)) browser = "Safari";
-    else if (/edg/i.test(ua)) browser = "Edge";
-    
-    return `${device} (${browser})`;
-  };
-
   const logActivityToRegistry = async (email: string, name: string, event: 'Login' | 'Logout') => {
-    if (!API_URL) return;
     try {
-      let ip = 'N/A';
-      try {
-        const ipRes = await fetch('https://api.ipify.org?format=json');
-        const ipData = await ipRes.json();
-        ip = ipData.ip;
-      } catch (e) {}
-
-      const device = getDeviceDetails();
-
-      await fetch(API_URL, {
+      await fetch('/api/proxy/log-activity', {
         method: 'POST',
-        mode: 'no-cors',
-        body: JSON.stringify({ 
-          action: 'logActivity', 
-          email, 
-          name, 
-          event,
-          ip,
-          device
-        })
+        body: JSON.stringify({ email, name, event })
       });
     } catch (e) {}
   };
 
   const login = async (email: string, password?: string): Promise<{ success: boolean; message?: string }> => {
-    if (!API_URL) return { success: false, message: "API Offline" };
-    
-    const allowedDomainsStr = settings.allowed_email_domains || "";
-    if (allowedDomainsStr.trim()) {
-      const allowedDomains = allowedDomainsStr.split(',').map(d => d.trim().toLowerCase()).filter(Boolean);
-      if (allowedDomains.length > 0) {
-        const userDomain = email.split('@')[1]?.toLowerCase();
-        if (!userDomain || !allowedDomains.includes(userDomain)) {
-          return { success: false, message: "domain_restricted" };
-        }
-      }
-    }
-
     try {
-      const url = new URL(API_URL);
-      url.searchParams.append('action', 'login');
-      url.searchParams.append('email', email.toLowerCase());
-      if (password) url.searchParams.append('password', password);
+      const response = await fetch('/api/proxy/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
       
-      const response = await fetch(url.toString());
       const data = await response.json();
       
-      if (data && data.role) {
+      if (response.ok && data.role) {
         const newUser: User = {
-          email: email.toLowerCase(),
+          email: data.email.toLowerCase(),
           role: data.role as 'admin' | 'user',
-          displayName: data.name || email.split('@')[0],
+          displayName: data.name || data.displayName || email.split('@')[0],
           id: data.id,
           image_url: data.image_url
         };
+        
         setUser(newUser);
         localStorage.setItem('questflow_user', JSON.stringify(newUser));
         localStorage.setItem('questflow_login_ts', Date.now().toString());
@@ -141,17 +90,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         trackEvent('login', { details: { role: newUser.role } });
         return { success: true };
       }
-      return { success: false, message: "invalid_credentials" };
+      return { success: false, message: data.error || "invalid_credentials" };
     } catch (error) {
       return { success: false, message: "sync_error" };
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     if (user) {
       logActivityToRegistry(user.email, user.displayName || 'User', 'Logout');
       trackEvent('logout', { details: { role: user.role } });
     }
+    
+    await fetch('/api/proxy/auth/logout', { method: 'POST' });
+    
     setUser(null);
     localStorage.removeItem('questflow_user');
     localStorage.removeItem('questflow_login_ts');

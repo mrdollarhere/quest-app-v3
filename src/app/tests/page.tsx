@@ -2,8 +2,6 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import useSWR from 'swr';
-import { API_URL } from '@/lib/api-config';
-import { AVAILABLE_TESTS as DEMO_TESTS } from '@/app/lib/demo-data';
 import { LibraryHeader } from '@/components/library/LibraryHeader';
 import { EmptyState } from '@/components/library/EmptyState';
 import { CardView } from '@/components/library/CardView';
@@ -33,7 +31,6 @@ export default function TestsLibrary() {
     trackEvent('page_view_tests');
   }, []);
 
-  // TELEMETRY: Debounced search tracking
   useEffect(() => {
     if (!search.trim()) return;
     const handler = setTimeout(() => {
@@ -42,11 +39,12 @@ export default function TestsLibrary() {
     return () => clearTimeout(handler);
   }, [search]);
 
+  // Registry Protocol: Hydrate via Server-Side Proxy
   const { data, error, isLoading, isValidating, mutate } = useSWR(
-    API_URL ? `${API_URL}?action=getTests` : 'tests-demo',
+    '/api/proxy/tests',
     async (url) => {
-      if (!API_URL) return DEMO_TESTS;
       const res = await fetch(url);
+      if (!res.ok) throw new Error('Registry unreachable');
       const tests = await res.json();
       setLastSync(new Date());
       return Array.isArray(tests) ? tests : [];
@@ -111,8 +109,8 @@ export default function TestsLibrary() {
         {error ? (
           <div className="max-w-xl mx-auto text-center py-32 space-y-10">
             <AlertCircle className="w-24 h-24 text-red-500 mx-auto" />
-            <h2 className="text-4xl font-black uppercase tracking-tight">Sync Failure</h2>
-            <Button onClick={() => mutate()} className="h-16 px-12 rounded-full bg-slate-900">Re-initialize Connection</Button>
+            <h2 className="text-4xl font-black uppercase tracking-tight">Registry Handshake Error</h2>
+            <Button onClick={() => mutate()} className="h-16 px-12 rounded-full bg-slate-900">Re-initialize Registry Proxy</Button>
           </div>
         ) : (
           <div className="space-y-10">
@@ -121,7 +119,7 @@ export default function TestsLibrary() {
                 <div className="flex-1 space-y-4">
                   <div className="flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Registry Active</span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Registry Proxy Active</span>
                   </div>
                   <h1 className="text-[36px] font-bold text-[#1a2340] dark:text-white leading-tight">{t('chooseTest')}</h1>
                   <p className="text-[15px] text-slate-500 dark:text-slate-400 max-w-[480px] leading-relaxed font-medium">{t('testSubtitle')}</p>

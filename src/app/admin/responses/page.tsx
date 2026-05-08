@@ -2,10 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { API_URL } from '@/lib/api-config';
 import { ResponsesTab } from '@/components/admin/ResponsesTab';
 import { AILoader } from '@/components/ui/ai-loader';
-import { trackEvent } from '@/lib/tracker';
 
 export default function AdminResponsesPage() {
   const [loading, setLoading] = useState(false);
@@ -14,20 +12,21 @@ export default function AdminResponsesPage() {
   const { toast } = useToast();
 
   const fetchData = async () => {
-    if (!API_URL) return;
     setLoading(true);
     try {
+      // Registry Protocol: Protected Proxy Fetch
       const [resRes, testsRes] = await Promise.all([
-        fetch(`${API_URL}?action=getResponses`),
-        fetch(`${API_URL}?action=getTests`)
+        fetch('/api/proxy/admin/responses'),
+        fetch('/api/proxy/tests')
       ]);
+      
       const resData = await resRes.json();
       const testsData = await testsRes.json();
       
       setResponses(Array.isArray(resData) ? resData : []);
       setTests(Array.isArray(testsData) ? testsData : []);
     } catch (err) {
-      toast({ variant: "destructive", title: "Error", description: "Could not fetch responses." });
+      toast({ variant: "destructive", title: "Access Denied", description: "Submission registry is protected." });
     } finally {
       setLoading(false);
     }
@@ -36,30 +35,6 @@ export default function AdminResponsesPage() {
   useEffect(() => {
     fetchData();
   }, []);
-
-  const handlePost = async (action: string, payload: any) => {
-    if (!API_URL) return;
-    setLoading(true);
-    try {
-      await fetch(API_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        body: JSON.stringify({ action, ...payload })
-      });
-      toast({ title: "Success", description: "Registry updated." });
-      
-      // Track response deletion if applicable
-      if (action === 'deleteResponse') {
-        trackEvent('admin_response_delete', { details: { timestamp: payload.timestamp, email: payload.email } });
-      }
-
-      setTimeout(fetchData, 1500);
-    } catch (err) {
-      toast({ variant: "destructive", title: "Error" });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (loading && responses.length === 0) {
     return (
@@ -76,7 +51,12 @@ export default function AdminResponsesPage() {
         tests={tests}
         loading={loading}
         onRefresh={fetchData}
-        onDelete={(timestamp, email) => handlePost('deleteResponse', { timestamp, email })}
+        onDelete={(timestamp, email) => {
+          fetch('/api/proxy/admin/delete-response', {
+            method: 'POST',
+            body: JSON.stringify({ timestamp, email })
+          }).then(() => fetchData());
+        }}
       />
     </div>
   );

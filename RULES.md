@@ -1,45 +1,38 @@
-# DNTRNG™ - Technical Standard & Protocols (v18.9.5)
+# DNTRNG™ - Technical Standard & Protocols (v18.9.6)
 
 ## 1. Stack Overview
 *   **Framework**: Next.js 15 (App Router) with React 19.
-*   **Language**: TypeScript (Strict Mode).
 *   **Registry (Database)**: Google Sheets™ via Registry Bridge Protocol v18.9.
-*   **Real-time Protocol**: Pusher Channels for sub-second host-student synchronization.
+*   **Security Protocol**: Server-Side Proxying via Next.js API Routes.
 *   **AI Engine**: Genkit with Google AI (Gemini 2.5 Flash).
 
-## 2. Code Organization Rules
+## 2. Security Protocols
+*   **GAS Proxy**: `gas-proxy.ts` is server-only. Never import in client components.
+*   **Registry Access**: All GAS calls must go through `/api/proxy/` routes. Never call `NEXT_PUBLIC_API_URL` directly from client code.
+*   **Scoring**: Assessment scores are always calculated server-side in `/api/proxy/submit`. Client-side scores are for visual feedback only and not trusted by the registry.
+*   **Auth**: Admin routes require an `auth-session` cookie with `role === admin`.
+
+## 3. Code Organization Rules
 
 ### Component Extraction Protocol (CEP)
-*   **Extraction Trigger**: Any JSX block exceeding 50 lines of static markup or representing a distinct logical state (e.g., Lobby vs. Question) MUST be extracted.
-*   **Location**: Reusable components reside in `src/components/`, organized by domain (e.g., `/live`, `/quiz`, `/admin`).
-*   **State Management**: Complex logic (heartbeats, Pusher listeners) should remain in the parent Page, passing state/handlers as props to extracted views.
+*   **Extraction Trigger**: Any JSX block exceeding 50 lines of static markup or representing a distinct logical state MUST be extracted.
+*   **Location**: Reusable components reside in `src/components/`, organized by domain.
 
 ### File Size Limits
 *   **Components**: Must not exceed 250 lines.
 *   **Pages**: Must not exceed 350 lines.
 *   **Utility Files**: Must not exceed 150 lines.
 
-### Component Architecture
-*   **One component per file**: Export as default or named per project consistency.
-*   **Types**: All props must be defined via a TypeScript interface directly above the component.
-
-## 3. Folder Structure Rules
+## 4. Folder Structure Rules
 *   `src/app`: Routing and page-level logic containers.
-*   `src/components/live`: Classroom interaction modules (Lobby, QuestionView, FinalScore).
-*   `src/components/quiz`: Core interaction modules (SingleChoice, MultipleChoice, etc.).
-*   `src/components/admin`: Administrative management and calibration dialogs.
+*   `src/app/api/proxy`: Secure infrastructure gateways.
+*   `src/components`: Atomic interaction modules.
 
-## 4. Content & Copy Standards
-*   **Tone**: Professional, diagnostic, and intelligence-oriented.
-*   **No Placeholders**: Avoid filler text ("Lorem Ipsum"), raw i18n keys, or "coming soon" labels in production code.
-*   **Terminology**: 
-    *   Tests -> Intelligence Modules
-    *   Questions -> Steps / Nodes
-    *   Leaderboard -> Standing Registry
-    *   Admin -> Mission Control / Host
+## 5. Visual Standards
+*   **Rectangular Geometry**: All images, asset markers, and spatial containers must use `rounded-none` (sharp corners).
 
 ---
-### REFACTOR LOG - 2025-05-24 (v18.9.5)
-- **Extracted Live Mode UI**: Modularized host and student terminals into sub-components.
-- **Content Audit**: Replaced all filler text with production-ready copy focusing on real-time classroom features.
-- **Rules Update**: Formalized the Component Extraction Protocol (CEP).
+### SECURITY REFACTOR - 2025-05-24 (v18.9.6)
+- **Infrastructure Proxy**: Transitioned all GAS calls to server-side routes.
+- **Mastery Hardening**: Implemented server-side score calculation.
+- **Credential Safety**: Implemented httpOnly session cookies.

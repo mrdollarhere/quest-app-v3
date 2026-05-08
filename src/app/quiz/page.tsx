@@ -1,23 +1,17 @@
 "use client";
 
-import React, { useState, useEffect, Suspense, useCallback } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import useSWR, { mutate as globalMutate } from 'swr';
-import { QuizState, QuizMode, Question } from '@/types/quiz';
+import { QuizState, QuizMode } from '@/types/quiz';
 import { QuizStart } from '@/components/quiz/QuizStart';
 import { QuizResults } from '@/components/quiz/QuizResults';
 import { QuizActive } from '@/components/quiz/QuizActive';
 import { useToast } from '@/hooks/use-toast';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { DEMO_QUESTIONS, AVAILABLE_TESTS } from '@/app/lib/demo-data';
-import { API_URL } from '@/lib/api-config';
 import { useAuth } from '@/context/auth-context';
-import { calculateTotalScore, calculateScoreForQuestion } from '@/lib/quiz-utils';
 import { AILoader } from '@/components/ui/ai-loader';
-import { AlertCircle, ArrowLeft, Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { useSettings } from '@/context/settings-context';
 import { trackEvent } from '@/lib/tracker';
-import Link from 'next/link';
 
 function QuizContent() {
   const searchParams = useSearchParams();
@@ -45,34 +39,34 @@ function QuizContent() {
     flaggedQuestionIds: []
   });
 
-  // Persistent Identity Protocol: Load guest name on mount
   useEffect(() => {
     const savedName = localStorage.getItem('dntrng_guest_name');
-    if (savedName) {
-      setGuestName(savedName);
-    }
+    if (savedName) setGuestName(savedName);
   }, []);
 
+  // Registry Protocol: Hydrate Questions via Secure Proxy
   const { data: questionsData, isLoading: qLoading } = useSWR(
-    testId ? `questions-${testId}` : null,
-    async () => {
-      if (!API_URL) return DEMO_QUESTIONS;
-      const res = await fetch(`${API_URL}?action=getQuestions&id=${testId}`);
-      const data = await res.json();
-      return Array.isArray(data) ? data : [];
+    testId ? `/api/proxy/questions?id=${testId}` : null,
+    async (url) => {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Registry unreachable');
+      return await res.json();
     }
   );
 
+  // Registry Protocol: Hydrate Metadata via Secure Proxy
   const { data: globalData, isLoading: configLoading } = useSWR(
-    'quiz-config',
-    async () => {
-      if (!API_URL) return { tests: AVAILABLE_TESTS, salt: "", protection: true, guest: true, maintenance: false };
-      const [sRes, tRes] = await Promise.all([fetch(`${API_URL}?action=getSettings`), fetch(`${API_URL}?action=getTests`)]);
+    '/api/proxy/settings',
+    async (url) => {
+      const [sRes, tRes] = await Promise.all([
+        fetch('/api/proxy/settings'),
+        fetch('/api/proxy/tests')
+      ]);
       const sData = await sRes.json();
       const tData = await tRes.json();
       return {
         tests: Array.isArray(tData) ? tData : [],
-        salt: sData.daily_key_salt || "",
+        salt: sData.daily_key_salt || "", // This will be empty due to stripping, used for fallback
         protection: String(sData.access_key_protection_enabled ?? "true") !== "false",
         guest: String(sData.guest_access_allowed ?? "true") !== "false",
         maintenance: String(sData.maintenance_mode ?? "false") === "true",
@@ -88,32 +82,19 @@ function QuizContent() {
     const currentQuestion = quiz.questions[quiz.currentQuestionIndex];
     const updatedResponses = [...quiz.responses];
     const index = updatedResponses.findIndex(r => r.questionId === currentQuestion.id);
-    const isCorrect = calculateScoreForQuestion(currentQuestion, val);
+    
+    // SECURITY NOTE: We no longer calculate score client-side for validation.
+    // Client-side isCorrect is for visual UI feedback ONLY during practice.
     
     if (index > -1) {
       updatedResponses[index].answer = val;
-      updatedResponses[index].isCorrect = isCorrect;
     } else {
-      updatedResponses.push({ questionId: currentQuestion.id, answer: val, isCorrect });
+      updatedResponses.push({ questionId: currentQuestion.id, answer: val });
     }
     setQuiz({ ...quiz, responses: updatedResponses });
   };
 
   const handleNext = () => {
-    const currentQuestion = quiz.questions[quiz.currentQuestionIndex];
-    if (quiz.mode === 'race') {
-      const resp = quiz.responses.find(r => r.questionId === currentQuestion.id);
-      if (!resp || !resp.isCorrect) {
-        setIsWrongInRace(true);
-        trackEvent('quiz_reset', { test_id: testId || '', details: 'Race Streak Failed' });
-        setTimeout(() => {
-          setQuiz(prev => ({ ...prev, currentQuestionIndex: 0, responses: [], flaggedQuestionIds: [] }));
-          setIsWrongInRace(false);
-        }, 1500);
-        return;
-      }
-    }
-
     if (quiz.currentQuestionIndex < quiz.questions.length - 1) {
       const nextIdx = quiz.currentQuestionIndex + 1;
       setQuiz({ ...quiz, currentQuestionIndex: nextIdx, highestStepReached: Math.max(quiz.highestStepReached, nextIdx) });
@@ -121,74 +102,60 @@ function QuizContent() {
   };
 
   const submit = async () => {
-    const finalScore = calculateTotalScore(quiz.questions, quiz.responses);
     const finalName = user?.displayName || guestName || 'Guest User';
     const finalEmail = user?.email || 'Anonymous';
     const timestamp = Date.now();
-    const finalPercentage = Math.round((finalScore / (quiz.questions.length || 1)) * 100);
-    const timeTaken = Math.round((timestamp - quiz.startTime) / 1000);
-    const passingThreshold = Number(testMetadata?.passing_threshold || globalData?.defaultThreshold || 70);
-    const isPassed = finalPercentage >= passingThreshold;
     
     let certId = "";
-    if (isPassed && testMetadata?.certificate_enabled !== 'FALSE') {
-      certId = `CRT-${finalEmail.slice(0,4)}-${testId}-${timestamp.toString().slice(-4)}`.toUpperCase();
-      setGeneratedCertificateId(certId);
-    }
-    
-    // TELEMETRY: Track final submission with complete performance audit
-    trackEvent('quiz_submit', { 
-      test_id: testId || '', 
-      test_name: testMetadata?.title,
-      score: finalScore, 
-      details: { 
-        score_percent: finalPercentage,
-        correct: finalScore,
-        incorrect: quiz.questions.length - finalScore,
-        total: quiz.questions.length,
-        time_taken_seconds: timeTaken,
-        mode: quiz.mode,
-        passed: isPassed
-      } 
-    });
-    
-    if (testId) sessionStorage.removeItem(`quiz_session_${testId}`);
-    setQuiz({ ...quiz, isSubmitted: true, score: finalScore, endTime: timestamp });
-    if (user?.email) globalMutate(`results-${user.email}`);
+    const passingThreshold = Number(testMetadata?.passing_threshold || globalData?.defaultThreshold || 70);
 
-    if (API_URL) {
-      try {
-        await fetch(API_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          body: JSON.stringify({
-            action: 'submitResponse',
-            testId: testId || 'Unknown',
-            userName: finalName,
-            userEmail: finalEmail,
-            score: finalScore,
-            total: quiz.questions.length,
-            duration: timestamp - quiz.startTime,
-            responses: quiz.responses,
-            mode: quiz.mode,
-            certificateId: certId
-          })
+    // SECURITY PROTOCOL: Mastery calculation performed via Server-Side Proxy
+    try {
+      const res = await fetch('/api/proxy/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          testId,
+          responses: quiz.responses,
+          userName: finalName,
+          userEmail: finalEmail,
+          duration: timestamp - quiz.startTime,
+          mode: quiz.mode,
+          certificateId: `CRT-${finalEmail.slice(0,4)}-${testId}-${timestamp.toString().slice(-4)}`.toUpperCase()
+        })
+      });
+
+      const data = await res.json();
+      
+      if (res.ok) {
+        const finalPercentage = Math.round((data.score / (data.total || 1)) * 100);
+        const isPassed = finalPercentage >= passingThreshold;
+        
+        if (isPassed && testMetadata?.certificate_enabled !== 'FALSE') {
+          setGeneratedCertificateId(data.certificateId);
+        }
+
+        setQuiz({ ...quiz, isSubmitted: true, score: data.score, endTime: timestamp });
+        if (user?.email) globalMutate(`results-${user.email}`);
+        
+        trackEvent('quiz_submit', { 
+          test_id: testId || '', 
+          test_name: testMetadata?.title,
+          score: data.score, 
+          details: { passed: isPassed, total: data.total } 
         });
-        trackEvent('quiz_complete', { test_id: testId || '', test_name: testMetadata?.title });
-      } catch (e) {}
+      }
+    } catch (e) {
+      toast({ variant: "destructive", title: "Submission Failure", description: "The registry handshake failed." });
     }
   };
 
   const handleStart = (mode: QuizMode) => {
     setIsStarted(true);
-    trackEvent('quiz_start', { 
-      test_id: testId || '', 
-      test_name: testMetadata?.title, 
-      details: { mode } 
-    });
     let q = [...(questionsData || [])];
     if (mode === 'test') q = q.sort(() => Math.random() - 0.5);
     setQuiz(prev => ({ ...prev, questions: q, startTime: Date.now(), mode: mode }));
+    trackEvent('quiz_start', { test_id: testId || '', test_name: testMetadata?.title, details: { mode } });
   };
 
   if (qLoading || configLoading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><AILoader /></div>;
@@ -197,7 +164,6 @@ function QuizContent() {
     return (
       <QuizStart 
         title={testMetadata?.title || 'Assessment'}
-        description={testMetadata?.description}
         questionsCount={quiz.questions.length}
         duration={testMetadata?.duration}
         user={user}
@@ -223,14 +189,12 @@ function QuizContent() {
         responses={quiz.responses}
         userName={user?.displayName || guestName || 'Guest User'}
         onRestart={() => { 
-          trackEvent('quiz_retake', { test_id: testId || '', test_name: testMetadata?.title });
           setIsStarted(false); 
           setQuiz(prev => ({...prev, isSubmitted: false, responses: []})); 
         }}
         startTime={quiz.startTime}
         endTime={quiz.endTime}
         testMetadata={testMetadata}
-        allTests={globalData?.tests}
         certificateId={generatedCertificateId || undefined}
       />
     );
@@ -254,7 +218,6 @@ function QuizContent() {
             ? prev.flaggedQuestionIds.filter(f => f !== id) 
             : [...(prev.flaggedQuestionIds || []), id] 
         }));
-        trackEvent('quiz_flag', { test_id: testId || '', question_id: id }); 
       }}
     />
   );

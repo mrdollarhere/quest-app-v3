@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { API_URL } from '@/lib/api-config';
 import { UsersTab } from '@/components/admin/UsersTab';
 import { AdminDialogs } from '@/components/admin/AdminDialogs';
 import { AILoader } from '@/components/ui/ai-loader';
@@ -18,19 +17,23 @@ export default function AdminUsersPage() {
   const { toast } = useToast();
 
   const fetchData = async () => {
-    if (!API_URL) return;
     setLoading(true);
     try {
+      // Registry Protocol: Protected Proxy Fetch
       const [uRes, rRes] = await Promise.all([
-        fetch(`${API_URL}?action=getUsers`),
-        fetch(`${API_URL}?action=getResponses`)
+        fetch('/api/proxy/admin/users'),
+        fetch('/api/proxy/admin/responses')
       ]);
+      
+      if (!uRes.ok || !rRes.ok) throw new Error('Registry denied access');
+      
       const uData = await uRes.json();
       const rData = await rRes.json();
+      
       setUsers(Array.isArray(uData) ? uData : []);
       setResponses(Array.isArray(rData) ? rData : []);
     } catch (err) {
-      toast({ variant: "destructive", title: "Error", description: "Could not fetch user registry." });
+      toast({ variant: "destructive", title: "Security Error", description: "Could not access student registry." });
     } finally {
       setLoading(false);
     }
@@ -40,21 +43,23 @@ export default function AdminUsersPage() {
     fetchData();
   }, []);
 
-  const handlePost = async (action: string, payload: any) => {
-    if (!API_URL) return;
+  const handlePost = async (url: string, payload: any) => {
     setLoading(true);
     try {
-      await fetch(API_URL, {
+      const res = await fetch(url, {
         method: 'POST',
-        mode: 'no-cors',
-        body: JSON.stringify({ action, ...payload })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       });
-      toast({ title: "Success", description: "Identity record updated." });
+      
+      if (!res.ok) throw new Error();
+      
+      toast({ title: "Success", description: "Registry updated." });
       setDialogs({ ...dialogs, user: false });
       setTimeout(fetchData, 1500);
       return true;
     } catch (err) {
-      toast({ variant: "destructive", title: "Error" });
+      toast({ variant: "destructive", title: "Action Failed" });
       return false;
     } finally {
       setLoading(false);
@@ -74,12 +79,8 @@ export default function AdminUsersPage() {
           loading={loading}
           onEdit={(item) => { setEditingItem(item); setDialogs({ ...dialogs, user: true }); }}
           onDelete={async (email) => {
-            const u = users.find(u => u.email === email);
-            const ok = await handlePost('deleteUser', { email });
-            if (ok) {
-              logActivity("Student deleted", u?.name || email);
-              trackEvent('admin_student_delete', { details: { studentId: email } });
-            }
+            const ok = await handlePost('/api/proxy/admin/delete-user', { email });
+            if (ok) logActivity("Student deleted", email);
           }}
           onAdd={() => { setEditingItem(null); setDialogs({ ...dialogs, user: true }); }}
           onRefresh={fetchData}
@@ -94,20 +95,10 @@ export default function AdminUsersPage() {
         questions={[]}
         onSaveTest={() => {}}
         onSaveUser={async (userData) => {
-          const ok = await handlePost('saveUser', { data: userData });
-          if (ok) {
-            logActivity(editingItem ? "Student record edited" : "Student added", userData.name);
-            trackEvent(editingItem ? 'admin_student_edit' : 'admin_student_add', { 
-              details: { studentEmail: userData.email, studentName: userData.name } 
-            });
-          }
+          await handlePost('/api/proxy/admin/save-user', { data: userData });
         }}
         onSaveUsers={async (usersData) => {
-          const ok = await handlePost('saveUsers', { data: usersData });
-          if (ok) {
-            logActivity("Bulk student provisioning", `${usersData.length} records committed`);
-            trackEvent('admin_student_add', { details: { count: usersData.length, type: 'batch' } });
-          }
+          await handlePost('/api/proxy/admin/save-users', { data: usersData });
         }}
         onSaveQuestion={() => {}}
         onSaveBulk={() => {}}
