@@ -10,12 +10,17 @@ export async function gasGet(
   params: Record<string, string> = {}
 ) {
   if (!process.env.APPS_SCRIPT_URL) {
-    throw new Error('Infrastructure Error: APPS_SCRIPT_URL is missing');
+    throw new Error('APPS_SCRIPT_URL not set');
   }
+  if (!process.env.APPS_SCRIPT_API_KEY) {
+    throw new Error('APPS_SCRIPT_API_KEY not set');
+  }
+
+  console.log('[GAS CALL]', action, process.env.APPS_SCRIPT_URL?.slice(0, 60));
 
   const url = new URL(process.env.APPS_SCRIPT_URL);
   url.searchParams.set('action', action);
-  url.searchParams.set('apiKey', process.env.APPS_SCRIPT_API_KEY || "");
+  url.searchParams.set('apiKey', process.env.APPS_SCRIPT_API_KEY);
   
   Object.entries(params).forEach(([k, v]) => {
     url.searchParams.set(k, v);
@@ -27,6 +32,7 @@ export async function gasGet(
   try {
     return JSON.parse(text);
   } catch (e) {
+    console.error('[GAS RAW]', text.slice(0, 300));
     throw new Error('Registry Sync Error: ' + text.slice(0, 100));
   }
 }
@@ -36,15 +42,20 @@ export async function gasPost(
   payload: object = {}
 ) {
   if (!process.env.APPS_SCRIPT_URL) {
-    throw new Error('Infrastructure Error: APPS_SCRIPT_URL is missing');
+    throw new Error('APPS_SCRIPT_URL not set');
   }
+  if (!process.env.APPS_SCRIPT_API_KEY) {
+    throw new Error('APPS_SCRIPT_API_KEY not set');
+  }
+
+  console.log('[GAS CALL]', action, process.env.APPS_SCRIPT_URL?.slice(0, 60));
 
   const res = await fetch(process.env.APPS_SCRIPT_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ 
       action,
-      apiKey: process.env.APPS_SCRIPT_API_KEY || "",
+      apiKey: process.env.APPS_SCRIPT_API_KEY,
       ...payload 
     })
   });
@@ -54,6 +65,7 @@ export async function gasPost(
   try {
     return JSON.parse(text);
   } catch (e) {
+    console.error('[GAS RAW]', text.slice(0, 300));
     throw new Error('Registry Sync Error: ' + text.slice(0, 100));
   }
 }

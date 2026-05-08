@@ -9,7 +9,8 @@ export async function GET() {
   try {
     const data = await gasGet('getTests');
     return NextResponse.json(data);
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch library' }, { status: 500 });
+  } catch (error: any) {
+    console.error('[Proxy Tests Error]', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
