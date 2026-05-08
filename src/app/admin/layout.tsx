@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { usePathname, useRouter } from 'next/navigation';
 import { LanguageProvider } from '@/context/language-context';
 import { AILoader } from '@/components/ui/ai-loader';
-import { API_URL } from '@/lib/api-config';
 import { REQUIRED_GAS_VERSION, GAS_CHANGELOG_URL } from '@/lib/gas-version';
 import { trackEvent } from '@/lib/tracker';
 
@@ -31,7 +30,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [user, authLoading, router]);
 
   useEffect(() => {
-    if (!API_URL || !user || user.role !== 'admin') return;
+    if (!user || user.role !== 'admin') return;
 
     const checkGasVersion = async () => {
       const lastDismissed = localStorage.getItem('dntrng_gas_reminder_dismissed');
@@ -43,11 +42,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       }
 
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-        const res = await fetch(`${API_URL}?action=getVersion`, { signal: controller.signal });
+        const res = await fetch('/api/proxy/version');
         const data = await res.json();
-        clearTimeout(timeoutId);
         
         if (data && data.version) {
           setCurrentGasVersion(data.version);

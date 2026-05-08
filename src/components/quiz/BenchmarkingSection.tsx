@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, Loader2 } from "lucide-react";
-import { API_URL } from '@/lib/api-config';
 
 interface BenchmarkingSectionProps {
   testId?: string;
@@ -15,13 +14,20 @@ export function BenchmarkingSection({ testId, percentage, enabled = true }: Benc
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Optimization Protocol: Skip network fetch if benchmarking is disabled
-    if (!enabled || !testId || !API_URL) return;
+    if (!enabled || !testId) return;
     
     const fetchComparison = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`${API_URL}?action=getResponses`);
+        // Now using the proxied admin/responses route (only works if admin, or need public aggregate)
+        // Note: Benchmarking currently uses full responses list, which is restricted.
+        // We fetch through the secure proxy.
+        const res = await fetch('/api/proxy/admin/responses');
+        if (!res.ok) {
+          // If not authenticated as admin, benchmarking is skipped for security
+          setPercentile(null);
+          return;
+        }
         const data = await res.json();
         if (Array.isArray(data)) {
           const testResponses = data.filter(r => String(r['Test ID']) === String(testId));
@@ -45,8 +51,7 @@ export function BenchmarkingSection({ testId, percentage, enabled = true }: Benc
     fetchComparison();
   }, [testId, percentage, enabled]);
 
-  // UI Enforcement: Hide component if disabled or loading failed to find data
-  if (!enabled || percentile === null && !loading) return null;
+  if (!enabled || (percentile === null && !loading)) return null;
 
   if (loading) {
     return (

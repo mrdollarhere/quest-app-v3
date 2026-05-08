@@ -1,7 +1,6 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { API_URL } from '@/lib/api-config';
 
 interface SettingsContextType {
   settings: Record<string, string>;
@@ -16,16 +15,16 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchSettings = useCallback(async () => {
-    if (!API_URL) {
-      setLoading(false);
-      return;
-    }
     try {
-      const res = await fetch(`${API_URL}?action=getSettings`, { cache: 'no-store' });
+      const res = await fetch('/api/proxy/settings', { cache: 'no-store' });
+      if (!res.ok) {
+        setLoading(false);
+        return;
+      }
       const data = await res.json();
       setSettings(data || {});
     } catch (e) {
-      console.error("Failed to fetch platform settings", e);
+      console.warn("[Registry Proxy] Failed to fetch settings");
     } finally {
       setLoading(false);
     }

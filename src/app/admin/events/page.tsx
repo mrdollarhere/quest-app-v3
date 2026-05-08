@@ -2,7 +2,6 @@
 
 import React, { useRef } from 'react';
 import useSWR from 'swr';
-import { API_URL } from '@/lib/api-config';
 import { EventsTab } from '@/components/admin/EventsTab';
 import { AILoader } from '@/components/ui/ai-loader';
 import { Activity, Sparkles, Loader2 } from 'lucide-react';
@@ -12,9 +11,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
 export default function AdminEventsPage() {
-  const { data: events, isLoading, mutate } = useSWR(
-    API_URL ? `${API_URL}?action=getEvents&limit=1000` : null
-  );
+  const { data: events, isLoading, mutate } = useSWR('/api/proxy/admin/events');
   const { toast } = useToast();
   const [cleaning, setCleaning] = useState(false);
   const lastTracked = useRef<string | null>(null);
@@ -27,17 +24,13 @@ export default function AdminEventsPage() {
   }, []);
 
   const handleCleanDuplicates = async () => {
-    if (!API_URL) return;
     setCleaning(true);
     try {
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        body: JSON.stringify({ action: 'cleanDuplicates' })
+      await fetch('/api/proxy/admin/clean-duplicates', {
+        method: 'POST'
       });
       toast({ title: "Forensic Scan Triggered", description: "Request committed to registry. Refreshing feed..." });
       
-      // Track action after success
       trackEvent('admin_events_cleanup');
       
       setTimeout(() => {

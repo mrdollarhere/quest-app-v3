@@ -3,7 +3,6 @@
 import React, { useState, useEffect, Suspense, useRef } from 'react';
 import useSWR from 'swr';
 import { useToast } from '@/hooks/use-toast';
-import { API_URL } from '@/lib/api-config';
 import { OverviewTab } from '@/components/admin/OverviewTab';
 import { AdminDialogs } from '@/components/admin/AdminDialogs';
 import { ChangelogPanel } from '@/components/admin/ChangelogPanel';
@@ -36,7 +35,6 @@ function AdminDashboardContent() {
   const { settings, refreshSettings } = useSettings();
   const lastTracked = useRef<string | null>(null);
   
-  // Protocol: Define missing dialog state for administration terminal
   const [dialogs, setDialogs] = useState({ test: false, user: false, question: false, bulk: false });
 
   useEffect(() => {
@@ -47,12 +45,12 @@ function AdminDashboardContent() {
   }, []);
 
   const { data, mutate, isLoading } = useSWR(
-    API_URL ? 'admin-dashboard-data' : null,
+    'admin-dashboard-data',
     async () => {
       const [testsRes, usersRes, responsesRes] = await Promise.all([
-        fetch(`${API_URL}?action=getTests`),
-        fetch(`${API_URL}?action=getUsers`),
-        fetch(`${API_URL}?action=getResponses`)
+        fetch('/api/proxy/tests'),
+        fetch('/api/proxy/admin/users'),
+        fetch('/api/proxy/admin/responses')
       ]);
       const [tests, users, responses] = await Promise.all([
         testsRes.json(),
@@ -78,28 +76,20 @@ function AdminDashboardContent() {
     }
   }, [searchParams, router, toast]);
 
-  const handlePost = async (action: string, payload: any) => {
-    if (!API_URL) return;
-    try {
-      await fetch(API_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        body: JSON.stringify({ action, ...payload })
-      });
-      mutate();
-      return true;
-    } catch (err) {
-      return false;
-    }
-  };
-
   const handleSaveSetting = async (key: string, value: string) => {
-    const ok = await handlePost('saveSetting', { key, value });
-    if (ok) {
+    try {
+      await fetch('/api/proxy/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, value })
+      });
       toast({ title: "Success", description: "Settings updated." });
       logActivity("Settings updated", key);
       trackEvent('admin_settings_save', { details: key });
       refreshSettings();
+      mutate();
+    } catch (err) {
+      toast({ variant: "destructive", title: "Error" });
     }
   };
 
@@ -107,7 +97,11 @@ function AdminDashboardContent() {
     toast({ title: "Seeding Started", description: "Initializing demo library..." });
     try {
       for (const test of AVAILABLE_TESTS) {
-        await handlePost('saveTest', { data: { ...test, image_url: test.image }});
+        await fetch('/api/proxy/admin/save-test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: { ...test, image_url: test.image }})
+        });
       }
       toast({ title: "Sync Complete", description: "Demo library synchronized." });
       trackEvent('admin_seed_data', { details: { count: AVAILABLE_TESTS.length } });
@@ -155,27 +149,37 @@ function AdminDashboardContent() {
             const slug = (payload.title as string || 'test').toLowerCase().replace(/[^a-z0-9]/g, '-');
             payload.id = `${slug}-${Date.now().toString().slice(-4)}`;
           }
-          const ok = await handlePost('saveTest', { data: payload });
-          if (ok) {
+          try {
+            await fetch('/api/proxy/admin/save-test', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ data: payload })
+            });
             trackEvent('admin_test_create', { 
               test_id: payload.id, 
               test_name: payload.title,
-              details: {
-                difficulty: payload.difficulty,
-                duration: payload.duration,
-                category: payload.category
-              }
+              details: { difficulty: payload.difficulty, duration: payload.duration, category: payload.category }
             });
             toast({ title: "Success", description: "Test record updated." });
             setDialogs(prev => ({ ...prev, test: false }));
+            mutate();
+          } catch (err) {
+            toast({ variant: "destructive", title: "Error" });
           }
         }}
         onSaveUser={async (userData) => {
-          const ok = await handlePost('saveUser', { data: userData });
-          if (ok) {
+          try {
+            await fetch('/api/proxy/admin/save-user', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ data: userData })
+            });
             trackEvent('admin_student_add', { details: { studentEmail: userData.email, studentName: userData.name } });
             toast({ title: "Success", description: "Student record updated." });
             setDialogs(prev => ({ ...prev, user: false }));
+            mutate();
+          } catch (err) {
+            toast({ variant: "destructive", title: "Error" });
           }
         }}
         onSaveQuestion={() => {}}
