@@ -1,12 +1,13 @@
+
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { gasGet } from '@/lib/server/gas-proxy';
 
 /**
  * GET /api/proxy/admin/events
- * Admin Only: Retrieves site-wide telemetry events.
+ * Admin Only: Retrieves site-wide telemetry events with dynamic filtering.
  */
-export async function GET() {
+export async function GET(request: Request) {
   const cookieStore = await cookies();
   const c = cookieStore.get('auth-session');
   
@@ -15,8 +16,12 @@ export async function GET() {
   const session = JSON.parse(c.value);
   if (session.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
+  const { searchParams } = new URL(request.url);
+  const limit = searchParams.get('limit') || '1000';
+  const type = searchParams.get('event_type') || 'all';
+
   try {
-    const data = await gasGet('getEvents', { limit: '1000' });
+    const data = await gasGet('getEvents', { limit, event_type: type });
     return NextResponse.json(data);
   } catch (error) {
     return NextResponse.json({ error: 'Registry error' }, { status: 500 });

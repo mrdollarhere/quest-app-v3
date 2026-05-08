@@ -1,9 +1,9 @@
+
 "use client";
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { API_URL } from '@/lib/api-config';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,22 +33,18 @@ export default function NewTestPage() {
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!API_URL) return;
-
     setLoading(true);
+    
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData.entries());
     
-    // Explicit Cast: Convert boolean state to registry-compatible string
     data.difficulty = difficulty;
     data.certificate_enabled = certEnabled ? "TRUE" : "FALSE";
     
-    // Protocol: Ensure passing_threshold is always present in the payload
     if (!data.passing_threshold) {
       data.passing_threshold = String(settings.default_pass_threshold || "70");
     }
     
-    // Auto-formatting duration suffix if only number provided
     if (data.duration && !String(data.duration).includes('m')) {
       data.duration = `${data.duration}m`;
     }
@@ -59,18 +55,19 @@ export default function NewTestPage() {
     }
 
     try {
-      await fetch(API_URL, {
+      const res = await fetch('/api/proxy/admin/save-test', {
         method: 'POST',
-        mode: 'no-cors',
-        body: JSON.stringify({ action: 'saveTest', data })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data })
       });
+      
+      if (!res.ok) throw new Error('Registry push failed');
       
       toast({ 
         title: "Test Created", 
         description: "Redirecting to question editor..." 
       });
 
-      // Track successful creation
       trackEvent('admin_test_create', { 
         test_id: data.id as string, 
         test_name: data.title as string,
@@ -87,7 +84,7 @@ export default function NewTestPage() {
       toast({ 
         variant: "destructive", 
         title: "Error", 
-        description: "Could not create the test." 
+        description: "Could not create the test via proxy." 
       });
     } finally {
       setLoading(false);

@@ -1,8 +1,8 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { API_URL } from '@/lib/api-config';
 import { TestsTab } from '@/components/admin/TestsTab';
 import { AdminDialogs } from '@/components/admin/AdminDialogs';
 import { QuestionAnalyticsDialog } from '@/components/admin/analytics/QuestionAnalyticsDialog';
@@ -22,12 +22,11 @@ export default function AdminTestsPage() {
   const router = useRouter();
 
   const fetchTests = async () => {
-    if (!API_URL) return;
     setLoading(true);
     try {
       const [testsRes, responsesRes] = await Promise.all([
-        fetch(`${API_URL}?action=getTests`),
-        fetch(`${API_URL}?action=getResponses`)
+        fetch('/api/proxy/tests'),
+        fetch('/api/proxy/admin/responses')
       ]);
       
       const [testsData, responsesData] = await Promise.all([
@@ -38,7 +37,7 @@ export default function AdminTestsPage() {
       setTests(Array.isArray(testsData) ? testsData : []);
       setResponses(Array.isArray(responsesData) ? responsesData : []);
     } catch (err) {
-      toast({ variant: "destructive", title: "Error", description: "Could not fetch tests." });
+      toast({ variant: "destructive", title: "Error", description: "Could not fetch tests via proxy." });
     } finally {
       setLoading(false);
     }
@@ -49,20 +48,23 @@ export default function AdminTestsPage() {
   }, []);
 
   const handlePost = async (action: string, payload: any) => {
-    if (!API_URL) return;
+    const endpoint = action === 'deleteTest' ? '/api/proxy/admin/delete-test' : '/api/proxy/admin/save-test';
     setLoading(true);
     try {
-      await fetch(API_URL, {
+      const res = await fetch(endpoint, {
         method: 'POST',
-        mode: 'no-cors',
-        body: JSON.stringify({ action, ...payload })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       });
-      toast({ title: "Success", description: "Test list updated." });
+      
+      if (!res.ok) throw new Error();
+      
+      toast({ title: "Success", description: "Test registry updated." });
       setDialogs({ ...dialogs, test: false });
       setTimeout(fetchTests, 1500);
       return true;
     } catch (err) {
-      toast({ variant: "destructive", title: "Error" });
+      toast({ variant: "destructive", title: "Action Failed" });
       return false;
     } finally {
       setLoading(false);
@@ -72,7 +74,7 @@ export default function AdminTestsPage() {
   const openAnalytics = async (test: any) => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}?action=getQuestions&id=${test.id}`);
+      const res = await fetch(`/api/proxy/questions?id=${test.id}`);
       const questions = await res.json();
       setAnalyticsQuestions(Array.isArray(questions) ? questions : []);
       setAnalyticsTest(test);

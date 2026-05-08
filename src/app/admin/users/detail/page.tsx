@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
@@ -7,18 +8,16 @@ import {
   User as UserIcon, 
   Mail, 
   Shield, 
-  Calendar, 
-  Activity, 
-  Trophy, 
   Target,
-  BarChart3,
   Database,
   Download,
   Search,
   CheckCircle2,
   XCircle,
   Filter,
-  Eye
+  Eye,
+  Activity,
+  Trophy
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -33,7 +32,6 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { API_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from "@/lib/utils";
 import { AILoader } from '@/components/ui/ai-loader';
@@ -58,15 +56,15 @@ function UserDetailContent() {
   const threshold = Number(settings.default_pass_threshold || '70');
 
   const fetchData = async () => {
-    if (!API_URL || !email) {
+    if (!email) {
       setLoading(false);
       return;
     }
     setLoading(true);
     try {
       const [uRes, rRes] = await Promise.all([
-        fetch(`${API_URL}?action=getUsers`),
-        fetch(`${API_URL}?action=getResponses`)
+        fetch('/api/proxy/admin/users'),
+        fetch('/api/proxy/admin/responses')
       ]);
       
       const uData = await uRes.json();
@@ -84,7 +82,7 @@ function UserDetailContent() {
         trackEvent('admin_student_view', { details: { studentId: email } });
       }
     } catch (err) {
-      toast({ variant: "destructive", title: "Sync Error", description: "Could not load user profile." });
+      toast({ variant: "destructive", title: "Sync Error", description: "Could not load user profile via proxy." });
     } finally {
       setLoading(false);
     }
@@ -101,8 +99,7 @@ function UserDetailContent() {
     setCurrentPage,
     paginatedData,
     totalItems,
-    pageSize,
-    filteredData
+    pageSize
   } = useRegistryFilter({
     data: responses,
     searchFields: (r) => [String(r['Test ID'] || ''), String(r.Mode || '')],

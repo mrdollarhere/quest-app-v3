@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useMemo, useRef } from 'react';
@@ -5,7 +6,6 @@ import useSWR from 'swr';
 import { useAuth } from '@/context/auth-context';
 import { useSettings } from '@/context/settings-context';
 import { useRouter } from 'next/navigation';
-import { API_URL } from '@/lib/api-config';
 import { AILoader } from '@/components/ui/ai-loader';
 import { trackEvent } from '@/lib/tracker';
 
@@ -37,10 +37,9 @@ export default function ProfilePage() {
   const { data: resultsData, isLoading: resultsLoading } = useSWR(
     user?.email ? `results-${user.email}` : null,
     async () => {
-      if (!API_URL) return { responses: [], tests: [] };
       const [respRes, testsRes] = await Promise.all([
-        fetch(`${API_URL}?action=getResponses`),
-        fetch(`${API_URL}?action=getTests`)
+        fetch('/api/proxy/responses'),
+        fetch('/api/proxy/tests')
       ]);
       const respData = await respRes.json();
       const testsData = await testsRes.json();

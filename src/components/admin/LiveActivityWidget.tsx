@@ -1,8 +1,8 @@
+
 "use client";
 
 import React from 'react';
 import useSWR from 'swr';
-import { API_URL } from '@/lib/api-config';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,7 @@ import Link from 'next/link';
 
 export function LiveActivityWidget() {
   const { data: events, isLoading } = useSWR(
-    API_URL ? `${API_URL}?action=getEvents&limit=10` : null,
+    '/api/proxy/admin/events?limit=10',
     { refreshInterval: 60000 }
   );
 

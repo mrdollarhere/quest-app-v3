@@ -1,3 +1,4 @@
+
 /**
  * /api/live/host-action
  * 
@@ -8,7 +9,7 @@
 import { NextResponse } from 'next/server';
 import { rooms } from '@/lib/live-rooms';
 import { pusherServer } from '@/lib/pusher';
-import { API_URL } from '@/lib/api-config';
+import { gasPost } from '@/lib/server/gas-proxy';
 import { calculateScoreForQuestion } from '@/lib/quiz-utils';
 
 export async function POST(request: Request) {
@@ -76,24 +77,17 @@ export async function POST(request: Request) {
         room.status = 'ended';
         const finalLeaderboard = [...room.students].sort((a, b) => b.score - a.score);
         
-        // Background push to GAS (Attempt-Best Protocol)
-        if (API_URL) {
-          room.students.forEach(s => {
-            fetch(API_URL, {
-              method: 'POST',
-              mode: 'no-cors',
-              body: JSON.stringify({
-                action: 'submitResponse',
-                testId: room.testId,
-                userName: s.name,
-                userEmail: `live_${roomCode}_${s.id}@student.live`,
-                score: s.score / 100, // Normalized for GAS (1 correct = 1 point)
-                total: room.currentQuestion + 1,
-                mode: 'live'
-              })
-            }).catch(() => {});
-          });
-        }
+        // Background push to GAS via secure server context (Attempt-Best Protocol)
+        room.students.forEach(s => {
+          gasPost('submitResponse', {
+            testId: room.testId,
+            userName: s.name,
+            userEmail: `live_${roomCode}_${s.id}@student.live`,
+            score: s.score / 100, // Normalized for GAS (1 correct = 1 point)
+            total: room.currentQuestion + 1,
+            mode: 'live'
+          }).catch(() => {});
+        });
 
         await pusherServer.trigger(`room-${roomCode}`, 'session-ended', { finalLeaderboard });
         break;

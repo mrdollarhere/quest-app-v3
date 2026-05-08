@@ -1,4 +1,5 @@
-# DNTRNG™ - Technical Standard & Protocols (v18.9.6)
+
+# DNTRNG™ - Technical Standard & Protocols (v18.9.7)
 
 ## 1. Stack Overview
 *   **Framework**: Next.js 15 (App Router) with React 19.
@@ -8,7 +9,7 @@
 
 ## 2. Security Protocols
 *   **GAS Proxy**: `gas-proxy.ts` is server-only. Never import in client components.
-*   **Registry Access**: All GAS calls must go through `/api/proxy/` routes. Never call `NEXT_PUBLIC_API_URL` directly from client code.
+*   **Registry Access**: All GAS calls must go through `/api/proxy/` routes. `NEXT_PUBLIC_API_URL` has been removed. All GAS calls use `APPS_SCRIPT_URL` via `gas-proxy.ts` server-side only.
 *   **Scoring**: Assessment scores are always calculated server-side in `/api/proxy/submit`. Client-side scores are for visual feedback only and not trusted by the registry.
 *   **Auth**: Admin routes require an `auth-session` cookie with `role === admin`.
 
@@ -32,7 +33,7 @@
 *   **Rectangular Geometry**: All images, asset markers, and spatial containers must use `rounded-none` (sharp corners).
 
 ---
-### SECURITY REFACTOR - 2025-05-24 (v18.9.6)
-- **Infrastructure Proxy**: Transitioned all GAS calls to server-side routes.
-- **Mastery Hardening**: Implemented server-side score calculation.
-- **Credential Safety**: Implemented httpOnly session cookies.
+### INFRASTRUCTURE HARDENING - 2025-05-24 (v18.9.7)
+- **Zero-Public-URL**: Removed `NEXT_PUBLIC_API_URL` from client bundles.
+- **Proxy Enforced**: Transitioned all administrative and student telemetry to server-side proxy nodes.
+- **Server-Side Classroom Integration**: Migrated Live Mode logic to use `gasPost` directly.
