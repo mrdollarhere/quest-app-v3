@@ -9,11 +9,11 @@ export async function gasGet(
   action: string,
   params: Record<string, string> = {}
 ) {
-  if (!process.env.NEXT_PUBLIC_API_URL) {
-    throw new Error('Infrastructure Error: NEXT_PUBLIC_API_URL is missing');
+  if (!process.env.APPS_SCRIPT_URL) {
+    throw new Error('Infrastructure Error: APPS_SCRIPT_URL is missing');
   }
 
-  const url = new URL(process.env.NEXT_PUBLIC_API_URL);
+  const url = new URL(process.env.APPS_SCRIPT_URL);
   url.searchParams.set('action', action);
   url.searchParams.set('apiKey', process.env.APPS_SCRIPT_API_KEY || "");
   
@@ -35,11 +35,11 @@ export async function gasPost(
   action: string, 
   payload: object = {}
 ) {
-  if (!process.env.NEXT_PUBLIC_API_URL) {
-    throw new Error('Infrastructure Error: NEXT_PUBLIC_API_URL is missing');
+  if (!process.env.APPS_SCRIPT_URL) {
+    throw new Error('Infrastructure Error: APPS_SCRIPT_URL is missing');
   }
 
-  const res = await fetch(process.env.NEXT_PUBLIC_API_URL, {
+  const res = await fetch(process.env.APPS_SCRIPT_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ 
