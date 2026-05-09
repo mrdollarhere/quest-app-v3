@@ -1,12 +1,12 @@
 export const GAS_CODE = `/**
- * QUESTFLOW BACKEND v18.9 - PUBLIC TELEMETRY & SUMMARY PROTOCOL
+ * QUESTFLOW BACKEND v18.9.7 - HARDENED ADMINISTRATIVE PROTOCOL
  * 
  * ACTIONS SUPPORTED:
  * - GET: login, getTests, getUsers, getResponses, getQuestions, getActivity, getSettings, getVersion, getEvents, getPublicStats
  * - POST: submitResponse, saveTest, deleteTest, saveUser, deleteUser, saveQuestion, saveQuestions, saveUsers, logActivity, saveSetting, deleteResponse, logEvent, cleanDuplicates
  */
 
-const GAS_VERSION = "18.9";
+const GAS_VERSION = "18.9.7";
 
 function doGet(e) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -82,13 +82,13 @@ function doGet(e) {
     if (action === 'getResponses') {
       const sheet = ss.getSheetByName('Responses');
       if (!sheet) return createResponse([]);
-      return createResponse(getRowsAsObjects(sheet).reverse().slice(0, 500));
+      return createResponse(getRowsAsObjects(sheet).reverse().slice(0, 1000));
     }
 
     if (action === 'getActivity') {
       const sheet = ss.getSheetByName('Activity');
       if (!sheet) return createResponse([]);
-      return createResponse(getRowsAsObjects(sheet).reverse().slice(0, 200));
+      return createResponse(getRowsAsObjects(sheet).reverse().slice(0, 500));
     }
 
     if (action === 'getSettings') {

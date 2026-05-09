@@ -27,8 +27,9 @@ export default function AdminTestDetailPage() {
     if (!testId) return;
     setLoading(true);
     try {
+      // SECURE ADMIN FETCH: Proxy route preserves correct_answer for editing
       const [qRes, tRes] = await Promise.all([
-        fetch(`/api/proxy/questions?id=${testId}`),
+        fetch(`/api/proxy/admin/questions?id=${testId}`),
         fetch('/api/proxy/tests')
       ]);
       const qData = await qRes.json();

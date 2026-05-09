@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -74,7 +73,8 @@ export default function AdminTestsPage() {
   const openAnalytics = async (test: any) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/proxy/questions?id=${test.id}`);
+      // Use admin questions route to get full metadata for analytics
+      const res = await fetch(`/api/proxy/admin/questions?id=${test.id}`);
       const questions = await res.json();
       setAnalyticsQuestions(Array.isArray(questions) ? questions : []);
       setAnalyticsTest(test);
