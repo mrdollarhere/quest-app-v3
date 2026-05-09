@@ -11,17 +11,16 @@ import { usePathname, useRouter } from 'next/navigation';
 import { LanguageProvider } from '@/context/language-context';
 import { AILoader } from '@/components/ui/ai-loader';
 import { REQUIRED_GAS_VERSION, GAS_CHANGELOG_URL } from '@/lib/gas-version';
-import { trackEvent } from '@/lib/tracker';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading, logout } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
-  const [gasOutdated, setGasOutdated] = useState(false);
   const [currentGasVersion, setCurrentGasVersion] = useState<string | null>(null);
   const [showBanner, setShowBanner] = useState(false);
 
+  // REDIRECT PROTOCOL: Secure identity check
   useEffect(() => {
     if (!authLoading && !user) {
       const fullPath = window.location.pathname + window.location.search;
@@ -48,7 +47,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         if (data && data.version) {
           setCurrentGasVersion(data.version);
           if (data.version !== REQUIRED_GAS_VERSION) {
-            setGasOutdated(true);
             setShowBanner(true);
           }
         }
@@ -89,15 +87,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (!user) return null;
 
+  // ROLE PROTOCOL: Explicitly block non-admin nodes
   if (user.role !== 'admin') {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center bg-slate-50 dark:bg-slate-950">
-        <ShieldAlert className="w-20 h-20 text-red-500 mb-4" />
-        <h1 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Access Denied</h1>
-        <p className="text-muted-foreground mt-2 font-medium">Your identity role does not permit access to the administrative console.</p>
-        <Link href="/" className="mt-8">
-          <Button className="rounded-full h-12 px-8 font-black uppercase text-xs tracking-widest bg-slate-900 shadow-xl">Return Home</Button>
-        </Link>
+        <div className="w-24 h-24 bg-rose-50 rounded-[2rem] flex items-center justify-center mb-6 shadow-xl shadow-rose-500/10">
+          <ShieldAlert className="w-12 h-12 text-rose-500" />
+        </div>
+        <h1 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Access Forbidden</h1>
+        <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium max-w-sm mx-auto leading-relaxed">
+          Your current identity node does not possess administrative clearance. Please contact a supervisor or return to the student terminal.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4 mt-10">
+          <Link href="/">
+            <Button className="rounded-full h-12 px-8 font-black uppercase text-[10px] tracking-widest bg-slate-900 shadow-xl border-none">Return Home</Button>
+          </Link>
+          <Button variant="outline" onClick={() => logout()} className="rounded-full h-12 px-8 font-black uppercase text-[10px] tracking-widest border-2">Switch Identity</Button>
+        </div>
       </div>
     );
   }

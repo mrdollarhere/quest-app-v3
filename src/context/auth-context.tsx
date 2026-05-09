@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useSettings } from '@/context/settings-context';
 import { trackEvent } from '@/lib/tracker';
 
@@ -16,7 +16,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password?: string) => Promise<{ success: boolean; message?: string }>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,6 +25,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const { settings, loading: settingsLoading } = useSettings();
+
+  const logout = useCallback(async () => {
+    if (user) {
+      try {
+        await fetch('/api/proxy/log-activity', {
+          method: 'POST',
+          body: JSON.stringify({ 
+            email: user.email, 
+            name: user.displayName || 'User', 
+            event: 'Logout' 
+          })
+        });
+      } catch (e) {}
+      trackEvent('logout', { details: { role: user.role } });
+    }
+    
+    // Clear server-side cookie
+    await fetch('/api/proxy/auth/logout', { method: 'POST' });
+    
+    // Clear client-side registry
+    setUser(null);
+    localStorage.removeItem('questflow_user');
+    localStorage.removeItem('questflow_login_ts');
+  }, [user]);
 
   useEffect(() => {
     const checkSession = () => {
@@ -52,16 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!settingsLoading) {
       checkSession();
     }
-  }, [settings, settingsLoading]);
-
-  const logActivityToRegistry = async (email: string, name: string, event: 'Login' | 'Logout') => {
-    try {
-      await fetch('/api/proxy/log-activity', {
-        method: 'POST',
-        body: JSON.stringify({ email, name, event })
-      });
-    } catch (e) {}
-  };
+  }, [settings, settingsLoading, logout]);
 
   const login = async (email: string, password?: string): Promise<{ success: boolean; message?: string }> => {
     try {
@@ -86,27 +101,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('questflow_user', JSON.stringify(newUser));
         localStorage.setItem('questflow_login_ts', Date.now().toString());
         
-        logActivityToRegistry(newUser.email, newUser.displayName || 'User', 'Login');
+        // Log entry to registry
+        try {
+          await fetch('/api/proxy/log-activity', {
+            method: 'POST',
+            body: JSON.stringify({ 
+              email: newUser.email, 
+              name: newUser.displayName || 'User', 
+              event: 'Login' 
+            })
+          });
+        } catch (e) {}
+
         trackEvent('login', { details: { role: newUser.role } });
         return { success: true };
       }
-      return { success: false, message: data.error || "invalid_credentials" };
+      return { success: false, message: data.error || "Invalid credentials" };
     } catch (error) {
-      return { success: false, message: "sync_error" };
+      return { success: false, message: "Server connection failed" };
     }
-  };
-
-  const logout = async () => {
-    if (user) {
-      logActivityToRegistry(user.email, user.displayName || 'User', 'Logout');
-      trackEvent('logout', { details: { role: user.role } });
-    }
-    
-    await fetch('/api/proxy/auth/logout', { method: 'POST' });
-    
-    setUser(null);
-    localStorage.removeItem('questflow_user');
-    localStorage.removeItem('questflow_login_ts');
   };
 
   return (
