@@ -63,7 +63,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           if (elapsed > timeoutMs) {
             logout();
-          } else {
+          } else if (!user) {
+            // INFRASTRUCTURE GUARD: Only hydrate if user state is currently null.
+            // This prevents the infinite loop caused by the logout function dependency changing
+            // every time the user state is updated.
             setUser(JSON.parse(savedUser));
           }
         } catch (e) {
@@ -76,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!settingsLoading) {
       checkSession();
     }
-  }, [settings, settingsLoading, logout]);
+  }, [settings, settingsLoading, logout, user]);
 
   const login = async (email: string, password?: string): Promise<{ success: boolean; message?: string }> => {
     try {
