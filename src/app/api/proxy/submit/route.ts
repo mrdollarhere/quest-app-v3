@@ -15,12 +15,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing submission data' }, { status: 400 });
     }
 
-    // SECURITY PROTOCOL: Fetch correct answers directly from registry
+    // SECURITY PROTOCOL: Fetch correct answers directly from registry for verification
     const masterQuestions = await gasGet('getQuestions', { id: testId });
     
-    // Server-side Score Calculation
+    if (!masterQuestions || !Array.isArray(masterQuestions)) {
+      return NextResponse.json({ error: 'Module questions not found in registry' }, { status: 404 });
+    }
+
+    // Server-side Score Calculation (The only score trusted by the platform)
     const calculatedScore = calculateTotalScore(masterQuestions, responses);
-    const totalQuestions = Array.isArray(masterQuestions) ? masterQuestions.length : 0;
+    const totalQuestions = masterQuestions.length;
     
     // Registry Commitment
     await gasPost('submitResponse', {
@@ -30,7 +34,7 @@ export async function POST(request: Request) {
       score: calculatedScore,
       total: totalQuestions,
       duration,
-      responses, // Full response audit
+      responses, // Full response audit for forensic review
       mode,
       certificateId
     });
@@ -38,10 +42,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ 
       score: calculatedScore, 
       total: totalQuestions,
-      success: true
+      success: true,
+      certificateId
     });
   } catch (error) {
     console.error('[Submit Proxy Error]', error);
-    return NextResponse.json({ error: 'Failed to commit results' }, { status: 500 });
+    return NextResponse.json({ error: 'The registry handshake failed. Results not saved.' }, { status: 500 });
   }
 }

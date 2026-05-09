@@ -12,6 +12,8 @@ import { useAuth } from '@/context/auth-context';
 import { AILoader } from '@/components/ui/ai-loader';
 import { useSettings } from '@/context/settings-context';
 import { trackEvent } from '@/lib/tracker';
+import { AlertCircle, ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 function QuizContent() {
   const searchParams = useSearchParams();
@@ -45,13 +47,8 @@ function QuizContent() {
   }, []);
 
   // Registry Protocol: Hydrate Questions via Secure Proxy
-  const { data: questionsData, isLoading: qLoading } = useSWR(
-    testId ? `/api/proxy/questions?id=${testId}` : null,
-    async (url) => {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Registry unreachable');
-      return await res.json();
-    }
+  const { data: questionsData, isLoading: qLoading, error: qError } = useSWR(
+    testId ? `/api/proxy/questions?id=${testId}` : null
   );
 
   // Registry Protocol: Hydrate Metadata via Secure Proxy
@@ -66,7 +63,7 @@ function QuizContent() {
       const tData = await tRes.json();
       return {
         tests: Array.isArray(tData) ? tData : [],
-        salt: sData.daily_key_salt || "", // This will be empty due to stripping, used for fallback
+        salt: sData.daily_key_salt || "",
         protection: String(sData.access_key_protection_enabled ?? "true") !== "false",
         guest: String(sData.guest_access_allowed ?? "true") !== "false",
         maintenance: String(sData.maintenance_mode ?? "false") === "true",
@@ -82,9 +79,6 @@ function QuizContent() {
     const currentQuestion = quiz.questions[quiz.currentQuestionIndex];
     const updatedResponses = [...quiz.responses];
     const index = updatedResponses.findIndex(r => r.questionId === currentQuestion.id);
-    
-    // SECURITY NOTE: We no longer calculate score client-side for validation.
-    // Client-side isCorrect is for visual UI feedback ONLY during practice.
     
     if (index > -1) {
       updatedResponses[index].answer = val;
@@ -106,10 +100,9 @@ function QuizContent() {
     const finalEmail = user?.email || 'Anonymous';
     const timestamp = Date.now();
     
-    let certId = "";
     const passingThreshold = Number(testMetadata?.passing_threshold || globalData?.defaultThreshold || 70);
 
-    // SECURITY PROTOCOL: Mastery calculation performed via Server-Side Proxy
+    // SECURITY PROTOCOL: All calculations performed via Server-Side Proxy
     try {
       const res = await fetch('/api/proxy/submit', {
         method: 'POST',
@@ -121,7 +114,7 @@ function QuizContent() {
           userEmail: finalEmail,
           duration: timestamp - quiz.startTime,
           mode: quiz.mode,
-          certificateId: `CRT-${finalEmail.slice(0,4)}-${testId}-${timestamp.toString().slice(-4)}`.toUpperCase()
+          certificateId: `CRT-${testId}-${timestamp.toString().slice(-6)}`.toUpperCase()
         })
       });
 
@@ -144,19 +137,51 @@ function QuizContent() {
           score: data.score, 
           details: { passed: isPassed, total: data.total } 
         });
+      } else {
+        throw new Error(data.error);
       }
-    } catch (e) {
-      toast({ variant: "destructive", title: "Submission Failure", description: "The registry handshake failed." });
+    } catch (e: any) {
+      toast({ 
+        variant: "destructive", 
+        title: "Submission Failure", 
+        description: e.message || "The registry handshake failed." 
+      });
     }
   };
 
   const handleStart = (mode: QuizMode) => {
-    setIsStarted(true);
     let q = [...(questionsData || [])];
+    if (q.length === 0) {
+      toast({ variant: "destructive", title: "Module Error", description: "This assessment contains no active questions." });
+      return;
+    }
+    
     if (mode === 'test') q = q.sort(() => Math.random() - 0.5);
-    setQuiz(prev => ({ ...prev, questions: q, startTime: Date.now(), mode: mode }));
+    
+    setIsStarted(true);
+    setQuiz(prev => ({ 
+      ...prev, 
+      questions: q, 
+      startTime: Date.now(), 
+      mode: mode,
+      currentQuestionIndex: 0,
+      responses: []
+    }));
     trackEvent('quiz_start', { test_id: testId || '', test_name: testMetadata?.title, details: { mode } });
   };
+
+  if (qError || (questionsData && questionsData.length === 0)) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-8 text-center">
+        <AlertCircle className="w-16 h-16 text-rose-500 mb-6" />
+        <h2 className="text-3xl font-black uppercase tracking-tight text-slate-900">Module Empty</h2>
+        <p className="text-slate-500 mt-2 mb-8">This assessment module does not contain any active intelligence nodes.</p>
+        <Button onClick={() => router.push('/tests')} className="rounded-full px-8">
+          <ArrowLeft className="w-4 h-4 mr-2" /> Return to Library
+        </Button>
+      </div>
+    );
+  }
 
   if (qLoading || configLoading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><AILoader /></div>;
 
@@ -164,7 +189,7 @@ function QuizContent() {
     return (
       <QuizStart 
         title={testMetadata?.title || 'Assessment'}
-        questionsCount={quiz.questions.length}
+        questionsCount={questionsData?.length || 0}
         duration={testMetadata?.duration}
         user={user}
         guestName={guestName}

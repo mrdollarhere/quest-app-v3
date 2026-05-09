@@ -35,6 +35,7 @@ export const parseRegistryArray = (input: any): string[] => {
     }
   }
   
+  // Fallback for comma separated strings
   return str.split(',').map(s => s.trim()).filter(s => s.length > 0);
 };
 
@@ -57,85 +58,87 @@ export const getRegistryValue = (obj: any, keys: string[]): any => {
 
 /**
  * Calculates whether a user's response is correct for a given question.
+ * Used for both server-side scoring and client-side review feedback.
  */
 export const calculateScoreForQuestion = (q: Question, response: any): boolean => {
   if (!q) return false;
   if (q.correct_answer === undefined && q.question_type !== 'hotspot') return false;
   if (response === undefined || response === null) return false;
   
-  const questionType = q.question_type;
+  const questionType = String(q.question_type || '').toLowerCase().replace(/[\s_]/g, '');
   const correctArr = parseRegistryArray(q.correct_answer);
 
-  if (['single_choice', 'true_false', 'short_text', 'dropdown'].includes(questionType)) {
-    const target = correctArr[0] || "";
-    return response.toString().toLowerCase().trim() === target.toLowerCase().trim();
+  // 1. Choice Based (Single, T/F, Dropdown, Short Text)
+  if (['singlechoice', 'oneanswer', 'truefalse', 'shorttext', 'dropdown'].includes(questionType)) {
+    const userVal = String(response || "").trim().toLowerCase();
+    const targetVal = String(correctArr[0] || "").trim().toLowerCase();
+    return userVal === targetVal;
   } 
   
-  if (questionType === 'multiple_choice') {
-    const resArr = (Array.isArray(response) ? response : []).map((r: any) => r.toString().trim().toLowerCase()).sort();
-    const sortedCorrect = [...correctArr].map(c => c.toLowerCase()).sort();
+  // 2. Multiple Choice
+  if (['multiplechoice', 'manyanswers'].includes(questionType)) {
+    const resArr = (Array.isArray(response) ? response : []).map(r => String(r).trim().toLowerCase()).sort();
+    const sortedCorrect = [...correctArr].map(c => String(c).trim().toLowerCase()).sort();
     return JSON.stringify(resArr) === JSON.stringify(sortedCorrect);
   } 
   
+  // 3. Ordering
   if (questionType === 'ordering') {
-    const responseArr = (Array.isArray(response) ? response : []).map((r: any) => r.toString().trim());
-    return JSON.stringify(responseArr) === JSON.stringify(correctArr);
+    const responseArr = (Array.isArray(response) ? response : []).map(r => String(r).trim());
+    const targetArr = [...correctArr].map(c => String(c).trim());
+    return JSON.stringify(responseArr) === JSON.stringify(targetArr);
   } 
   
+  // 4. Hotspot (Spatial)
   if (questionType === 'hotspot') {
     try {
       const zones: HotspotZone[] = JSON.parse(q.metadata || "[]");
       const correctZoneIds = zones.filter(z => z.isCorrect).map(z => z.id).sort();
       
-      // Support for both legacy single-coord and new multi-selection (array of IDs)
       if (Array.isArray(response)) {
-        const selectedIds = [...response].sort();
+        const selectedIds = [...response].map(String).sort();
         return JSON.stringify(selectedIds) === JSON.stringify(correctZoneIds);
-      } else if (response && typeof response === 'object' && 'x' in response) {
-        // Legacy single selection fallback
-        const hit = zones.find((z: HotspotZone) => {
-          const x = z.x;
-          const y = z.y;
-          const w = z.width || ((z as any).radius * 2);
-          const h = z.height || ((z as any).radius * 2);
-          return response.x >= x && response.x <= x + w &&
-                 response.y >= y && response.y <= y + h;
-        });
-        return !!hit && !!hit.isCorrect && correctZoneIds.length === 1;
       }
       return false;
     } catch (e) { return false; }
   } 
   
+  // 5. Matching
   if (questionType === 'matching') {
     const userPairs = Object.entries((response || {}) as Record<string, string>)
-      .map(([k, v]) => `${k.trim()}|${v.trim()}`)
+      .map(([k, v]) => `${String(k).trim()}|${String(v).trim()}`)
       .sort();
     
-    const sortedCorrect = [...correctArr].map(c => c.trim()).sort();
+    const sortedCorrect = [...correctArr].map(c => String(c).trim()).sort();
     
     if (sortedCorrect.length !== userPairs.length) return false;
     return JSON.stringify(userPairs) === JSON.stringify(sortedCorrect);
   }
 
-  if (questionType === 'multiple_true_false') {
+  // 6. Multiple True/False
+  if (['multipletruefalse', 'multitf'].includes(questionType)) {
     const statements = parseRegistryArray(q.order_group);
     const userResp = (response || {}) as Record<string, string>;
     
+    if (Object.keys(userResp).length !== statements.length) return false;
+
     return statements.every((s, i) => {
-      const userVal = (userResp[s] || "").toLowerCase();
-      const correctVal = (correctArr[i] || "").toLowerCase();
+      const userVal = String(userResp[s] || "").trim().toLowerCase();
+      const correctVal = String(correctArr[i] || "").trim().toLowerCase();
       return userVal === correctVal;
     });
   }
 
-  if (questionType === 'matrix_choice') {
+  // 7. Matrix Choice
+  if (['matrixchoice', 'matrix'].includes(questionType)) {
     const rows = parseRegistryArray(q.order_group);
     const userResp = (response || {}) as Record<string, string>;
 
+    if (Object.keys(userResp).length !== rows.length) return false;
+
     return rows.every((row, i) => {
-      const userVal = (userResp[row] || "").toLowerCase();
-      const correctVal = (correctArr[i] || "").toLowerCase();
+      const userVal = String(userResp[row] || "").trim().toLowerCase();
+      const correctVal = String(correctArr[i] || "").trim().toLowerCase();
       return userVal === correctVal;
     });
   }
@@ -151,7 +154,9 @@ export const calculateTotalScore = (questions: Question[], responses: { question
   let score = 0;
   questions.forEach(q => {
     const response = responses.find(r => r.questionId === q.id)?.answer;
-    if (calculateScoreForQuestion(q, response)) score++;
+    if (calculateScoreForQuestion(q, response)) {
+      score++;
+    }
   });
   return score;
 };
