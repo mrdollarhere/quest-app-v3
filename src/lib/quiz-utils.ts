@@ -62,12 +62,40 @@ export const getRegistryValue = (obj: any, keys: string[]): any => {
  */
 export const calculateScoreForQuestion = (q: Question, response: any): boolean => {
   if (!q) return false;
-  if (q.correct_answer === undefined && q.question_type !== 'hotspot') return false;
-  if (response === undefined || response === null) return false;
   
   const questionType = String(q.question_type || '').toLowerCase().replace(/[\s_]/g, '');
   const correctArr = parseRegistryArray(q.correct_answer);
 
+  // 0. Rating Protocol: Handle graded and survey rating interactions
+  if (questionType === 'rating') {
+    if (response === undefined || response === null) return false;
+    
+    // Survey Protocol: If no correct answer is set, award a point automatically for participation
+    if (correctArr.length === 0) return true;
+
+    const userRating = parseInt(String(response));
+    const targetRating = parseInt(String(correctArr[0]));
+    
+    if (isNaN(userRating) || isNaN(targetRating)) return false;
+
+    // Optional Tolerance Protocol: Award point if within ±1 star
+    let hasTolerance = false;
+    try {
+      const meta = JSON.parse(q.metadata || "{}");
+      hasTolerance = !!meta.tolerance;
+    } catch (e) {}
+
+    if (hasTolerance) {
+      return Math.abs(userRating - targetRating) <= 1;
+    }
+
+    return userRating === targetRating;
+  }
+
+  // General Guard Protocol
+  if (q.correct_answer === undefined && questionType !== 'hotspot') return false;
+  if (response === undefined || response === null) return false;
+  
   // 1. Choice Based (Single, T/F, Dropdown, Short Text)
   if (['singlechoice', 'oneanswer', 'truefalse', 'shorttext', 'dropdown'].includes(questionType)) {
     const userVal = String(response || "").trim().toLowerCase();
