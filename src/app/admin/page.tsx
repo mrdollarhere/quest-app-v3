@@ -32,7 +32,7 @@ function AdminDashboardContent() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { settings, refreshSettings } = useSettings();
+  const { refreshSettings } = useSettings();
   const lastTracked = useRef<string | null>(null);
   
   const [dialogs, setDialogs] = useState({ test: false, user: false, question: false, bulk: false });
@@ -47,26 +47,30 @@ function AdminDashboardContent() {
   const { data, mutate, isLoading } = useSWR(
     'admin-dashboard-data',
     async () => {
-      const [testsRes, usersRes, responsesRes] = await Promise.all([
+      // REGISTRY PROTOCOL: Use admin-protected settings route to get the salt for the AccessKeyPanel
+      const [testsRes, usersRes, responsesRes, settingsRes] = await Promise.all([
         fetch('/api/proxy/tests'),
         fetch('/api/proxy/admin/users'),
-        fetch('/api/proxy/admin/responses')
+        fetch('/api/proxy/admin/responses'),
+        fetch('/api/proxy/admin/settings')
       ]);
-      const [tests, users, responses] = await Promise.all([
+      const [tests, users, responses, settings] = await Promise.all([
         testsRes.json(),
         usersRes.json(),
-        responsesRes.json()
+        responsesRes.json(),
+        settingsRes.json()
       ]);
       return {
         tests: Array.isArray(tests) ? tests : [],
         users: Array.isArray(users) ? users : [],
-        responses: Array.isArray(responses) ? responses : []
+        responses: Array.isArray(responses) ? responses : [],
+        settings: settings || {}
       };
     },
     { revalidateOnFocus: false }
   );
 
-  const dashboardData = data || { tests: [], users: [], responses: [] };
+  const dashboardData = data || { tests: [], users: [], responses: [], settings: {} };
 
   useEffect(() => {
     const error = searchParams.get('error');
@@ -116,7 +120,7 @@ function AdminDashboardContent() {
       <OverviewTab 
         data={dashboardData} 
         lastSync={new Date()}
-        settings={settings}
+        settings={dashboardData.settings}
         onNewTest={() => setDialogs({ ...dialogs, test: true })}
         onManageContent={() => router.push('/admin/tests')}
         onSync={() => mutate()}

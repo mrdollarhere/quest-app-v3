@@ -18,10 +18,12 @@ import { SecurityCard } from '@/components/admin/settings/SecurityCard';
 import { AssessmentCard } from '@/components/admin/settings/AssessmentCard';
 
 export default function AdminSettingsPage() {
-  const { settings, loading: settingsLoading, refreshSettings } = useSettings();
+  const { refreshSettings } = useSettings();
   const { t } = useLanguage();
   const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [initialData, setInitialData] = useState<Record<string, string>>({});
   
   const [formData, setFormData] = useState<Record<string, string>>({
     platform_name: '',
@@ -42,24 +44,38 @@ export default function AdminSettingsPage() {
     google_sheet_url: ''
   });
 
-  useEffect(() => {
-    if (!settingsLoading && settings) {
-      setFormData(prev => ({
-        ...prev,
-        ...settings,
-        // Ensure string conversion for registry compatibility
-        platform_name: String(settings.platform_name || 'DNTRNG'),
-      }));
+  const fetchFullSettings = async () => {
+    setLoading(true);
+    try {
+      // REGISTRY PROTOCOL: Use protected admin proxy to fetch sensitive calibration nodes
+      const res = await fetch('/api/proxy/admin/settings');
+      if (!res.ok) throw new Error('Registry Access Denied');
+      const data = await res.json();
+      
+      const normalized = { ...formData, ...data };
+      setFormData(normalized);
+      setInitialData(normalized);
+    } catch (err) {
+      toast({ variant: "destructive", title: "Sync Error", description: "Could not retrieve full calibration registry." });
+    } finally {
+      setLoading(false);
     }
-  }, [settings, settingsLoading]);
+  };
+
+  useEffect(() => {
+    fetchFullSettings();
+  }, []);
 
   const handleSaveAll = async () => {
     const changedKeys = Object.keys(formData).filter(key => {
-      const current = String(settings[key] ?? "");
-      return formData[key] !== current;
+      const current = String(initialData[key] ?? "");
+      return String(formData[key]) !== current;
     });
 
-    if (changedKeys.length === 0) return;
+    if (changedKeys.length === 0) {
+      toast({ title: "No Changes", description: "Registry is already synchronized." });
+      return;
+    }
 
     setSaving(true);
     try {
@@ -68,7 +84,7 @@ export default function AdminSettingsPage() {
         fetch('/api/proxy/admin/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key, value: formData[key] })
+          body: JSON.stringify({ key, value: String(formData[key]) })
         })
       ));
       
@@ -76,6 +92,7 @@ export default function AdminSettingsPage() {
       logActivity("System calibration updated", `${changedKeys.length} nodes`);
       trackEvent('admin_settings_save');
       
+      setInitialData({ ...formData });
       await refreshSettings();
     } catch (err) {
       toast({ variant: "destructive", title: "Calibration Failed" });
@@ -84,7 +101,7 @@ export default function AdminSettingsPage() {
     }
   };
 
-  if (settingsLoading) return <div className="py-40"><AILoader /></div>;
+  if (loading) return <div className="py-40"><AILoader messages={["Accessing System Registry...", "Retrieving Calibration Nodes..."]} /></div>;
 
   return (
     <div className="max-w-5xl mx-auto space-y-10 animate-in fade-in duration-700 pb-24">
@@ -110,12 +127,37 @@ export default function AdminSettingsPage() {
         </div>
         <div className="lg:col-span-5 space-y-8">
           <AssessmentCard formData={formData} setFormData={setFormData} t={t} />
+          
+          <Card className="border-none shadow-sm bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden border dark:border-slate-800">
+            <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b p-8">
+              <h2 className="text-xl font-black flex items-center gap-3">
+                <FileSpreadsheet className="w-5 h-5 text-primary" /> {t('integrations')}
+              </h2>
+            </CardHeader>
+            <CardContent className="p-8 space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="sheet-url" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{t('googleSheetUrl')}</Label>
+                <div className="relative">
+                  <Database className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                  <Input 
+                    id="sheet-url"
+                    value={formData.google_sheet_url}
+                    onChange={(e) => setFormData({ ...formData, google_sheet_url: e.target.value })}
+                    placeholder="https://docs.google.com/spreadsheets/d/..."
+                    className="h-12 pl-11 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-mono text-xs"
+                  />
+                </div>
+                <p className="text-[9px] text-slate-400 italic px-1">{t('googleSheetUrlHint')}</p>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="border-none shadow-2xl rounded-[2.5rem] bg-slate-900 text-white p-8 relative overflow-hidden">
             <div className="absolute top-0 right-0 p-6 opacity-10"><Bell className="w-24 h-24" /></div>
             <div className="relative z-10 space-y-4">
               <h3 className="text-xl font-black uppercase tracking-tight">Proxy Integrity</h3>
               <p className="text-sm text-slate-400 font-medium leading-relaxed">
-                Settings are committed through the server-side proxy node. Sensitive data (salts/URLs) is stripped from the frontend during hydration.
+                Settings are committed through the server-side proxy node. Sensitive data (salts/URLs) is stripped from the public frontend registry during hydration.
               </p>
             </div>
           </Card>

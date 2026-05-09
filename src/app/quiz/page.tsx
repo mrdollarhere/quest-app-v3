@@ -12,7 +12,7 @@ import { useAuth } from '@/context/auth-context';
 import { AILoader } from '@/components/ui/ai-loader';
 import { useSettings } from '@/context/settings-context';
 import { trackEvent } from '@/lib/tracker';
-import { AlertCircle, ArrowLeft } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 function QuizContent() {
@@ -169,6 +169,23 @@ function QuizContent() {
     }));
     trackEvent('quiz_start', { test_id: testId || '', test_name: testMetadata?.title, details: { mode } });
   };
+
+  if (globalData?.maintenance) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
+        <div className="w-24 h-24 bg-amber-50 rounded-[2.5rem] flex items-center justify-center mb-8 shadow-xl shadow-amber-500/10">
+          <AlertCircle className="w-12 h-12 text-amber-500" />
+        </div>
+        <h2 className="text-4xl font-black uppercase tracking-tight text-slate-900 mb-4">Maintenance Mode</h2>
+        <p className="text-slate-500 font-medium max-w-sm mx-auto leading-relaxed mb-10">
+          The assessment protocol is currently offline for calibration. Access to all intelligence modules has been restricted for safety.
+        </p>
+        <Button onClick={() => router.push('/')} className="h-14 rounded-full px-10 bg-slate-900 font-black uppercase text-xs tracking-widest border-none shadow-xl">
+          <Home className="w-4 h-4 mr-2" /> Return to Base
+        </Button>
+      </div>
+    );
+  }
 
   if (qError || (questionsData && questionsData.length === 0)) {
     return (
