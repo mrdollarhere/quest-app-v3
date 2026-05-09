@@ -1,6 +1,26 @@
 import { NextResponse } from 'next/server';
 import { gasGet, gasPost } from '@/lib/server/gas-proxy';
-import { calculateTotalScore } from '@/lib/quiz-utils';
+import { calculateTotalScore, calculateScoreForQuestion } from '@/lib/quiz-utils';
+
+/**
+ * Helper to enforce the "one wrong ends all" Race mode protocol.
+ * Discards any responses that occur after the first incorrect answer.
+ */
+function truncateAtFirstWrong(responses: any[], masterQuestions: any[]) {
+  const result = [];
+  for (const r of responses) {
+    const q = masterQuestions.find(mq => String(mq.id) === String(r.questionId));
+    if (!q) continue;
+    
+    result.push(r);
+    
+    // SECURITY PROTOCOL: If this answer is wrong, the mission terminates here.
+    if (!calculateScoreForQuestion(q, r.answer)) {
+      break;
+    }
+  }
+  return result;
+}
 
 /**
  * POST /api/proxy/submit
@@ -22,10 +42,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Module questions not found in registry' }, { status: 404 });
     }
 
+    // STREAK ENFORCEMENT: If in Race mode, truncate responses at the first failure
+    const processedResponses = mode === 'race' 
+      ? truncateAtFirstWrong(responses, masterQuestions)
+      : responses;
+
     // Server-side Score Calculation (The only score trusted by the platform)
-    const calculatedScore = calculateTotalScore(masterQuestions, responses);
+    const calculatedScore = calculateTotalScore(masterQuestions, processedResponses);
     const totalQuestions = masterQuestions.length;
     
+    // For Race mode, the streak length is the number of correct answers achieved before termination
+    const streakLength = mode === 'race' ? calculatedScore : undefined;
+
     // Registry Commitment
     await gasPost('submitResponse', {
       userName,
@@ -34,7 +62,7 @@ export async function POST(request: Request) {
       score: calculatedScore,
       total: totalQuestions,
       duration,
-      responses, // Full response audit for forensic review
+      responses: processedResponses, // Archive only the valid portion of the mission
       mode,
       certificateId
     });
@@ -43,7 +71,9 @@ export async function POST(request: Request) {
       score: calculatedScore, 
       total: totalQuestions,
       success: true,
-      certificateId
+      certificateId,
+      streakLength,
+      mode
     });
   } catch (error) {
     console.error('[Submit Proxy Error]', error);
