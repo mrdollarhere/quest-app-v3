@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useMemo, useRef } from 'react';
@@ -37,6 +36,7 @@ export default function ProfilePage() {
   const { data: resultsData, isLoading: resultsLoading } = useSWR(
     user?.email ? `results-${user.email}` : null,
     async () => {
+      // REGISTRY PROTOCOL: Hydrate through secure proxy
       const [respRes, testsRes] = await Promise.all([
         fetch('/api/proxy/responses'),
         fetch('/api/proxy/tests')
@@ -44,10 +44,10 @@ export default function ProfilePage() {
       const respData = await respRes.json();
       const testsData = await testsRes.json();
       
-      const userEmail = user?.email?.toLowerCase() || '';
+      const userEmail = user?.email?.toLowerCase().trim() || '';
       const userResponses = (Array.isArray(respData) ? respData : [])
-        .filter((r: any) => (r['User Email'] || '').toLowerCase() === userEmail)
-        .sort((a, b) => new Date(b.Timestamp).getTime() - new Date(a.Timestamp).getTime());
+        .filter((r: any) => (String(r['User Email'] || '').toLowerCase().trim()) === userEmail)
+        .sort((a: any, b: any) => new Date(b.Timestamp).getTime() - new Date(a.Timestamp).getTime());
         
       return { 
         responses: userResponses, 
