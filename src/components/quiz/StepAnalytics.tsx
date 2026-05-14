@@ -50,6 +50,7 @@ export function StepAnalytics({ questions, serverReviewData = [], textSize }: St
       questionId: q.id,
       questionText: q.question_text,
       questionType: q.question_type,
+      image_url: q.image_url,
       isCorrect: false,
       submittedAnswer: null,
       correctAnswer: [],
@@ -91,7 +92,7 @@ export function StepAnalytics({ questions, serverReviewData = [], textSize }: St
         <div className="flex items-center gap-4">
           <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200">
             <Button variant={filterMode === 'all' ? 'default' : 'ghost'} size="sm" onClick={(e) => handleFilterChange('all', e)} className={cn("rounded-xl font-black uppercase text-[9px] tracking-widest h-9 px-4", filterMode === 'all' ? "bg-white text-primary shadow-sm" : "text-slate-400")}>All</Button>
-            <Button variant={filterMode === 'incorrect' ? 'default' : 'ghost'} size="sm" onClick={(e) => handleFilterChange('incorrect', e)} className={cn("rounded-xl font-black uppercase text-[9px] tracking-widest h-9 px-4", filterMode === 'incorrect' ? "bg-white text-rose-500 shadow-sm" : "text-slate-400")}>Incorrect</Button>
+            <Button variant={filterMode === 'incorrect' ? 'default' : 'ghost'} size="sm" onClick={(e) => handleFilterChange('incorrect', e)} className={cn("rounded-xl font-black uppercase text-[9px] tracking-widest h-9 px-4", filterMode === 'incorrect' ? "bg-white text-rose-50 shadow-sm" : "text-slate-400")}>Incorrect</Button>
           </div>
           <div className={cn("p-4 rounded-full border transition-all duration-500", isCollapsed ? "bg-white text-slate-300" : "bg-primary text-white border-primary shadow-lg shadow-primary/20")}>
             <ChevronDown className={cn("w-6 h-6 transition-transform duration-500", !isCollapsed && "rotate-180")} />
@@ -130,6 +131,7 @@ export function StepAnalytics({ questions, serverReviewData = [], textSize }: St
                         id: item.questionId,
                         question_text: item.questionText,
                         question_type: item.questionType,
+                        image_url: item.image_url, // Synchronized from server audit response
                         correct_answer: JSON.stringify(item.correctAnswer),
                         order_group: JSON.stringify(item.orderGroup),
                         metadata: item.metadata

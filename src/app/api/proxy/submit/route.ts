@@ -46,19 +46,19 @@ function gradeQuestion(question: Question, submitted: unknown): boolean {
   const orderArr = parseJsonField(question.order_group);
 
   switch (type) {
-    case 'singlechoice':
+    case 'single_choice':
     case 'oneanswer':
     case 'truefalse':
     case 'dropdown':
       return String(submitted ?? '') === String(correctArr[0] ?? '');
 
-    case 'multiplechoice':
+    case 'multiple_choice':
     case 'manyanswers':
       const sub = Array.isArray(submitted) ? submitted.map(String) : [String(submitted ?? '')];
       return arraysMatch(sub, correctArr.map(String));
 
-    case 'multipletruefalse':
-    case 'matrixchoice':
+    case 'multiple_true_false':
+    case 'matrix_choice':
       if (typeof submitted !== 'object' || !submitted) return false;
       return orderArr.every((key, i) => 
         String((submitted as any)[key] ?? '') === String(correctArr[i] ?? '')
@@ -78,7 +78,7 @@ function gradeQuestion(question: Question, submitted: unknown): boolean {
         (v, i) => String(v) === String(subArr[i])
       );
 
-    case 'shorttext':
+    case 'short_text':
       return String(submitted ?? '').trim().toLowerCase() 
         === String(correctArr[0] ?? '').trim().toLowerCase();
 
@@ -163,6 +163,7 @@ export async function POST(request: Request) {
         questionId: q.id,
         questionText: q.question_text,
         questionType: q.question_type,
+        image_url: q.image_url, // Added to preserve context in audit trail
         submittedAnswer: answer,
         correctAnswer: parseJsonField(q.correct_answer),
         orderGroup: parseJsonField(q.order_group),
