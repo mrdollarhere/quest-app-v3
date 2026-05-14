@@ -1,21 +1,124 @@
 import { NextResponse } from 'next/server';
 import { gasGet, gasPost } from '@/lib/server/gas-proxy';
-import { calculateTotalScore, calculateScoreForQuestion } from '@/lib/quiz-utils';
+import { Question } from '@/types/quiz';
 
 /**
- * Helper to enforce the "one wrong ends all" Race mode protocol.
- * Discards any responses that occur after the first incorrect answer.
+ * UTILITY: Standardized Array Match Protocol
+ * Performs order-independent exact match of two string arrays.
  */
-function truncateAtFirstWrong(responses: any[], masterQuestions: any[]) {
+function arraysMatch(a: string[], b: string[]) {
+  if (a.length !== b.length) return false;
+  const sortedA = [...a].sort();
+  const sortedB = [...b].sort();
+  return sortedA.every((v, i) => v === sortedB[i]);
+}
+
+/**
+ * UTILITY: Registry Field Parser
+ * Robustly parses fields that might be arrays or stringified JSON arrays.
+ */
+function parseJsonField(field: unknown): any[] {
+  if (!field) return [];
+  if (Array.isArray(field)) return field;
+  if (typeof field === 'string') {
+    const trimmed = field.trim();
+    if (!trimmed) return [];
+    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        return Array.isArray(parsed) ? parsed : [parsed];
+      } catch {
+        return trimmed.split(',').map(s => s.trim());
+      }
+    }
+    return trimmed.split(',').map(s => s.trim());
+  }
+  return [];
+}
+
+/**
+ * CORE: Intelligence Grading Engine
+ * Applies specific validation protocols based on the interaction type.
+ */
+function gradeQuestion(question: Question, submitted: unknown): boolean {
+  const type = String(question.question_type || '').toLowerCase().replace(/[\s_]/g, '');
+  const correctArr = parseJsonField(question.correct_answer);
+  const orderArr = parseJsonField(question.order_group);
+
+  switch (type) {
+    case 'singlechoice':
+    case 'oneanswer':
+    case 'truefalse':
+    case 'dropdown':
+      return String(submitted ?? '') === String(correctArr[0] ?? '');
+
+    case 'multiplechoice':
+    case 'manyanswers':
+      const sub = Array.isArray(submitted) ? submitted.map(String) : [String(submitted ?? '')];
+      return arraysMatch(sub, correctArr.map(String));
+
+    case 'multipletruefalse':
+    case 'matrixchoice':
+      if (typeof submitted !== 'object' || !submitted) return false;
+      return orderArr.every((key, i) => 
+        String((submitted as any)[key] ?? '') === String(correctArr[i] ?? '')
+      );
+
+    case 'matching':
+      if (typeof submitted !== 'object' || !submitted) return false;
+      return correctArr.every(pair => {
+        const [k, v] = String(pair).split('|').map(s => s.trim());
+        return String((submitted as any)[k] ?? '') === String(v ?? '');
+      });
+
+    case 'ordering':
+      const subArr = Array.isArray(submitted) ? submitted.map(String) : [];
+      if (subArr.length !== correctArr.length) return false;
+      return correctArr.every(
+        (v, i) => String(v) === String(subArr[i])
+      );
+
+    case 'shorttext':
+      return String(submitted ?? '').trim().toLowerCase() 
+        === String(correctArr[0] ?? '').trim().toLowerCase();
+
+    case 'hotspot':
+      try {
+        const zones = typeof question.metadata === 'string' ? JSON.parse(question.metadata) : (question.metadata || []);
+        const correctZones = zones
+          .filter((z: any) => z.isCorrect === true)
+          .map((z: any) => String(z.id));
+        const subZones = Array.isArray(submitted) ? submitted.map(String) : [];
+        
+        return correctZones.length > 0 &&
+          correctZones.every((id: string) => subZones.includes(id)) &&
+          subZones.every((id: string) => correctZones.includes(id));
+      } catch {
+        return false;
+      }
+
+    case 'rating':
+      if (!correctArr || correctArr.length === 0) return true; // Survey mode
+      const diff = Math.abs(Number(submitted) - Number(correctArr[0]));
+      return diff === 0;
+
+    default:
+      return false;
+  }
+}
+
+/**
+ * PROTOCOL: Streak Enforcement
+ * Discards all responses that occur after the first incorrect answer in Race mode.
+ */
+function truncateAtFirstWrong(responses: any[], masterQuestions: Question[]) {
   const result = [];
   for (const r of responses) {
     const q = masterQuestions.find(mq => String(mq.id) === String(r.questionId));
     if (!q) continue;
     
     result.push(r);
-    
-    // SECURITY PROTOCOL: If this answer is wrong, the mission terminates here.
-    if (!calculateScoreForQuestion(q, r.answer)) {
+    if (!gradeQuestion(q, r.answer)) {
       break;
     }
   }
@@ -47,11 +150,28 @@ export async function POST(request: Request) {
       ? truncateAtFirstWrong(responses, masterQuestions)
       : responses;
 
-    // Server-side Score Calculation (The only score trusted by the platform)
-    const calculatedScore = calculateTotalScore(masterQuestions, processedResponses);
+    // SCORING PROTOCOL: Calculate total and build review audit
+    let calculatedScore = 0;
+    const reviewData = masterQuestions.map((q: Question) => {
+      const userResp = processedResponses.find(r => String(r.questionId) === String(q.id));
+      const answer = userResp ? userResp.answer : null;
+      const isCorrect = gradeQuestion(q, answer);
+      
+      if (isCorrect) calculatedScore++;
+
+      return {
+        questionId: q.id,
+        questionText: q.question_text,
+        questionType: q.question_type,
+        submittedAnswer: answer,
+        correctAnswer: parseJsonField(q.correct_answer),
+        orderGroup: parseJsonField(q.order_group),
+        metadata: q.metadata,
+        isCorrect
+      };
+    });
+
     const totalQuestions = masterQuestions.length;
-    
-    // For Race mode, the streak length is the number of correct answers achieved before termination
     const streakLength = mode === 'race' ? calculatedScore : undefined;
 
     // Registry Commitment
@@ -62,7 +182,7 @@ export async function POST(request: Request) {
       score: calculatedScore,
       total: totalQuestions,
       duration,
-      responses: processedResponses, // Archive only the valid portion of the mission
+      responses: JSON.stringify(reviewData), // Archive the full audit
       mode,
       certificateId
     });
@@ -73,7 +193,8 @@ export async function POST(request: Request) {
       success: true,
       certificateId,
       streakLength,
-      mode
+      mode,
+      reviewData
     });
   } catch (error) {
     console.error('[Submit Proxy Error]', error);
