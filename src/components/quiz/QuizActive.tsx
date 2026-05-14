@@ -13,7 +13,8 @@ import {
   LayoutGrid,
   CheckCircle2,
   XCircle,
-  ArrowRight
+  ArrowRight,
+  Clock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { QuizTimer } from './QuizTimer';
@@ -25,6 +26,7 @@ interface QuizActiveProps {
   quiz: QuizState;
   quizTitle: string;
   timeLeft: number;
+  elapsedSeconds: number;
   isWrongInRace: boolean;
   onResponseChange: (val: any) => void;
   onNext: () => void;
@@ -45,6 +47,7 @@ export function QuizActive({
   quiz,
   quizTitle,
   timeLeft,
+  elapsedSeconds,
   isWrongInRace,
   onResponseChange,
   onNext,
@@ -57,7 +60,6 @@ export function QuizActive({
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [textSize, setTextSize] = useState<'normal' | 'large' | 'small'>('normal');
   
-  // TRAINING PROTOCOL: Track if current question response is locked and feedback is shown
   const [isAnswerConfirmed, setIsAnswerConfirmed] = useState(false);
 
   useEffect(() => {
@@ -67,12 +69,17 @@ export function QuizActive({
     }
   }, []);
 
+  const formatTime = (totalSeconds: number) => {
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const currentQuestion = quiz.questions[quiz.currentQuestionIndex];
   const progress = useMemo(() => quiz.questions.length > 0 ? ((quiz.currentQuestionIndex + 1) / quiz.questions.length) * 100 : 0, [quiz.currentQuestionIndex, quiz.questions.length]);
   const currentResponse = quiz.responses.find(r => r.questionId === currentQuestion?.id)?.answer;
   const isFlagged = quiz.flaggedQuestionIds?.includes(currentQuestion?.id);
 
-  // Sync isAnswerConfirmed when navigating between questions
   useEffect(() => {
     if (quiz.mode === 'training') {
       const hasAnswered = quiz.responses.some(r => r.questionId === currentQuestion?.id);
@@ -83,10 +90,9 @@ export function QuizActive({
   }, [quiz.currentQuestionIndex, quiz.mode, currentQuestion?.id]);
 
   const handleResponse = (val: any) => {
-    if (isAnswerConfirmed) return; // Locked in training
+    if (isAnswerConfirmed) return;
     onResponseChange(val);
     
-    // TRAINING PROTOCOL: Lock answer immediately upon selection for immediate feedback
     if (quiz.mode === 'training') {
       setIsAnswerConfirmed(true);
     }
@@ -124,24 +130,18 @@ export function QuizActive({
             >
               <ChevronLeft className="w-5 h-5 mr-1" /> <span className="hidden sm:inline">Trước</span>
             </Button>
-            <Button 
-              variant="secondary" 
-              onClick={() => !isAnswerConfirmed && onResponseChange(null)} 
-              disabled={isAnswerConfirmed}
-              className="bg-[#E8EEF5] text-primary font-bold h-12 rounded-xl px-4 gap-2 border-none hidden md:flex disabled:opacity-30"
-            >
-              <RotateCcw className="w-4 h-4" /> Đặt lại
-            </Button>
             <div className="h-6 w-px bg-slate-100 hidden md:block" />
-            <div className="flex flex-col md:flex-row md:items-baseline gap-1 md:gap-2">
+            <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
               <span className="text-sm md:text-base font-black text-primary">{quiz.currentQuestionIndex + 1}/{quiz.questions.length}</span>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden sm:inline">(ID: {currentQuestion?.id})</span>
+              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                <Clock className="w-3 h-3" />
+                <span className="tabular-nums">{formatTime(elapsedSeconds)}</span>
+              </div>
             </div>
           </div>
 
           <div className="flex items-center gap-2 md:gap-8">
             <div className="flex items-center gap-1 md:gap-4 text-slate-400">
-              <Button variant="ghost" size="icon" className="rounded-full h-10 w-10 hover:bg-slate-50"><Save className="w-5 h-5" /></Button>
               <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(true)} className="rounded-full h-10 w-10 hover:bg-slate-50"><LayoutGrid className="w-5 h-5" /></Button>
               <div className="hidden sm:flex gap-1">
                 <Button 

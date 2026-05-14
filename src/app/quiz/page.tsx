@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useRef } from 'react';
 import useSWR, { mutate as globalMutate } from 'swr';
 import { QuizState, QuizMode } from '@/types/quiz';
 import { QuizStart } from '@/components/quiz/QuizStart';
@@ -28,9 +28,11 @@ function QuizContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [guestName, setGuestName] = useState("");
   const [timeLeft, setTimeLeft] = useState(900); 
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isWrongInRace, setIsWrongInRace] = useState(false);
   const [generatedCertificateId, setGeneratedCertificateId] = useState<string | null>(null);
   const [serverReviewData, setServerReviewData] = useState<any[]>([]);
+  const [finalDuration, setFinalDuration] = useState<number>(0);
   
   const [quiz, setQuiz] = useState<QuizState>({
     questions: [],
@@ -43,6 +45,9 @@ function QuizContent() {
     highestStepReached: 0,
     flaggedQuestionIds: []
   });
+
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const quizStartTimeRef = useRef<number | null>(null);
 
   useEffect(() => {
     const savedName = localStorage.getItem('dntrng_guest_name');
@@ -74,6 +79,34 @@ function QuizContent() {
     }
   );
 
+  useEffect(() => {
+    if (isStarted && !quiz.isSubmitted) {
+      timerRef.current = setInterval(() => {
+        setElapsedSeconds(prev => prev + 1);
+        
+        // Per-question countdown logic (if limit exists)
+        if (Number(globalData?.globalTimer || 0) > 0) {
+          setTimeLeft(prev => {
+            if (prev <= 1) {
+              if (quiz.mode === 'race') {
+                // Auto-fail in race mode if time expires
+                submit();
+                return 0;
+              }
+              return 0;
+            }
+            return prev - 1;
+          });
+        }
+      }, 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isStarted, quiz.isSubmitted, globalData, quiz.mode]);
+
   const testMetadata = globalData?.tests.find(t => String(t.id) === String(testId));
 
   const handleResponseChange = (val: any) => {
@@ -99,9 +132,12 @@ function QuizContent() {
   const submit = async () => {
     if (isSubmitting) return;
     
+    const now = Date.now();
+    const duration = now - (quizStartTimeRef.current || now);
+    setFinalDuration(duration);
+
     const finalName = user?.displayName || guestName || 'Guest User';
     const finalEmail = user?.email || 'Anonymous';
-    const timestamp = Date.now();
     const passingThreshold = Number(testMetadata?.passing_threshold || globalData?.defaultThreshold || 70);
 
     setIsSubmitting(true);
@@ -115,9 +151,9 @@ function QuizContent() {
           responses: quiz.responses,
           userName: finalName,
           userEmail: finalEmail,
-          duration: timestamp - quiz.startTime,
+          duration: duration,
           mode: quiz.mode,
-          certificateId: `CRT-${testId}-${timestamp.toString().slice(-6)}`.toUpperCase()
+          certificateId: `CRT-${testId}-${now.toString().slice(-6)}`.toUpperCase()
         })
       });
 
@@ -132,14 +168,14 @@ function QuizContent() {
         }
 
         setServerReviewData(data.reviewData || []);
-        setQuiz({ ...quiz, isSubmitted: true, score: data.score, endTime: timestamp });
+        setQuiz({ ...quiz, isSubmitted: true, score: data.score, endTime: now });
         if (user?.email) globalMutate(`results-${user.email}`);
         
         trackEvent('quiz_submit', { 
           test_id: testId || '', 
           test_name: testMetadata?.title,
           score: data.score, 
-          details: { passed: isPassed, total: data.total } 
+          details: { passed: isPassed, total: data.total, duration } 
         });
       } else {
         throw new Error(data.error);
@@ -175,6 +211,11 @@ function QuizContent() {
     
     if (mode === 'test') q = [...q].sort(() => Math.random() - 0.5);
     
+    const limit = Number(globalData?.globalTimer || 0);
+    setTimeLeft(limit > 0 ? limit * 60 : 900);
+    setElapsedSeconds(0);
+    quizStartTimeRef.current = Date.now();
+    
     setIsStarted(true);
     setQuiz(prev => ({ ...prev, questions: q, startTime: Date.now(), mode: mode, currentQuestionIndex: 0, responses: [] }));
     trackEvent('quiz_start', { test_id: testId || '', test_name: testMetadata?.title, details: { mode } });
@@ -207,9 +248,9 @@ function QuizContent() {
 
   if (!isStarted) return <QuizStart title={testMetadata?.title || 'Assessment'} questionsCount={questionsData?.length || 0} duration={testMetadata?.duration} user={user} guestName={guestName} setGuestName={setGuestName} protocolSalt={globalData?.salt} isProtectionEnabled={globalData?.protection} guestAccessAllowed={globalData?.guest} onStart={handleStart} testId={testId || undefined} />;
 
-  if (quiz.isSubmitted) return <QuizResults title={testMetadata?.title || 'Assessment'} testId={testId || undefined} score={quiz.score} totalQuestions={quiz.questions.length} questions={quiz.questions} responses={quiz.responses} serverReviewData={serverReviewData} userName={user?.displayName || guestName || 'Guest User'} onRestart={() => { setIsStarted(false); setQuiz(prev => ({...prev, isSubmitted: false, responses: []})); }} startTime={quiz.startTime} endTime={quiz.endTime} testMetadata={testMetadata} certificateId={generatedCertificateId || undefined} />;
+  if (quiz.isSubmitted) return <QuizResults title={testMetadata?.title || 'Assessment'} testId={testId || undefined} score={quiz.score} totalQuestions={quiz.questions.length} questions={quiz.questions} responses={quiz.responses} serverReviewData={serverReviewData} userName={user?.displayName || guestName || 'Guest User'} onRestart={() => { setIsStarted(false); setQuiz(prev => ({...prev, isSubmitted: false, responses: []})); }} startTime={quiz.startTime} endTime={quiz.endTime} testMetadata={testMetadata} certificateId={generatedCertificateId || undefined} duration={finalDuration} />;
 
-  return <QuizActive quiz={quiz} quizTitle={testMetadata?.title || 'Assessment'} timeLeft={timeLeft} isWrongInRace={isWrongInRace} onResponseChange={handleResponseChange} onNext={handleNext} onPrev={() => setQuiz({ ...quiz, currentQuestionIndex: Math.max(0, quiz.currentQuestionIndex - 1) })} onSubmit={submit} onJump={(i) => setQuiz({ ...quiz, currentQuestionIndex: i })} onToggleFlag={(id) => { setQuiz(prev => ({ ...prev, flaggedQuestionIds: prev.flaggedQuestionIds?.includes(id) ? prev.flaggedQuestionIds.filter(f => f !== id) : [...(prev.flaggedQuestionIds || []), id] })); }} />;
+  return <QuizActive quiz={quiz} quizTitle={testMetadata?.title || 'Assessment'} timeLeft={timeLeft} elapsedSeconds={elapsedSeconds} isWrongInRace={isWrongInRace} onResponseChange={handleResponseChange} onNext={handleNext} onPrev={() => setQuiz({ ...quiz, currentQuestionIndex: Math.max(0, quiz.currentQuestionIndex - 1) })} onSubmit={submit} onJump={(i) => setQuiz({ ...quiz, currentQuestionIndex: i })} onToggleFlag={(id) => { setQuiz(prev => ({ ...prev, flaggedQuestionIds: prev.flaggedQuestionIds?.includes(id) ? prev.flaggedQuestionIds.filter(f => f !== id) : [...(prev.flaggedQuestionIds || []), id] })); }} />;
 }
 
 export default function QuizPage() {
