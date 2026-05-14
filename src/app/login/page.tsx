@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Zap, LogIn, Loader2, ArrowLeft, Mail, Lock, UserPlus } from "lucide-react";
+import { Zap, LogIn, Loader2, ArrowLeft, Mail, Lock, UserPlus, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { useSettings } from '@/context/settings-context';
 import { useToast } from "@/hooks/use-toast";
@@ -31,6 +31,7 @@ function LoginContent() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isSignUpDialogOpen, setIsSignUpDialogOpen] = useState(false);
 
   // Protocol: Explicit string casting to prevent type errors from numeric sheet entries
@@ -115,13 +116,20 @@ function LoginContent() {
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
                 <Input 
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
-                  className="h-14 pl-11 rounded-2xl bg-slate-50 border-none ring-1 ring-slate-100 focus:ring-primary/40 font-bold"
+                  className="h-14 pl-11 pr-12 rounded-2xl bg-slate-50 border-none ring-1 ring-slate-100 focus:ring-primary/40 font-bold"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
               </div>
             </div>
             <Button 
