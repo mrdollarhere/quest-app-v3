@@ -111,7 +111,7 @@ export const MultipleChoiceModule: React.FC<Props> = ({ question, value, onChang
         <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center gap-3 animate-in slide-in-from-top-2">
           <CheckCircle2 className="w-4 h-4 text-emerald-600" />
           <p className="text-sm font-black text-emerald-700 uppercase tracking-tight">
-            Correct Nodes: <span className="font-bold lowercase tracking-normal">{correctArr.join(", ")}</span>
+            CORRECT NODES: <span className="font-bold lowercase tracking-normal">{correctArr.join(", ")}</span>
           </p>
         </div>
       )}

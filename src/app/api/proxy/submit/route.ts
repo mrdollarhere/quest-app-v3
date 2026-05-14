@@ -163,7 +163,8 @@ export async function POST(request: Request) {
         questionId: q.id,
         questionText: q.question_text,
         questionType: q.question_type,
-        image_url: q.image_url, // Added to preserve context in audit trail
+        image_url: q.image_url, 
+        options: q.options, // Protocol v18.9: Include options for multiple choice review display
         submittedAnswer: answer,
         correctAnswer: parseJsonField(q.correct_answer),
         orderGroup: parseJsonField(q.order_group),

@@ -51,6 +51,7 @@ export function StepAnalytics({ questions, serverReviewData = [], textSize }: St
       questionText: q.question_text,
       questionType: q.question_type,
       image_url: q.image_url,
+      options: q.options,
       isCorrect: false,
       submittedAnswer: null,
       correctAnswer: [],
@@ -131,7 +132,8 @@ export function StepAnalytics({ questions, serverReviewData = [], textSize }: St
                         id: item.questionId,
                         question_text: item.questionText,
                         question_type: item.questionType,
-                        image_url: item.image_url, // Synchronized from server audit response
+                        image_url: item.image_url, 
+                        options: item.options,
                         correct_answer: JSON.stringify(item.correctAnswer),
                         order_group: JSON.stringify(item.orderGroup),
                         metadata: item.metadata
