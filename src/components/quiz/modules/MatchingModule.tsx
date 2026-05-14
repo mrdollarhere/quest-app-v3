@@ -40,9 +40,14 @@ export const MatchingModule: React.FC<Props> = ({ question, value, onChange, rev
   }, [question.order_group]);
 
   const shuffledPool = useMemo(() => shuffleArray(matchingPairs.map(p => p.right)), [matchingPairs]);
-  const responses = (value as Record<string, string>) || {};
+  
+  // Bug 1 Fix: Ensure value is treated as a Record for highlighting
+  const responses = useMemo(() => (value as Record<string, string>) || {}, [value]);
+  
   const assignedAnswers = Object.values(responses);
   const availableAnswers = shuffledPool.filter(ans => !assignedAnswers.includes(ans));
+
+  const hasAnyResponse = Object.keys(responses).length > 0;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -52,11 +57,11 @@ export const MatchingModule: React.FC<Props> = ({ question, value, onChange, rev
           <div className="space-y-3">
             {matchingPairs.map((pair, i) => {
               const userVal = responses[pair.left];
-              const isCorrect = reviewMode && userVal === pair.right;
+              const isCorrect = reviewMode && String(userVal || "").trim().toLowerCase() === String(pair.right).trim().toLowerCase();
 
               return (
                 <div key={i} className="space-y-2">
-                  <div className={cn("p-4 rounded-[1.5rem] border-2 transition-all grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 items-center", reviewMode ? (isCorrect ? "bg-emerald-50 border-emerald-200" : "bg-rose-50 border-rose-200") : "bg-white border-slate-100")}>
+                  <div className={cn("p-4 rounded-[1.5rem] border-2 transition-all grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 items-center", reviewMode ? (isCorrect ? "bg-emerald-50 border-emerald-200" : (userVal ? "bg-rose-50 border-rose-200" : "bg-slate-50 border-slate-100")) : "bg-white border-slate-100")}>
                     <div className="min-w-0 flex flex-col justify-center">
                       <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Key Node</span>
                       <p className="option-text font-bold text-slate-700 text-base">{pair.left}</p>
@@ -79,7 +84,12 @@ export const MatchingModule: React.FC<Props> = ({ question, value, onChange, rev
                           <MatchingAnswerContent value={userVal} />
                           {!reviewMode && <button onClick={() => { const next = { ...responses }; delete next[pair.left]; onChange(next); }} className="absolute -top-2 -right-2 p-1 bg-white border rounded-full shadow-lg hover:text-rose-500"><X className="w-3 h-3" /></button>}
                         </div>
-                      ) : <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Empty</span>}
+                      ) : (
+                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                          {/* Bug 4 Fix: Context-aware label */}
+                          {reviewMode ? "NO ANSWER SUBMITTED" : "Empty"}
+                        </span>
+                      )}
                     </div>
                   </div>
                   

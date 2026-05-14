@@ -16,9 +16,13 @@ interface Props {
 export const MatrixChoiceModule: React.FC<Props> = ({ question, value, onChange, reviewMode }) => {
   const originalRows = useMemo(() => parseRegistryArray(question.order_group), [question.order_group]);
   const rows = useMemo(() => reviewMode ? originalRows : shuffleArray(originalRows), [originalRows, reviewMode]);
+  
+  // Bug 2 Fix: Column headers come from 'options' field
   const columns = useMemo(() => parseRegistryArray(question.options), [question.options]);
   const correctArr = useMemo(() => parseRegistryArray(question.correct_answer), [question.correct_answer]);
-  const responses = (value as Record<string, string>) || {};
+  
+  // Bug 1 Fix: Ensure responses are correctly read from the 'value' prop which contains submittedAnswer in reviewMode
+  const responses = useMemo(() => (value as Record<string, string>) || {}, [value]);
 
   const handleUpdate = (row: string, col: string) => {
     if (reviewMode) return;
@@ -50,7 +54,7 @@ export const MatrixChoiceModule: React.FC<Props> = ({ question, value, onChange,
                 const userVal = responses[row];
                 const originalIdx = originalRows.indexOf(row);
                 const correctAnswer = correctArr[originalIdx];
-                const isCorrectRow = reviewMode && userVal === correctAnswer;
+                const isCorrectRow = reviewMode && String(userVal || "").trim().toLowerCase() === String(correctAnswer || "").trim().toLowerCase();
 
                 return (
                   <div key={i} style={gridStyle} className={cn("group transition-all duration-200", i % 2 === 0 ? "bg-white" : "bg-slate-50/50", reviewMode && !isCorrectRow && userVal ? "bg-rose-50/30" : "")}>
@@ -59,9 +63,9 @@ export const MatrixChoiceModule: React.FC<Props> = ({ question, value, onChange,
                     </div>
 
                     {columns.map((col, j) => {
-                      const isSelected = userVal === col;
-                      const isCorrectChoice = reviewMode && col === correctAnswer;
-                      const isWrongChoice = reviewMode && isSelected && col !== correctAnswer;
+                      const isSelected = String(userVal || "").trim().toLowerCase() === String(col).trim().toLowerCase();
+                      const isCorrectChoice = reviewMode && String(col).trim().toLowerCase() === String(correctAnswer || "").trim().toLowerCase();
+                      const isWrongChoice = reviewMode && isSelected && !isCorrectChoice;
 
                       return (
                         <div key={j} className="flex items-center justify-center border-r border-slate-200/50 last:border-r-0 p-4" onClick={() => handleUpdate(row, col)}>

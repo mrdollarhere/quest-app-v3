@@ -114,6 +114,7 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
         </h2>
       </div>
 
+      {/* Bug 3 Fix: Ensure image displays in both Quiz and Review modes */}
       {!!imgSrc && question.question_type !== 'hotspot' && (
         <div className="relative mb-10">
           <button 
@@ -127,7 +128,7 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
                 alt="Assessment Visual Asset" 
                 fill
                 priority={true}
-                className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+                className="object-cover transition-transform duration-700 group-hover:scale-[1.02] rounded-none"
                 onError={handleImageError}
               />
             </div>
@@ -137,11 +138,13 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
                 <p className="text-[10px] font-black uppercase tracking-[0.4em]">Media Sync Failed</p>
               </div>
             )}
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center">
-              <div className="bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all duration-500">
-                <Maximize2 className="w-6 h-6 text-slate-900" aria-hidden="true" />
+            {!reviewMode && (
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center">
+                <div className="bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all duration-500">
+                  <Maximize2 className="w-6 h-6 text-slate-900" aria-hidden="true" />
+                </div>
               </div>
-            </div>
+            )}
           </button>
 
           <Dialog open={isZoomOpen} onOpenChange={setIsZoomOpen}>
