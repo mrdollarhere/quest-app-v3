@@ -24,6 +24,7 @@ function QuizContent() {
   const { settings } = useSettings();
   
   const [isStarted, setIsStarted] = useState(false);
+  const [isSyncingTraining, setIsSyncingTraining] = useState(false);
   const [guestName, setGuestName] = useState("");
   const [timeLeft, setTimeLeft] = useState(900); 
   const [isWrongInRace, setIsWrongInRace] = useState(false);
@@ -47,7 +48,7 @@ function QuizContent() {
   }, []);
 
   // Registry Protocol: Hydrate Questions via Secure Proxy
-  const { data: questionsData, isLoading: qLoading, error: qError } = useSWR(
+  const { data: questionsData, isLoading: qLoading, error: qError, mutate: mutateQuestions } = useSWR(
     testId ? `/api/proxy/questions?id=${testId}` : null
   );
 
@@ -149,14 +150,30 @@ function QuizContent() {
     }
   };
 
-  const handleStart = (mode: QuizMode) => {
-    let q = [...(questionsData || [])];
-    if (q.length === 0) {
+  const handleStart = async (mode: QuizMode) => {
+    let q = questionsData || [];
+
+    // TRAINING PROTOCOL: If in training mode, we need questions with answers for immediate feedback.
+    if (mode === 'training') {
+      setIsSyncingTraining(true);
+      try {
+        const res = await fetch(`/api/proxy/questions?id=${testId}&training=true`);
+        if (!res.ok) throw new Error();
+        q = await res.json();
+      } catch (e) {
+        toast({ variant: "destructive", title: "Sync Error", description: "Could not retrieve answer key for practice." });
+        setIsSyncingTraining(false);
+        return;
+      }
+      setIsSyncingTraining(false);
+    }
+
+    if (!q || q.length === 0) {
       toast({ variant: "destructive", title: "Module Error", description: "This assessment contains no active questions." });
       return;
     }
     
-    if (mode === 'test') q = q.sort(() => Math.random() - 0.5);
+    if (mode === 'test') q = [...q].sort(() => Math.random() - 0.5);
     
     setIsStarted(true);
     setQuiz(prev => ({ 
@@ -200,7 +217,7 @@ function QuizContent() {
     );
   }
 
-  if (qLoading || configLoading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><AILoader /></div>;
+  if (qLoading || configLoading || isSyncingTraining) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><AILoader messages={isSyncingTraining ? ["Syncing Answer Key...", "Preparing Practice Environment..."] : undefined} /></div>;
 
   if (!isStarted) {
     return (

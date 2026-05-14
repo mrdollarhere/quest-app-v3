@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import { Question } from '@/types/quiz';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { parseRegistryArray, shuffleArray } from '@/lib/quiz-utils';
 
@@ -19,7 +19,7 @@ interface Props {
  * Multiple Choice Interaction Module
  * 
  * Renders high-fidelity checkbox cards for multi-select responses.
- * Uses square (rounded) checkbox icons to distinguish from single-select radios.
+ * Optimized for Training Mode with immediate correctness feedback.
  */
 export const MultipleChoiceModule: React.FC<Props> = ({ question, value, onChange, reviewMode }) => {
   const options = useMemo(() => {
@@ -42,6 +42,11 @@ export const MultipleChoiceModule: React.FC<Props> = ({ question, value, onChang
     <div className="flex flex-col gap-[10px]">
       {options.map((option, idx) => {
         const isSelected = selected.includes(option);
+        const isCorrect = correctArr.includes(option);
+        const isSelectedCorrectly = isSelected && isCorrect;
+        const isSelectedIncorrectly = isSelected && !isCorrect;
+        const isMissingAnswer = !isSelected && isCorrect;
+        
         const inputId = `q-${question.id}-${idx}`;
         
         return (
@@ -49,10 +54,14 @@ export const MultipleChoiceModule: React.FC<Props> = ({ question, value, onChang
             key={idx} 
             onClick={() => toggle(option)}
             className={cn(
-              "flex items-center space-x-4 px-[18px] py-[16px] rounded-[16px] border-2 transition-all cursor-pointer group",
-              isSelected 
-                ? "bg-[#EFF6FF] border-[#2563EB] shadow-sm" 
-                : "bg-white border-slate-100 hover:bg-[#EFF6FF] hover:border-[#2563EB]"
+              "flex items-center space-x-4 px-[18px] py-[16px] rounded-[16px] border-2 transition-all group",
+              !reviewMode && "cursor-pointer",
+              isSelected && !reviewMode && "bg-[#EFF6FF] border-[#2563EB] shadow-sm",
+              !isSelected && !reviewMode && "bg-white border-slate-100 hover:bg-[#EFF6FF] hover:border-[#2563EB]",
+              reviewMode && isSelectedCorrectly && "bg-emerald-50 border-emerald-500 shadow-sm",
+              reviewMode && isSelectedIncorrectly && "bg-rose-50 border-rose-500 shadow-sm",
+              reviewMode && isMissingAnswer && "bg-emerald-50/30 border-emerald-200 border-dashed",
+              reviewMode && !isCorrect && !isSelected && "bg-white border-slate-50 opacity-40"
             )}
           >
             <Checkbox 
@@ -61,21 +70,30 @@ export const MultipleChoiceModule: React.FC<Props> = ({ question, value, onChang
               onCheckedChange={() => toggle(option)}
               disabled={reviewMode}
               className={cn(
-                "h-5 w-5 rounded border-2 transition-transform group-active:scale-95",
-                isSelected ? "bg-[#2563EB] border-[#2563EB] text-white" : "border-slate-300"
+                "h-5 w-5 rounded border-2 transition-transform",
+                isSelected && !reviewMode ? "bg-[#2563EB] border-[#2563EB] text-white" : "border-slate-300",
+                reviewMode && isCorrect ? "bg-emerald-500 border-emerald-500 text-white" : "",
+                reviewMode && isSelectedIncorrectly ? "bg-rose-500 border-rose-500 text-white" : ""
               )}
               onClick={(e) => e.stopPropagation()} 
             />
             <Label 
               htmlFor={inputId} 
-              className="option-text flex-1 cursor-pointer font-normal text-base text-slate-700 select-none leading-tight"
-              onClick={(e) => e.preventDefault()}
+              className={cn(
+                "option-text flex-1 font-normal text-base select-none leading-tight",
+                !reviewMode && "cursor-pointer text-slate-700",
+                reviewMode && isCorrect && "text-emerald-700 font-bold",
+                reviewMode && isSelectedIncorrectly && "text-rose-700 font-bold"
+              )}
+              onClick={(e) => !reviewMode && e.preventDefault()}
             >
               {option}
             </Label>
-            {/* CORRECT INDICATOR: Strictly gated behind reviewMode to prevent premature leaks */}
-            {reviewMode && correctArr.includes(option) && (
-              <CheckCircle2 className="w-6 h-6 text-green-500 shrink-0 animate-in fade-in zoom-in duration-300" />
+            {reviewMode && isCorrect && (
+              <CheckCircle2 className="w-6 h-6 text-emerald-500 shrink-0 animate-in fade-in zoom-in duration-300" />
+            )}
+            {reviewMode && isSelectedIncorrectly && (
+              <XCircle className="w-6 h-6 text-rose-500 shrink-0 animate-in fade-in zoom-in duration-300" />
             )}
           </div>
         );
