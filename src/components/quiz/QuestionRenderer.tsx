@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { Question } from '@/types/quiz';
-import { ImageIcon, Maximize2, AlertCircle } from "lucide-react";
+import { ImageIcon, Maximize2 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -56,12 +56,32 @@ interface Props {
 }
 
 export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, reviewMode }) => {
-  const [imgSrc, setImgSrc] = useState<string | undefined>(undefined);
+  const [imgSrc, setImgSrc] = useState<string | null>(null);
   const [hasImageError, setHasImageError] = useState(false);
   const [isZoomOpen, setIsZoomOpen] = useState(false);
 
   useEffect(() => {
-    setImgSrc(question.image_url && question.image_url.trim() !== "" ? question.image_url : undefined);
+    const rawUrl = question.image_url;
+    let validatedSrc: string | null = null;
+
+    if (rawUrl && String(rawUrl).trim() !== "") {
+      const trimmed = String(rawUrl).trim();
+      
+      // Protocol: Validate URL integrity before passing to next/image
+      try {
+        if (trimmed.startsWith('http')) {
+          new URL(trimmed); // Validate absolute URL syntax
+          validatedSrc = trimmed;
+        } else if (trimmed.startsWith('/') || trimmed.startsWith('data:')) {
+          validatedSrc = trimmed;
+        }
+      } catch (e) {
+        console.warn(`[Asset Registry] Invalid visual source detected for node ${question.id}`);
+        validatedSrc = null;
+      }
+    }
+
+    setImgSrc(validatedSrc);
     setHasImageError(false);
   }, [question.id, question.image_url]);
 
@@ -114,8 +134,7 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
         </h2>
       </div>
 
-      {/* Bug 3 Fix: Ensure image displays in both Quiz and Review modes */}
-      {!!imgSrc && question.question_type !== 'hotspot' && (
+      {imgSrc && question.question_type !== 'hotspot' && (
         <div className="relative mb-10">
           <button 
             className="w-full block rounded-none overflow-hidden border-4 border-white shadow-2xl bg-slate-100 relative group cursor-zoom-in outline-none focus-visible:ring-4 focus-visible:ring-primary"
