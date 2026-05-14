@@ -25,6 +25,7 @@ function QuizContent() {
   
   const [isStarted, setIsStarted] = useState(false);
   const [isSyncingTraining, setIsSyncingTraining] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [guestName, setGuestName] = useState("");
   const [timeLeft, setTimeLeft] = useState(900); 
   const [isWrongInRace, setIsWrongInRace] = useState(false);
@@ -97,12 +98,16 @@ function QuizContent() {
   };
 
   const submit = async () => {
+    if (isSubmitting) return;
+    
     const finalName = user?.displayName || guestName || 'Guest User';
     const finalEmail = user?.email || 'Anonymous';
     const timestamp = Date.now();
     
     const passingThreshold = Number(testMetadata?.passing_threshold || globalData?.defaultThreshold || 70);
 
+    setIsSubmitting(true);
+    
     // SECURITY PROTOCOL: All calculations performed via Server-Side Proxy
     try {
       const res = await fetch('/api/proxy/submit', {
@@ -147,6 +152,8 @@ function QuizContent() {
         title: "Submission Failure", 
         description: e.message || "The registry handshake failed." 
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -218,6 +225,21 @@ function QuizContent() {
   }
 
   if (qLoading || configLoading || isSyncingTraining) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><AILoader messages={isSyncingTraining ? ["Syncing Answer Key...", "Preparing Practice Environment..."] : undefined} /></div>;
+
+  if (isSubmitting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 animate-in fade-in duration-500">
+        <AILoader 
+          messages={[
+            "Submitting assessment...", 
+            "Calculating your score", 
+            "Synchronizing registry...",
+            "Preparing your results"
+          ]} 
+        />
+      </div>
+    );
+  }
 
   if (!isStarted) {
     return (
