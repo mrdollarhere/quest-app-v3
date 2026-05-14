@@ -26,7 +26,9 @@ export const OrderingModule: React.FC<Props> = ({ question, value, onChange, rev
     if (parsedOptions.length > 0 && !hasInitialized.current) {
       if (!value) {
         let shuffled = shuffleArray(parsedOptions);
-        if (JSON.stringify(shuffled) === JSON.stringify(correctOrder)) [shuffled[0], shuffled[1]] = [shuffled[1], shuffled[0]];
+        if (JSON.stringify(shuffled) === JSON.stringify(correctOrder)) {
+          if (shuffled.length > 1) [shuffled[0], shuffled[1]] = [shuffled[1], shuffled[0]];
+        }
         setInitialShuffle(shuffled);
         onChange(shuffled);
       } else {
@@ -51,7 +53,7 @@ export const OrderingModule: React.FC<Props> = ({ question, value, onChange, rev
 
       <div className="space-y-3">
         {currentOrder.map((item, idx) => {
-          const isCorrectPos = reviewMode && item === correctOrder[idx];
+          const isCorrectPos = reviewMode && String(item).trim() === String(correctOrder[idx] || "").trim();
           return (
             <div 
               key={`${item}-${idx}`} 
@@ -59,27 +61,52 @@ export const OrderingModule: React.FC<Props> = ({ question, value, onChange, rev
               onDragStart={() => setDraggedItemIndex(idx)} 
               onDragOver={(e) => { e.preventDefault(); if (draggedItemIndex !== null && draggedItemIndex !== idx && !reviewMode) { const next = [...currentOrder]; const [m] = next.splice(draggedItemIndex, 1); next.splice(idx, 0, m); setDraggedItemIndex(idx); onChange(next); } }} 
               onDragEnd={() => setDraggedItemIndex(null)}
-              className={cn("flex items-center gap-4 p-5 rounded-2xl border-2 transition-all select-none", isCorrectPos ? "bg-emerald-50 border-emerald-200" : (reviewMode ? "bg-rose-50 border-rose-200" : "bg-white border-slate-100 shadow-sm"))}
+              className={cn(
+                "flex items-center gap-4 p-5 rounded-2xl border-2 transition-all select-none", 
+                !reviewMode ? "bg-white border-slate-100 shadow-sm" : (
+                  isCorrectPos ? "bg-emerald-50 border-emerald-500 shadow-sm" : "bg-rose-50 border-rose-500 shadow-sm"
+                )
+              )}
             >
-              <div className={cn("flex items-center justify-center w-10 h-10 rounded-full font-black text-sm shrink-0 border", isCorrectPos ? "bg-emerald-500 text-white" : (reviewMode ? "bg-rose-500 text-white" : "bg-slate-50 text-slate-400"))}>{idx + 1}</div>
-              <div className="option-text flex-1 font-bold text-slate-700">{item}</div>
+              <div className={cn(
+                "flex items-center justify-center w-10 h-10 rounded-full font-black text-sm shrink-0 border shadow-inner", 
+                !reviewMode ? "bg-slate-50 text-slate-400" : (
+                  isCorrectPos ? "bg-emerald-500 text-white" : "bg-rose-500 text-white"
+                )
+              )}>
+                {idx + 1}
+              </div>
+              <div className={cn(
+                "option-text flex-1 font-bold",
+                reviewMode && isCorrectPos ? "text-emerald-900" : 
+                reviewMode && !isCorrectPos ? "text-rose-900" : "text-slate-700"
+              )}>
+                {item}
+              </div>
               {reviewMode ? (
                 <div className="flex items-center gap-4">
-                  {!isCorrectPos && <span className="text-[9px] font-black text-rose-400 uppercase tracking-widest">Expected: {correctOrder[idx]}</span>}
-                  {isCorrectPos ? <Check className="w-5 h-5 text-emerald-500" /> : <X className="w-5 h-5 text-rose-500" />}
+                  {!isCorrectPos && (
+                    <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest hidden sm:inline">
+                      Target #{idx + 1}: {correctOrder[idx]}
+                    </span>
+                  )}
+                  {isCorrectPos ? <Check className="w-5 h-5 text-emerald-500 stroke-[3px]" /> : <X className="w-5 h-5 text-rose-500 stroke-[3px]" />}
                 </div>
-              ) : <GripVertical className="w-5 h-5 text-slate-200" />}
+              ) : (
+                <GripVertical className="w-5 h-5 text-slate-200" />
+              )}
             </div>
           );
         })}
       </div>
       
       {reviewMode && (
-        <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center gap-3 animate-in slide-in-from-top-2">
-          <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-          <p className="text-sm font-black text-emerald-700 uppercase tracking-tight">
-            Target Sequence: <span className="font-bold lowercase tracking-normal">{correctOrder.join(" → ")}</span>
-          </p>
+        <div className="p-5 bg-emerald-50 rounded-[2rem] border border-emerald-100 flex items-center gap-4 animate-in slide-in-from-top-2">
+          <div className="p-3 bg-emerald-500 rounded-xl text-white shadow-lg"><CheckCircle2 className="w-5 h-5" /></div>
+          <div>
+            <p className="text-[10px] font-black uppercase text-emerald-700 tracking-[0.2em] mb-1">Correct Registry Sequence</p>
+            <p className="text-sm font-bold text-emerald-900 tracking-tight">{correctOrder.join(" → ")}</p>
+          </div>
         </div>
       )}
     </div>

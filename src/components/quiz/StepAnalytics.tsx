@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { History, CheckCircle2, X, AlertCircle, ChevronDown } from "lucide-react";
+import { History, CheckCircle2, X, AlertCircle, ChevronDown, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { QuestionRenderer } from './QuestionRenderer';
 import { Button } from "@/components/ui/button";
@@ -53,6 +53,7 @@ export function StepAnalytics({ questions, serverReviewData = [], textSize }: St
       isCorrect: false,
       submittedAnswer: null,
       correctAnswer: [],
+      orderGroup: [],
       metadata: q.metadata
     }));
   }, [questions, serverReviewData]);

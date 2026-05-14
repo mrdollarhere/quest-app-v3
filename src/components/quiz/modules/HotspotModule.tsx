@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Question, HotspotZone } from '@/types/quiz';
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -46,23 +46,38 @@ export const HotspotModule: React.FC<Props> = ({ question, value, onChange, revi
 
   return (
     <div className="space-y-6">
-      <div className="relative w-full shadow-2xl rounded-none overflow-hidden bg-slate-900" style={{ paddingBottom: `${aspectRatio * 100}%`, height: 0 }}>
+      <div className="relative w-full shadow-2xl rounded-none overflow-hidden bg-slate-900 border-4 border-white" style={{ paddingBottom: `${aspectRatio * 100}%`, height: 0 }}>
         <div ref={containerRef} className={cn("absolute inset-0 transition-opacity", reviewMode ? "cursor-default" : "cursor-crosshair")} onClick={handleClick}>
-          {imgSrc && <img src={imgSrc} alt="Spatial" onLoad={(e) => setAspectRatio(e.currentTarget.naturalHeight / e.currentTarget.naturalWidth)} className="absolute inset-0 w-full h-full object-contain select-none" draggable={false} />}
+          {imgSrc && <img src={imgSrc} alt="Spatial" onLoad={(e) => setAspectRatio(e.currentTarget.naturalHeight / e.currentTarget.naturalWidth)} className="absolute inset-0 w-full h-full object-contain select-none opacity-90" draggable={false} />}
           <div className="absolute inset-0 pointer-events-none">
             {zones.map((z) => {
               const isSelected = selectedZoneIds.includes(z.id);
               if (!isSelected && !reviewMode) return null;
               const isCorrect = z.isCorrect;
+              
               let borderColor = "border-primary";
               let bgColor = "bg-primary/40";
+              let showLabel = false;
+
               if (reviewMode) {
-                if (isSelected && isCorrect) { borderColor = "border-emerald-500"; bgColor = "bg-emerald-500/20"; }
-                else if (isSelected && !isCorrect) { borderColor = "border-rose-500"; bgColor = "bg-rose-500/20"; }
-                else if (!isSelected && isCorrect) { borderColor = "border-emerald-500 border-dashed"; bgColor = "bg-transparent"; }
+                if (isSelected && isCorrect) { borderColor = "border-emerald-500 border-[4px]"; bgColor = "bg-emerald-500/20"; showLabel = true; }
+                else if (isSelected && !isCorrect) { borderColor = "border-rose-500 border-[4px]"; bgColor = "bg-rose-500/30"; showLabel = true; }
+                else if (!isSelected && isCorrect) { borderColor = "border-emerald-500 border-dashed border-[3px]"; bgColor = "bg-transparent"; showLabel = true; }
                 else return null;
               }
-              return <div key={z.id} className={cn("absolute border-4 transition-all rounded-none", borderColor, bgColor)} style={{ left: `${z.x}%`, top: `${z.y}%`, width: `${z.width}%`, height: `${z.height}%` }} />;
+
+              return (
+                <div key={z.id} className={cn("absolute transition-all rounded-none", borderColor, bgColor)} style={{ left: `${z.x}%`, top: `${z.y}%`, width: `${z.width}%`, height: `${z.height}%` }}>
+                  {showLabel && (
+                    <div className={cn(
+                      "absolute -top-6 left-0 px-2 py-0.5 rounded-sm text-[8px] font-black uppercase whitespace-nowrap shadow-xl",
+                      isCorrect ? "bg-emerald-600 text-white" : "bg-rose-600 text-white"
+                    )}>
+                      {z.label} {isSelected && !isCorrect ? "(WRONG)" : ""}
+                    </div>
+                  )}
+                </div>
+              );
             })}
           </div>
         </div>
@@ -71,7 +86,7 @@ export const HotspotModule: React.FC<Props> = ({ question, value, onChange, revi
         <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center gap-3 animate-in slide-in-from-top-2">
           <CheckCircle2 className="w-5 h-5 text-emerald-600" />
           <p className="text-sm font-black text-emerald-700 uppercase tracking-tight">
-            Target Nodes: <span className="font-bold lowercase tracking-normal">{correctZones.map(z => z.label).join(", ")}</span>
+            Correct Registry Targets: <span className="font-bold lowercase tracking-normal">{correctZones.map(z => z.label).join(", ")}</span>
           </p>
         </div>
       )}

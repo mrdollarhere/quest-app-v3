@@ -26,7 +26,7 @@ export const MultipleTrueFalseModule: React.FC<Props> = ({ question, value, onCh
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-3">
         {statements.map((s, i) => {
           const userVal = responses[s];
           const originalIdx = originalStatements.indexOf(s);
@@ -34,18 +34,26 @@ export const MultipleTrueFalseModule: React.FC<Props> = ({ question, value, onCh
           const isCorrect = reviewMode && userVal === correctAnswer;
           
           return (
-            <div key={i} className="flex flex-col">
+            <div key={i} className="flex flex-col gap-2">
               <div 
                 className={cn(
-                  "flex flex-row items-center justify-between gap-4 p-4 transition-all border-b border-slate-100 last:border-none rounded-r-xl",
-                  !userVal && !reviewMode && "bg-white border-l-[3px] border-l-transparent",
-                  userVal === 'True' && !reviewMode && "bg-[#F0FDF4] border-l-[3px] border-l-[#22C55E]",
-                  userVal === 'False' && !reviewMode && "bg-[#FEF2F2] border-l-[3px] border-l-[#EF4444]",
-                  reviewMode && (isCorrect ? "bg-emerald-50 border-l-[3px] border-l-emerald-500" : "bg-rose-50 border-l-[3px] border-l-rose-500")
+                  "flex flex-row items-center justify-between gap-4 p-5 transition-all border shadow-sm rounded-2xl",
+                  !reviewMode ? (
+                    !userVal ? "bg-white border-slate-100" :
+                    userVal === 'True' ? "bg-[#F0FDF4] border-[#22C55E]" :
+                    "bg-[#FEF2F2] border-[#EF4444]"
+                  ) : (
+                    isCorrect ? "bg-emerald-50 border-emerald-500" : 
+                    (userVal ? "bg-rose-50 border-rose-500" : "bg-slate-50 border-slate-200")
+                  )
                 )}
               >
                 <div className="flex-1">
-                  <p className="option-text font-normal text-base text-slate-700 leading-tight">{s}</p>
+                  <p className={cn(
+                    "option-text font-normal text-base leading-tight",
+                    reviewMode && isCorrect ? "text-emerald-900 font-bold" : 
+                    reviewMode && !isCorrect && userVal ? "text-rose-900 font-bold" : "text-slate-700"
+                  )}>{s}</p>
                 </div>
 
                 <div className="flex items-center gap-[6px] w-[146px] justify-end shrink-0">
@@ -59,11 +67,11 @@ export const MultipleTrueFalseModule: React.FC<Props> = ({ question, value, onCh
                         onClick={() => handleUpdate(s, opt)}
                         disabled={reviewMode}
                         className={cn(
-                          "w-[70px] h-[36px] rounded-[8px] font-black text-[12px] uppercase tracking-tight transition-all border",
+                          "w-[70px] h-[36px] rounded-[10px] font-black text-[12px] uppercase tracking-tight transition-all border",
                           !isSelected && !isCorrectOption && "bg-white border-slate-200 text-slate-400 hover:bg-slate-50",
                           isSelected && opt === 'True' && "bg-[#22C55E] border-[#22C55E] text-white",
                           isSelected && opt === 'False' && "bg-[#EF4444] border-[#EF4444] text-white",
-                          isCorrectOption && !isSelected && "border-[#22C55E] text-[#22C55E] border-dashed border-2",
+                          reviewMode && isCorrectOption && !isSelected && "border-[#22C55E] text-[#22C55E] border-dashed border-2",
                           reviewMode && "cursor-default"
                         )}
                       >
@@ -73,27 +81,19 @@ export const MultipleTrueFalseModule: React.FC<Props> = ({ question, value, onCh
                   })}
                 </div>
               </div>
+              
+              {reviewMode && (
+                <div className={cn(
+                  "mx-4 px-4 py-1.5 rounded-b-xl text-[10px] font-black uppercase tracking-widest -mt-4 pt-4 border-x border-b",
+                  isCorrect ? "bg-emerald-100/50 border-emerald-200 text-emerald-700" : "bg-rose-100/50 border-rose-200 text-rose-700"
+                )}>
+                  Correct Registry: <span className="font-black underline">{correctAnswer}</span>
+                </div>
+              )}
             </div>
           );
         })}
       </div>
-      
-      {reviewMode && (
-        <div className="p-6 bg-emerald-50 rounded-[2rem] border border-emerald-100 space-y-3 animate-in slide-in-from-top-2">
-          <div className="flex items-center gap-2 mb-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            <h5 className="text-[10px] font-black uppercase text-emerald-700 tracking-widest">Correct Registry Map</h5>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
-            {originalStatements.map((s, i) => (
-              <div key={i} className="flex justify-between text-xs py-1 border-b border-emerald-100/50">
-                <span className="text-emerald-600/70 font-medium truncate max-w-[150px]">{s}</span>
-                <span className="font-black text-emerald-700">{correctArr[i]}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 };

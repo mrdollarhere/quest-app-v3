@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import { Question } from '@/types/quiz';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, XCircle, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { parseRegistryArray, shuffleArray } from '@/lib/quiz-utils';
 
@@ -51,16 +51,28 @@ export const SingleChoiceModule: React.FC<Props> = ({ question, value, onChange,
                 reviewMode && !isCorrect && !isSelected && "bg-white border-slate-50 opacity-40"
               )}
             >
-              <RadioGroupItem 
-                value={option} 
-                id={inputId} 
-                className={cn(
-                  "h-5 w-5 border-2 rounded-full pointer-events-none transition-transform",
-                  isSelected && !reviewMode ? "bg-[#2563EB] border-[#2563EB] text-white" : "border-slate-300",
-                  reviewMode && isCorrect ? "bg-emerald-500 border-emerald-500 text-white" : "",
-                  reviewMode && isWrong ? "bg-rose-500 border-rose-500 text-white" : ""
+              <div className="relative">
+                <RadioGroupItem 
+                  value={option} 
+                  id={inputId} 
+                  className={cn(
+                    "h-5 w-5 border-2 rounded-full pointer-events-none transition-transform",
+                    isSelected && !reviewMode ? "bg-[#2563EB] border-[#2563EB] text-white" : "border-slate-300",
+                    reviewMode && isCorrect ? "bg-emerald-500 border-emerald-500 text-white" : "",
+                    reviewMode && isWrong ? "bg-rose-500 border-rose-500 text-white" : ""
+                  )}
+                />
+                {reviewMode && isCorrect && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Check className="w-3 h-3 text-white stroke-[3px]" />
+                  </div>
                 )}
-              />
+                {reviewMode && isWrong && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <X className="w-3 h-3 text-white stroke-[3px]" />
+                  </div>
+                )}
+              </div>
               <Label 
                 htmlFor={inputId} 
                 className={cn(
@@ -75,10 +87,10 @@ export const SingleChoiceModule: React.FC<Props> = ({ question, value, onChange,
                 {option}
               </Label>
               {reviewMode && isCorrect && (
-                <CheckCircle2 className="w-6 h-6 text-emerald-500 shrink-0 animate-in fade-in zoom-in duration-300" />
+                <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
               )}
               {reviewMode && isWrong && (
-                <XCircle className="w-6 h-6 text-rose-500 shrink-0 animate-in fade-in zoom-in duration-300" />
+                <XCircle className="w-5 h-5 text-rose-500 shrink-0" />
               )}
             </div>
           );
@@ -87,7 +99,7 @@ export const SingleChoiceModule: React.FC<Props> = ({ question, value, onChange,
       
       {reviewMode && (
         <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center gap-3 animate-in slide-in-from-top-2">
-          <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
           <p className="text-sm font-black text-emerald-700 uppercase tracking-tight">
             Correct Registry: <span className="font-bold lowercase tracking-normal">{correctAnswer}</span>
           </p>
