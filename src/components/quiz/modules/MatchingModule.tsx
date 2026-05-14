@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Question } from '@/types/quiz';
-import { Info, X, CheckCircle2, AlertCircle } from "lucide-react";
+import { Info, X, CheckCircle2, AlertCircle, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { parseRegistryArray, shuffleArray } from '@/lib/quiz-utils';
 
@@ -13,40 +13,19 @@ interface Props {
   reviewMode?: boolean;
 }
 
-/**
- * Visual Asset Component for Matching Module
- */
 const MatchingAnswerContent = ({ value }: { value: string }) => {
   const [error, setError] = useState(false);
-
   const isImage = useMemo(() => {
     if (!value) return false;
     const val = String(value).trim();
-    // Rule: starts with http(s) and has image extension OR starts with https://
     return (val.startsWith('http') && /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(val)) || val.startsWith('https://');
   }, [value]);
 
-  if (!isImage) {
-    return <span className="option-text font-black text-xs break-words whitespace-normal leading-tight text-center">{value}</span>;
-  }
+  if (!isImage) return <span className="option-text font-black text-xs text-center leading-tight">{value}</span>;
 
-  if (error) {
-    return (
-      <div className="w-[140px] h-[100px] bg-slate-100 rounded-[12px] flex flex-col items-center justify-center border-2 border-dashed border-slate-200 gap-1">
-        <AlertCircle className="w-4 h-4 text-slate-300" />
-        <span className="text-[8px] font-black text-slate-300 uppercase tracking-tighter">Broken Asset</span>
-      </div>
-    );
-  }
+  if (error) return <div className="w-[120px] h-[80px] bg-slate-100 rounded-xl flex flex-col items-center justify-center border-2 border-dashed border-slate-200"><AlertCircle className="w-4 h-4 text-slate-300" /><span className="text-[8px] font-black text-slate-300 uppercase mt-1">Broken</span></div>;
 
-  return (
-    <img 
-      src={value} 
-      alt="Answer Option" 
-      onError={() => setError(true)}
-      className="w-[140px] h-[100px] object-contain rounded-[12px] border bg-white shadow-sm transition-transform group-hover:scale-105"
-    />
-  );
+  return <img src={value} alt="Answer" onError={() => setError(true)} className="w-[120px] h-[80px] object-contain rounded-xl border bg-white shadow-sm" />;
 };
 
 export const MatchingModule: React.FC<Props> = ({ question, value, onChange, reviewMode }) => {
@@ -55,103 +34,63 @@ export const MatchingModule: React.FC<Props> = ({ question, value, onChange, rev
   const matchingPairs = useMemo(() => {
     const pairsArr = parseRegistryArray(question.order_group);
     return pairsArr.map(p => {
-      const [left, right] = p.split('|');
+      const [left, right] = String(p).split('|');
       return { left: (left || "").trim(), right: (right || "").trim() };
     });
   }, [question.order_group]);
 
-  const shuffledItemsPool = useMemo(() => {
-    return shuffleArray(matchingPairs.map(p => p.right));
-  }, [matchingPairs]);
-
+  const shuffledPool = useMemo(() => shuffleArray(matchingPairs.map(p => p.right)), [matchingPairs]);
   const responses = (value as Record<string, string>) || {};
-  const prompts = matchingPairs.map(p => p.left);
   const assignedAnswers = Object.values(responses);
-  const availableAnswers = shuffledItemsPool.filter(ans => !assignedAnswers.includes(ans));
-
-  const handleDrop = (prompt: string, answer: string) => {
-    if (reviewMode) return;
-    onChange({ ...responses, [prompt]: answer });
-  };
-
-  const handleClear = (prompt: string) => {
-    if (reviewMode) return;
-    const newResponses = { ...responses };
-    delete newResponses[prompt];
-    onChange(newResponses);
-  };
+  const availableAnswers = shuffledPool.filter(ans => !assignedAnswers.includes(ans));
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      {!reviewMode && (
-        <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 flex items-center gap-3">
-          <Info className="w-5 h-5 text-primary" />
-          <p className="text-xs font-medium text-primary">Drag and drop responses from the pool into the designated target clusters.</p>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-7 space-y-4">
-          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-2">Protocol Targets</h3>
+          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-2">Registry Targets</h3>
           <div className="space-y-3">
-            {prompts.map((prompt, i) => {
-              const userVal = responses[prompt];
-              const pair = matchingPairs.find(p => p.left === prompt);
-              const correctAnswer = pair?.right;
-              const isCorrect = reviewMode && userVal === correctAnswer;
+            {matchingPairs.map((pair, i) => {
+              const userVal = responses[pair.left];
+              const isCorrect = reviewMode && userVal === pair.right;
 
               return (
                 <div key={i} className="space-y-2">
-                  <div className={cn(
-                    "p-3 rounded-[16px] border-2 transition-all grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 items-center",
-                    reviewMode 
-                      ? (isCorrect ? "bg-green-50 border-green-100" : "bg-red-50 border-red-100") 
-                      : "bg-slate-50/50 border-slate-100"
-                  )}>
-                    <div className="min-w-0 pr-2 flex flex-col justify-center">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-1">Prompt</span>
-                      <p className="option-text font-medium text-slate-700 text-base leading-tight break-words whitespace-normal">{prompt}</p>
+                  <div className={cn("p-4 rounded-[1.5rem] border-2 transition-all grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 items-center", reviewMode ? (isCorrect ? "bg-emerald-50 border-emerald-200" : "bg-rose-50 border-rose-200") : "bg-white border-slate-100")}>
+                    <div className="min-w-0 flex flex-col justify-center">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Key Node</span>
+                      <p className="option-text font-bold text-slate-700 text-base">{pair.left}</p>
                     </div>
 
                     <div 
-                      onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('ring-4', 'ring-primary/20', 'border-primary'); }}
-                      onDragLeave={(e) => { e.currentTarget.classList.remove('ring-4', 'ring-primary/20', 'border-primary'); }}
+                      onDragOver={(e) => !reviewMode && (e.preventDefault(), e.currentTarget.classList.add('border-primary'))}
+                      onDragLeave={(e) => e.currentTarget.classList.remove('border-primary')}
                       onDrop={(e) => {
+                        if (reviewMode) return;
                         e.preventDefault();
-                        e.currentTarget.classList.remove('ring-4', 'ring-primary/20', 'border-primary');
+                        e.currentTarget.classList.remove('border-primary');
                         const data = e.dataTransfer.getData("text/plain");
-                        if (data) handleDrop(prompt, data);
+                        if (data) onChange({ ...responses, [pair.left]: data });
                       }}
-                      className={cn(
-                        "w-full sm:w-[160px] min-h-[116px] h-auto rounded-[12px] border-2 border-dashed flex items-center justify-center transition-all p-2 relative group",
-                        userVal ? "border-primary bg-white shadow-md" : "border-slate-300 bg-white/50"
-                      )}
+                      className={cn("w-full sm:w-[150px] min-h-[100px] rounded-xl border-2 border-dashed flex items-center justify-center transition-all p-2 relative", userVal ? "border-primary bg-white shadow-sm" : "border-slate-300 bg-slate-50")}
                     >
                       {userVal ? (
-                        <div className="flex flex-col items-center gap-3 w-full">
-                          <div className="flex-1 flex items-center justify-center">
-                            <MatchingAnswerContent value={userVal} />
-                          </div>
-                          {!reviewMode && (
-                            <button 
-                              onClick={() => handleClear(prompt)}
-                              className="absolute top-1 right-1 p-1 bg-white shadow-sm border rounded-full hover:bg-rose-50 hover:text-rose-500 transition-colors z-10"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          )}
+                        <div className="flex flex-col items-center gap-2">
+                          <MatchingAnswerContent value={userVal} />
+                          {!reviewMode && <button onClick={() => { const next = { ...responses }; delete next[pair.left]; onChange(next); }} className="absolute -top-2 -right-2 p-1 bg-white border rounded-full shadow-lg hover:text-rose-500"><X className="w-3 h-3" /></button>}
                         </div>
-                      ) : (
-                        <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">Drop Module</span>
-                      )}
+                      ) : <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Empty</span>}
                     </div>
                   </div>
+                  
                   {reviewMode && !isCorrect && (
-                    <div className="px-4 py-3 bg-emerald-50/30 rounded-[12px] border border-dashed border-emerald-200 flex items-center gap-4 animate-in slide-in-from-top-1 duration-300">
-                      <div className="flex flex-col">
-                        <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest leading-none mb-2">Correct Registry</span>
-                        <MatchingAnswerContent value={correctAnswer || ""} />
+                    <div className="p-4 bg-emerald-50/50 rounded-2xl border-2 border-dashed border-emerald-200 flex items-center gap-6 animate-in slide-in-from-top-1">
+                      <div className="flex flex-col flex-1">
+                        <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1">Target Mapping</span>
+                        <p className="text-xs font-bold text-emerald-800">{pair.left}</p>
                       </div>
+                      <ArrowRight className="w-4 h-4 text-emerald-300" />
+                      <MatchingAnswerContent value={pair.right} />
                     </div>
                   )}
                 </div>
@@ -162,32 +101,14 @@ export const MatchingModule: React.FC<Props> = ({ question, value, onChange, rev
 
         {!reviewMode && (
           <div className="lg:col-span-5">
-            <div className="sticky top-24 space-y-4">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-2">Answer Pool</h3>
-              <div className="p-8 bg-slate-100/50 rounded-[3rem] border-4 border-dashed border-slate-200 min-h-[400px] flex flex-wrap gap-4 items-start content-start justify-center overflow-y-auto max-h-[70vh] custom-scrollbar">
+            <div className="sticky top-24 p-6 bg-slate-100 rounded-[2.5rem] border-2 border-dashed border-slate-200 min-h-[300px]">
+              <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-6">Unallocated Pool</h3>
+              <div className="flex flex-wrap gap-3 justify-center">
                 {availableAnswers.map((ans, i) => (
-                  <div
-                    key={i}
-                    draggable
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData("text/plain", ans);
-                      setDraggingItem(ans);
-                    }}
-                    onDragEnd={() => setDraggingItem(null)}
-                    className={cn(
-                      "group relative p-2 bg-white border-2 border-slate-100 rounded-[12px] shadow-sm cursor-grab active:cursor-grabbing hover:border-primary/40 hover:shadow-xl hover:-translate-y-1 transition-all flex items-center justify-center min-w-[140px] max-w-full",
-                      draggingItem === ans && "opacity-20 scale-95 grayscale"
-                    )}
-                  >
+                  <div key={i} draggable onDragStart={(e) => (e.dataTransfer.setData("text/plain", ans), setDraggingItem(ans))} onDragEnd={() => setDraggingItem(null)} className={cn("p-2 bg-white border rounded-xl shadow-sm cursor-grab active:cursor-grabbing hover:border-primary transition-all", draggingItem === ans && "opacity-20 grayscale")}>
                     <MatchingAnswerContent value={ans} />
                   </div>
                 ))}
-                {availableAnswers.length === 0 && (
-                  <div className="w-full h-64 flex flex-col items-center justify-center text-slate-300 text-center gap-4">
-                    <CheckCircle2 className="w-12 h-12 opacity-10" />
-                    <p className="text-[10px] font-black uppercase tracking-widest">Registry Fully Allocated</p>
-                  </div>
-                )}
               </div>
             </div>
           </div>

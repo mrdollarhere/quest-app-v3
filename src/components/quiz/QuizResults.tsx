@@ -1,19 +1,9 @@
-
-/**
- * src/components/quiz/QuizResults.tsx
- * 
- * Purpose: Final mission summary terminal providing score visualization, credentials, and review.
- * Key components: PerformanceGauge, VerdictDisplay, BenchmarkingSection, StepAnalytics.
- * Props: score, totalQuestions, userName, certificateId, etc.
- */
-
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Home, RotateCcw, ArrowRight, User, History, Target, Clock, FileBadge, Download, ChevronRight, ListChecks } from "lucide-react";
+import { User, RotateCcw, ArrowRight, FileBadge } from "lucide-react";
 import Link from 'next/link';
 import { getVerdictData } from '@/lib/quiz-config';
 import { useSettings } from '@/context/settings-context';
@@ -23,11 +13,9 @@ import { StepAnalytics } from './StepAnalytics';
 import { generateCertificatePDF } from '@/lib/certificate-utils';
 import { trackEvent } from '@/lib/tracker';
 import confetti from 'canvas-confetti';
-
-// Sub-components per Protocol v18.9
 import { VerdictDisplay } from './results/VerdictDisplay';
 
-export function QuizResults({ title, testId, score, totalQuestions, questions, responses, userName, onRestart, startTime, endTime, testMetadata, allTests = [], certificateId }: any) {
+export function QuizResults({ title, testId, score, totalQuestions, questions, responses, serverReviewData, userName, onRestart, startTime, endTime, testMetadata, certificateId }: any) {
   const { settings } = useSettings();
   const [textSize, setTextSize] = useState<'normal' | 'large' | 'small'>('normal');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -79,7 +67,7 @@ export function QuizResults({ title, testId, score, totalQuestions, questions, r
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5"><Button onClick={onRestart} variant="outline" className="h-16 rounded-full font-black uppercase text-xs border-2"><RotateCcw className="mr-3" /> Try Again</Button><Link href="/tests"><Button className="w-full h-16 rounded-full font-black uppercase text-xs bg-primary text-white">Back to Tests <ArrowRight className="ml-3" /></Button></Link></div>
 
-        <StepAnalytics questions={questions} responses={responses} textSize={textSize} />
+        <StepAnalytics questions={questions} responses={responses} serverReviewData={serverReviewData} textSize={textSize} />
       </div>
     </div>
   );

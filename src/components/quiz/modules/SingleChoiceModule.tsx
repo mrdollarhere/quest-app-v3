@@ -15,12 +15,6 @@ interface Props {
   reviewMode?: boolean;
 }
 
-/**
- * Single Choice Interaction Module
- * 
- * Renders high-fidelity radio cards for one-to-one response mapping.
- * Optimized for Training Mode feedback with dynamic state highlighting.
- */
 export const SingleChoiceModule: React.FC<Props> = ({ question, value, onChange, reviewMode }) => {
   const options = useMemo(() => {
     const rawOptions = parseRegistryArray(question.options);
@@ -30,64 +24,75 @@ export const SingleChoiceModule: React.FC<Props> = ({ question, value, onChange,
   const correctAnswer = useMemo(() => parseRegistryArray(question.correct_answer)[0], [question.correct_answer]);
 
   return (
-    <RadioGroup 
-      value={value || ""} 
-      onValueChange={onChange}
-      disabled={reviewMode}
-      className="flex flex-col gap-[10px]"
-    >
-      {options.map((option, idx) => {
-        const isSelected = value === option;
-        const isCorrect = option === correctAnswer;
-        const isWrong = isSelected && !isCorrect;
-        const inputId = `q-${question.id}-${idx}`;
-        
-        return (
-          <div 
-            key={idx} 
-            onClick={() => !reviewMode && onChange(option)}
-            className={cn(
-              "flex items-center space-x-4 px-[18px] py-[16px] rounded-[16px] border-2 transition-all group",
-              !reviewMode && "cursor-pointer",
-              isSelected && !reviewMode && "bg-[#EFF6FF] border-[#2563EB] shadow-sm",
-              !isSelected && !reviewMode && "bg-white border-slate-100 hover:bg-[#EFF6FF] hover:border-[#2563EB]",
-              reviewMode && isCorrect && "bg-emerald-50 border-emerald-500 shadow-sm",
-              reviewMode && isWrong && "bg-rose-50 border-rose-500 shadow-sm",
-              reviewMode && !isCorrect && !isSelected && "bg-white border-slate-50 opacity-40"
-            )}
-          >
-            <RadioGroupItem 
-              value={option} 
-              id={inputId} 
+    <div className="space-y-6">
+      <RadioGroup 
+        value={value || ""} 
+        onValueChange={onChange}
+        disabled={reviewMode}
+        className="flex flex-col gap-[10px]"
+      >
+        {options.map((option, idx) => {
+          const isSelected = value === option;
+          const isCorrect = option === correctAnswer;
+          const isWrong = isSelected && !isCorrect;
+          const inputId = `q-${question.id}-${idx}`;
+          
+          return (
+            <div 
+              key={idx} 
+              onClick={() => !reviewMode && onChange(option)}
               className={cn(
-                "h-5 w-5 border-2 rounded-full pointer-events-none transition-transform",
-                isSelected && !reviewMode ? "bg-[#2563EB] border-[#2563EB] text-white" : "border-slate-300",
-                reviewMode && isCorrect ? "bg-emerald-500 border-emerald-500 text-white" : "",
-                reviewMode && isWrong ? "bg-rose-500 border-rose-500 text-white" : ""
+                "flex items-center space-x-4 px-[18px] py-[16px] rounded-[16px] border-2 transition-all group",
+                !reviewMode && "cursor-pointer",
+                isSelected && !reviewMode && "bg-[#EFF6FF] border-[#2563EB] shadow-sm",
+                !isSelected && !reviewMode && "bg-white border-slate-100 hover:bg-[#EFF6FF] hover:border-[#2563EB]",
+                reviewMode && isCorrect && "bg-emerald-50 border-emerald-500 shadow-sm",
+                reviewMode && isWrong && "bg-rose-50 border-rose-500 shadow-sm",
+                reviewMode && !isCorrect && !isSelected && "bg-white border-slate-50 opacity-40"
               )}
-            />
-            <Label 
-              htmlFor={inputId} 
-              className={cn(
-                "option-text flex-1 font-normal text-base select-none leading-tight",
-                !reviewMode && "cursor-pointer text-slate-700",
-                reviewMode && isCorrect && "text-emerald-700 font-bold",
-                reviewMode && isWrong && "text-rose-700 font-bold",
-                reviewMode && !isCorrect && !isSelected && "text-slate-400"
-              )}
-              onClick={(e) => !reviewMode && e.preventDefault()}
             >
-              {option}
-            </Label>
-            {reviewMode && isCorrect && (
-              <CheckCircle2 className="w-6 h-6 text-emerald-500 shrink-0 animate-in fade-in zoom-in duration-300" />
-            )}
-            {reviewMode && isWrong && (
-              <XCircle className="w-6 h-6 text-rose-500 shrink-0 animate-in fade-in zoom-in duration-300" />
-            )}
-          </div>
-        );
-      })}
-    </RadioGroup>
+              <RadioGroupItem 
+                value={option} 
+                id={inputId} 
+                className={cn(
+                  "h-5 w-5 border-2 rounded-full pointer-events-none transition-transform",
+                  isSelected && !reviewMode ? "bg-[#2563EB] border-[#2563EB] text-white" : "border-slate-300",
+                  reviewMode && isCorrect ? "bg-emerald-500 border-emerald-500 text-white" : "",
+                  reviewMode && isWrong ? "bg-rose-500 border-rose-500 text-white" : ""
+                )}
+              />
+              <Label 
+                htmlFor={inputId} 
+                className={cn(
+                  "option-text flex-1 font-normal text-base select-none leading-tight",
+                  !reviewMode && "cursor-pointer text-slate-700",
+                  reviewMode && isCorrect && "text-emerald-700 font-bold",
+                  reviewMode && isWrong && "text-rose-700 font-bold",
+                  reviewMode && !isCorrect && !isSelected && "text-slate-400"
+                )}
+                onClick={(e) => !reviewMode && e.preventDefault()}
+              >
+                {option}
+              </Label>
+              {reviewMode && isCorrect && (
+                <CheckCircle2 className="w-6 h-6 text-emerald-500 shrink-0 animate-in fade-in zoom-in duration-300" />
+              )}
+              {reviewMode && isWrong && (
+                <XCircle className="w-6 h-6 text-rose-500 shrink-0 animate-in fade-in zoom-in duration-300" />
+              )}
+            </div>
+          );
+        })}
+      </RadioGroup>
+      
+      {reviewMode && (
+        <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center gap-3 animate-in slide-in-from-top-2">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+          <p className="text-sm font-black text-emerald-700 uppercase tracking-tight">
+            Correct Registry: <span className="font-bold lowercase tracking-normal">{correctAnswer}</span>
+          </p>
+        </div>
+      )}
+    </div>
   );
 };
