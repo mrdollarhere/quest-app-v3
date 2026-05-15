@@ -4,13 +4,13 @@ import { Question } from '@/types/quiz';
 
 /**
  * UTILITY: Standardized Array Match Protocol
- * Performs order-independent exact match of two string arrays.
+ * Performs order-independent case-insensitive match of two string arrays.
  */
 function arraysMatch(a: string[], b: string[]) {
   if (a.length !== b.length) return false;
-  const sortedA = [...a].sort();
-  const sortedB = [...b].sort();
-  return sortedA.every((v, i) => v === sortedB[i]);
+  const normalizedA = a.map(v => String(v ?? '').trim().toLowerCase()).sort();
+  const normalizedB = b.map(v => String(v ?? '').trim().toLowerCase()).sort();
+  return normalizedA.every((v, i) => v === normalizedB[i]);
 }
 
 /**
@@ -39,6 +39,7 @@ function parseJsonField(field: unknown): any[] {
 /**
  * CORE: Intelligence Grading Engine
  * Applies specific validation protocols based on the interaction type.
+ * IMPLEMENTS: Case-Insensitive Normalization Protocol
  */
 function gradeQuestion(question: Question, submitted: unknown): boolean {
   const type = String(question.question_type || '').toLowerCase().replace(/[\s_]/g, '');
@@ -47,38 +48,44 @@ function gradeQuestion(question: Question, submitted: unknown): boolean {
 
   switch (type) {
     case 'single_choice':
+    case 'singlechoice':
     case 'oneanswer':
+    case 'true_false':
     case 'truefalse':
     case 'dropdown':
-      return String(submitted ?? '') === String(correctArr[0] ?? '');
+      return String(submitted ?? '').trim().toLowerCase() === String(correctArr[0] ?? '').trim().toLowerCase();
 
     case 'multiple_choice':
+    case 'multiplechoice':
     case 'manyanswers':
       const sub = Array.isArray(submitted) ? submitted.map(String) : [String(submitted ?? '')];
       return arraysMatch(sub, correctArr.map(String));
 
     case 'multiple_true_false':
+    case 'multipletruefalse':
     case 'matrix_choice':
+    case 'matrixchoice':
       if (typeof submitted !== 'object' || !submitted) return false;
       return orderArr.every((key, i) => 
-        String((submitted as any)[key] ?? '') === String(correctArr[i] ?? '')
+        String((submitted as any)[key] ?? '').trim().toLowerCase() === String(correctArr[i] ?? '').trim().toLowerCase()
       );
 
     case 'matching':
       if (typeof submitted !== 'object' || !submitted) return false;
       return correctArr.every(pair => {
         const [k, v] = String(pair).split('|').map(s => s.trim());
-        return String((submitted as any)[k] ?? '') === String(v ?? '');
+        return String((submitted as any)[k] ?? '').trim().toLowerCase() === String(v ?? '').trim().toLowerCase();
       });
 
     case 'ordering':
       const subArr = Array.isArray(submitted) ? submitted.map(String) : [];
       if (subArr.length !== correctArr.length) return false;
       return correctArr.every(
-        (v, i) => String(v) === String(subArr[i])
+        (v, i) => String(v).trim().toLowerCase() === String(subArr[i]).trim().toLowerCase()
       );
 
     case 'short_text':
+    case 'shorttext':
       return String(submitted ?? '').trim().toLowerCase() 
         === String(correctArr[0] ?? '').trim().toLowerCase();
 
@@ -164,7 +171,7 @@ export async function POST(request: Request) {
         questionText: q.question_text,
         questionType: q.question_type,
         image_url: q.image_url, 
-        options: q.options, // Protocol v18.9: Include options for multiple choice review display
+        options: q.options,
         submittedAnswer: answer,
         correctAnswer: parseJsonField(q.correct_answer),
         orderGroup: parseJsonField(q.order_group),

@@ -21,7 +21,10 @@ export const SingleChoiceModule: React.FC<Props> = ({ question, value, onChange,
     return reviewMode ? rawOptions : shuffleArray(rawOptions);
   }, [question.id, question.options, reviewMode]);
 
-  const correctAnswer = useMemo(() => parseRegistryArray(question.correct_answer)[0], [question.correct_answer]);
+  const correctAnswer = useMemo(() => {
+    const arr = parseRegistryArray(question.correct_answer);
+    return arr[0] || "";
+  }, [question.correct_answer]);
 
   return (
     <div className="space-y-6">
@@ -32,8 +35,8 @@ export const SingleChoiceModule: React.FC<Props> = ({ question, value, onChange,
         className="flex flex-col gap-[10px]"
       >
         {options.map((option, idx) => {
-          const isSelected = value === option;
-          const isCorrect = option === correctAnswer;
+          const isSelected = String(value || "").trim().toLowerCase() === String(option).trim().toLowerCase();
+          const isCorrect = String(option).trim().toLowerCase() === String(correctAnswer).trim().toLowerCase();
           const isWrong = isSelected && !isCorrect;
           const inputId = `q-${question.id}-${idx}`;
           

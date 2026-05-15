@@ -32,12 +32,16 @@ export const MultipleChoiceModule: React.FC<Props> = ({ question, value, onChang
     onChange(next);
   };
 
+  const isOptionInArray = (opt: string, arr: string[]) => {
+    return arr.some(item => String(item).trim().toLowerCase() === String(opt).trim().toLowerCase());
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-[10px]">
         {options.map((option, idx) => {
-          const isSelected = selected.includes(option);
-          const isCorrect = correctArr.includes(option);
+          const isSelected = isOptionInArray(option, selected);
+          const isCorrect = isOptionInArray(option, correctArr);
           const isSelectedCorrectly = isSelected && isCorrect;
           const isSelectedIncorrectly = isSelected && !isCorrect;
           const isMissingAnswer = !isSelected && isCorrect;

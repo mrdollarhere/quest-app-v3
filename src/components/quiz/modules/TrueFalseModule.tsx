@@ -17,7 +17,7 @@ interface Props {
 
 export const TrueFalseModule: React.FC<Props> = ({ question, value, onChange, reviewMode }) => {
   const correctArr = useMemo(() => parseRegistryArray(question.correct_answer), [question.correct_answer]);
-  const correctAnswer = correctArr[0];
+  const correctAnswer = correctArr[0] || "";
 
   return (
     <div className="space-y-6">
@@ -28,8 +28,8 @@ export const TrueFalseModule: React.FC<Props> = ({ question, value, onChange, re
         className="flex flex-col gap-[10px]"
       >
         {['True', 'False'].map((o) => {
-          const isSelected = value === o;
-          const isCorrect = o === correctAnswer;
+          const isSelected = String(value || "").trim().toLowerCase() === String(o).trim().toLowerCase();
+          const isCorrect = String(o).trim().toLowerCase() === String(correctAnswer).trim().toLowerCase();
           const isWrong = isSelected && !isCorrect;
           const inputId = `tf-${question.id}-${o}`;
           
