@@ -3,7 +3,7 @@
  * 
  * Purpose: Registration step for guest users to enter their callsign.
  * Features strict full-name validation and identity registry bridge.
- * Updated: v19.0.0 - Persistent Terminal Lockdown Protocol.
+ * Updated: v19.0.5 - Enhanced Instructional Warning and Consequence Disclosure.
  */
 
 "use client";
@@ -24,7 +24,8 @@ import {
   ShieldAlert, 
   Timer,
   Activity,
-  Lock
+  Lock,
+  ShieldQuestion
 } from 'lucide-react';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -240,6 +241,31 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
           </div>
         </div>
 
+        {/* HIGHLIGHTED INSTRUCTIONAL NODE */}
+        <div className="p-6 bg-amber-50 border-2 border-amber-100 rounded-[2rem] flex items-start gap-5 shadow-sm animate-in zoom-in-95 duration-500">
+          <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center shrink-0">
+            <ShieldAlert className="w-6 h-6 text-amber-600" />
+          </div>
+          <div className="space-y-2">
+            <h4 className="text-[10px] font-black uppercase text-amber-700 tracking-[0.2em] leading-none">Registry Entry Guide</h4>
+            <p className="text-xs font-bold text-amber-900/80 leading-relaxed">
+              To initialize your session, you must input your <span className="text-amber-600 font-black underline underline-offset-4">Full Real Name</span> (minimum 2 words).
+            </p>
+            <div className="pt-1 flex flex-col gap-1.5">
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-1 rounded-full bg-amber-400" />
+                <p className="text-[9px] font-bold text-amber-700/70 uppercase">No random keyboard mashing allowed</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-1 rounded-full bg-rose-400" />
+                <p className="text-[9px] font-black text-rose-600 uppercase tracking-tighter">
+                  CONSEQUENCE: 3 Failures = 30-Minute Platform Lockdown
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <Label className="font-black text-[10px] uppercase text-slate-400 ml-1">Operator Callsign</Label>
@@ -264,12 +290,6 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
               )}
               onKeyDown={(e) => e.key === 'Enter' && handleBegin()}
             />
-          </div>
-          <div className="flex items-start gap-3 px-2">
-            <Info className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
-            <p className="text-[10px] font-medium leading-relaxed italic text-slate-400">
-              Please enter your full real name (at least 2 words). Keyboard mashing and inappropriate terms are restricted. 3 failed attempts results in a 30-minute quarantine.
-            </p>
           </div>
         </div>
 
