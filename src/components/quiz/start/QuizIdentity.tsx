@@ -2,14 +2,16 @@
  * QuizIdentity.tsx
  * 
  * Purpose: Registration step for guest users to enter their callsign.
- * Features Call-sign validation and identity registry bridge.
+ * Features strict full-name validation and identity registry bridge.
  */
+
+"use client";
 
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User, ListChecks, Clock, BarChart3, ArrowRight, LogIn, AlertCircle } from 'lucide-react';
+import { User, ListChecks, Clock, BarChart3, ArrowRight, LogIn, AlertCircle, Info } from 'lucide-react';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
@@ -33,58 +35,49 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
   const returnToUrl = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '');
 
   /**
-   * IDENTITY INTEGRITY PROTOCOL
+   * IDENTITY INTEGRITY PROTOCOL v2.0
    * 
    * Detects and blocks:
-   * 1. Profanity
-   * 2. Numeric-only strings
-   * 3. Character repetition (e.g. "aaaaa")
-   * 4. Consonant clumps (e.g. "sdfgh")
-   * 5. Pattern mashing (e.g. "sbsbsb")
-   * 6. Low vowel density (phonetic invalidity)
+   * 1. Single-word names (Requires Real Name format: 2+ words)
+   * 2. Profanity blacklists
+   * 3. Numeric-only strings
+   * 4. Character repetition & pattern mashing
+   * 5. High-entropy consonant clumps (Mash Detection)
+   * 6. Phonetic invalidity (Vowel density)
    */
   const validateName = (name: string) => {
-    const trimmed = name.trim().toLowerCase();
-    const clean = trimmed.replace(/\s+/g, '');
+    const trimmed = name.trim();
+    const normalized = trimmed.toLowerCase();
+    const parts = trimmed.split(/\s+/).filter(p => p.length > 0);
+    const clean = normalized.replace(/\s+/g, '');
     
-    // 1. Length Protocol
-    if (trimmed.length < 2) return "Callsign must be at least 2 characters.";
+    // 1. Length & Word Count Protocol
+    if (parts.length < 2) return "Please enter your full name (at least 2 words).";
+    if (trimmed.length < 4) return "Callsign too short for registry.";
     
     // 2. Profanity Protocol
-    if (BANNED_TERMS.some(term => trimmed.includes(term))) {
+    if (BANNED_TERMS.some(term => normalized.includes(term))) {
       return "Inappropriate language detected.";
     }
 
     // 3. Numeric Protocol
-    if (/^[0-9\s]+$/.test(trimmed)) return "Callsign cannot be numeric only.";
+    if (/[0-9]/.test(normalized)) return "Names should not contain numeric characters.";
     
-    // 4. Repetition Protocol
-    if (/^(.)\1{2,}$/.test(clean)) return "Meaningless character repetition detected.";
+    // 4. Character Diversity & Repetition Protocol
+    const uniqueChars = new Set(clean.split('')).size;
+    if (clean.length > 5 && uniqueChars < 3) return "Meaningless character input detected.";
+    if (/(.)\1{2,}/.test(clean)) return "Character repetition detected.";
     
     // 5. Consonant Clump Protocol (Mash Detection)
-    // Block more than 4 consecutive consonants (rare in most languages for first names)
+    // Block more than 4 consecutive consonants
     const consonantClump = /[^aeiouy\s\d]{5,}/i;
-    if (consonantClump.test(trimmed)) return "Irregular character sequence (mash) detected.";
+    if (consonantClump.test(normalized)) return "Irregular character sequence detected.";
 
-    // 6. Pattern Mash Detector (Repeating bigrams)
-    if (clean.length > 8) {
-      const bigramCounts: Record<string, number> = {};
-      for (let i = 0; i < clean.length - 1; i++) {
-        const b = clean.substring(i, i + 2);
-        bigramCounts[b] = (bigramCounts[b] || 0) + 1;
-      }
-      const maxRep = Math.max(...Object.values(bigramCounts), 0);
-      if (maxRep > 2) return "Patterned keyboard input detected.";
-    }
-
-    // 7. Vowel Density Protocol (Phonetic Validity)
-    // Most names have at least 20% vowels (e.g. "Trinh" is 20%, "Nguyen" is 50%)
-    if (clean.length > 5) {
-      const vowels = (clean.match(/[aeiouy]/gi) || []).length;
-      const density = vowels / clean.length;
-      if (density < 0.20 && !trimmed.includes(' ')) {
-        return "Callsign does not appear to be a valid name.";
-      }
+    // 6. Phonetic Validity (Vowel Density)
+    const vowels = (clean.match(/[aeiouy]/gi) || []).length;
+    const density = vowels / clean.length;
+    if (clean.length > 6 && density < 0.15) {
+      return "Invalid phonetic structure (Mash detected).";
     }
 
     return null;
@@ -103,17 +96,17 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-right-4 duration-500">
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-blue-50 rounded-2xl p-5 flex flex-col items-center justify-center gap-2">
+        <div className="bg-blue-50 rounded-2xl p-5 flex flex-col items-center justify-center gap-2 border border-blue-100">
           <ListChecks className="w-5 h-5 text-primary" />
           <p className="text-xl font-black">{questionsCount}</p>
           <p className="text-[9px] font-black uppercase text-slate-400">Questions</p>
         </div>
-        <div className="bg-indigo-50 rounded-2xl p-5 flex flex-col items-center justify-center gap-2">
+        <div className="bg-indigo-50 rounded-2xl p-5 flex flex-col items-center justify-center gap-2 border border-indigo-100">
           <Clock className="w-5 h-5 text-indigo-600" />
           <p className="text-xl font-black">{duration || '15m'}</p>
           <p className="text-[9px] font-black uppercase text-slate-400">Target</p>
         </div>
-        <div className="bg-slate-50 rounded-2xl p-5 flex flex-col items-center justify-center gap-2">
+        <div className="bg-slate-50 rounded-2xl p-5 flex flex-col items-center justify-center gap-2 border border-slate-200">
           <BarChart3 className="w-5 h-5 text-slate-600" />
           <p className="text-xl font-black">Standard</p>
           <p className="text-[9px] font-black uppercase text-slate-400">Difficulty</p>
@@ -133,18 +126,24 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
         <div className="relative">
           <User className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
           <Input 
-            placeholder="Enter full name for registry..."
+            placeholder="E.g. John Doe"
             value={guestName}
             onChange={(e) => {
               setGuestName(e.target.value);
               if (error) setError(null);
             }}
             className={cn(
-              "h-18 pl-14 rounded-2xl border-2 text-xl font-black transition-all",
+              "h-20 pl-14 rounded-2xl border-2 text-xl font-black transition-all",
               error ? "border-rose-200 bg-rose-50/30 focus:ring-rose-500/20" : "border-slate-100 focus:ring-primary/20"
             )}
             onKeyDown={(e) => e.key === 'Enter' && handleBegin()}
           />
+        </div>
+        <div className="flex items-start gap-3 px-2">
+          <Info className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+          <p className="text-[10px] font-medium text-slate-400 leading-relaxed italic">
+            Please enter your full real name (at least 2 words). Keyboard mashing and random characters are restricted to ensure registry integrity.
+          </p>
         </div>
       </div>
 
@@ -152,7 +151,7 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
         <Button 
           onClick={handleBegin}
           disabled={!guestName.trim()}
-          className="w-full h-20 rounded-full text-2xl font-black bg-gradient-to-r from-primary to-indigo-600 text-white uppercase tracking-tighter shadow-2xl transition-all hover:scale-[1.02]"
+          className="w-full h-20 rounded-full text-2xl font-black bg-gradient-to-r from-primary to-indigo-600 text-white uppercase tracking-tighter shadow-2xl transition-all hover:scale-[1.02] border-none"
         >
           Begin Mission <ArrowRight className="w-6 h-6 ml-3" />
         </Button>
@@ -166,7 +165,7 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
         <Button 
           variant="outline"
           onClick={() => router.push(`/login?returnTo=${encodeURIComponent(returnToUrl)}`)}
-          className="w-full h-16 rounded-full border-2 border-slate-200 font-black text-sm uppercase tracking-widest text-slate-600 hover:bg-slate-50"
+          className="w-full h-16 rounded-full border-2 border-slate-200 font-black text-sm uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all"
         >
           <LogIn className="w-4 h-4 mr-3" /> Access via Identity Registry
         </Button>
