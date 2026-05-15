@@ -82,11 +82,11 @@ export function StepAnalytics({ questions, serverReviewData = [], textSize }: St
               <h3 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900 dark:text-white uppercase leading-none">Review Audit</h3>
               <div className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full border border-slate-200 shadow-sm">
                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                  {filterMode === 'all' ? `${reviewItems.length} nodes` : `${incorrectCount} errors`}
+                  {filterMode === 'all' ? `${reviewItems.length} questions` : `${incorrectCount} errors`}
                 </span>
               </div>
             </div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.4em]">Step-by-step diagnostic breakdown</p>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.4em]">Question-by-question diagnostic breakdown</p>
           </div>
         </div>
         
@@ -117,7 +117,7 @@ export function StepAnalytics({ questions, serverReviewData = [], textSize }: St
                     </div>
                     <div className="flex flex-col min-w-0 flex-1">
                       <div className="flex items-center gap-4 mb-2">
-                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Step {idx + 1}</span>
+                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Question {idx + 1}</span>
                         <div className={cn("px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest", item.isCorrect ? "bg-emerald-500 text-white" : "bg-rose-500 text-white")}>{item.isCorrect ? "Correct" : "Incorrect"}</div>
                       </div>
                       <h4 className="font-semibold text-slate-900 text-xl tracking-tight line-clamp-1 group-hover:text-primary transition-colors">{item.questionText}</h4>

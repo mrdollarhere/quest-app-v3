@@ -51,7 +51,7 @@ export function StudentQuestionView({
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {hostConnectivityMs > 30000 && hostConnectivityMs < 60000 && (
-        <div className="bg-amber-500 text-white py-2 px-4 flex items-center justify-center gap-3 animate-in slide-in-from-top duration-300">
+        <div className="bg-amber-50 text-white py-2 px-4 flex items-center justify-center gap-3 animate-in slide-in-from-top duration-300">
           <WifiOff className="w-4 h-4 animate-pulse" />
           <p className="text-[10px] font-black uppercase tracking-widest">Host Connection Lost — Waiting to reconnect...</p>
         </div>
@@ -75,7 +75,7 @@ export function StudentQuestionView({
           {isRevealed && result && (
              <div className={cn(
                "p-8 rounded-[2.5rem] text-white flex items-center gap-6 shadow-2xl animate-in zoom-in-95 duration-500",
-               result.correct ? "bg-emerald-500" : "bg-rose-500"
+               result.correct ? "bg-emerald-50" : "bg-rose-50"
              )}>
                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shrink-0 shadow-lg">
                   {result.correct ? <CheckCircle2 className="w-10 h-10 text-emerald-500" /> : <XCircle className="w-10 h-10 text-rose-500" />}
@@ -127,7 +127,7 @@ export function StudentQuestionView({
             
             {isRevealed && (
               <div className="mt-10 pt-8 border-t border-slate-100 text-center">
-                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 animate-pulse">Waiting for mission step advancement...</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 animate-pulse">Waiting for mission question advancement...</p>
               </div>
             )}
           </div>

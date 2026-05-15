@@ -102,7 +102,7 @@ function QuestionDialogContent({ open, onOpenChange, editingItem, selectedTestId
           <QuestionTypeSidebar selectedType={selectedType} setSelectedType={setSelectedType} loading={loading} />
           <form onSubmit={handleSubmit} className="flex-1 flex flex-col bg-white overflow-hidden">
             <div className="p-8 border-b flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-4"><div className="bg-primary/10 p-2 rounded-xl"><Code2 className="w-5 h-5 text-primary" /></div><DialogTitle className="text-2xl font-black uppercase tracking-tight">Step Editor</DialogTitle></div>
+              <div className="flex items-center gap-4"><div className="bg-primary/10 p-2 rounded-xl"><Code2 className="w-5 h-5 text-primary" /></div><DialogTitle className="text-2xl font-black uppercase tracking-tight">Question Editor</DialogTitle></div>
               <Button type="button" variant="outline" disabled={loading} onClick={() => setShowPreview(!showPreview)} className={cn("rounded-full font-black text-[10px] uppercase tracking-widest gap-2 border-2 h-11 px-6", showPreview ? "bg-primary/5 text-primary border-primary/20" : "text-slate-400")}>
                 {showPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />} {showPreview ? "Hide Preview" : "Live Preview"}
               </Button>
@@ -128,7 +128,7 @@ function QuestionDialogContent({ open, onOpenChange, editingItem, selectedTestId
             <div className="p-8 border-t flex items-center justify-between bg-white/80 shrink-0">
               <div className="flex items-center gap-4 px-6 py-3.5 bg-slate-50 rounded-2xl border border-slate-100 shadow-inner">
                 <Checkbox id="required" checked={isRequired} disabled={loading} onCheckedChange={(checked) => setIsRequired(!!checked)} />
-                <Label htmlFor="required" className="text-[10px] font-black uppercase tracking-widest cursor-pointer">Mandatory Step</Label>
+                <Label htmlFor="required" className="text-[10px] font-black uppercase tracking-widest cursor-pointer">Mandatory Question</Label>
               </div>
               <div className="flex items-center gap-4">
                 <Button type="button" variant="ghost" disabled={loading} onClick={() => onOpenChange(false)} className="rounded-full font-bold text-slate-400 h-16 px-8">Discard</Button>

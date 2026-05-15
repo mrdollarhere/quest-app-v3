@@ -184,9 +184,9 @@ export function QuestionsTab({
           <Table>
             <TableHeader>
               <TableRow className="bg-slate-50/30 hover:bg-slate-50/30 border-none">
-                <TableHead className="px-10 py-5 font-black uppercase text-[10px] tracking-widest text-slate-400">Step</TableHead>
+                <TableHead className="px-10 py-5 font-black uppercase text-[10px] tracking-widest text-slate-400">Question</TableHead>
                 <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">Classification</TableHead>
-                <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">Question Content</TableHead>
+                <TableHead className="font-black uppercase text-[10px] tracking-widest text-slate-400">Content Prompt</TableHead>
                 <TableHead className="px-10 text-right font-black uppercase text-[10px] tracking-widest text-slate-400">Actions</TableHead>
               </TableRow>
             </TableHeader>

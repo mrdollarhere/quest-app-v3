@@ -36,7 +36,7 @@ export function HostQuestionView({
         <div className="flex items-center gap-6">
           <div className="p-3 bg-white/5 rounded-2xl border border-white/10"><ListChecks className="w-6 h-6 text-primary" /></div>
           <div>
-            <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Node {currentIdx + 1} of {totalQuestions}</p>
+            <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Question {currentIdx + 1} of {totalQuestions}</p>
             <h3 className="text-2xl font-black uppercase tracking-tight">Intelligence Transmission</h3>
           </div>
         </div>

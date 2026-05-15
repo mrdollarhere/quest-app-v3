@@ -1,4 +1,3 @@
-
 /**
  * QuizIdentity.tsx
  * 
@@ -33,7 +32,7 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
         <div className="bg-blue-50 rounded-2xl p-5 flex flex-col items-center justify-center gap-2">
           <ListChecks className="w-5 h-5 text-primary" />
           <p className="text-xl font-black">{questionsCount}</p>
-          <p className="text-[9px] font-black uppercase text-slate-400">Steps</p>
+          <p className="text-[9px] font-black uppercase text-slate-400">Questions</p>
         </div>
         <div className="bg-indigo-50 rounded-2xl p-5 flex flex-col items-center justify-center gap-2">
           <Clock className="w-5 h-5 text-indigo-600" />
