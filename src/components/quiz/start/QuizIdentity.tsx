@@ -3,12 +3,12 @@
  * 
  * Purpose: Registration step for guest users to enter their callsign.
  * Features strict full-name validation and identity registry bridge.
- * Updated: v19.0.5 - Enhanced Instructional Warning and Consequence Disclosure.
+ * Updated: v19.0.8 - Dynamic Lockdown Duration via Registry Settings.
  */
 
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,15 +20,17 @@ import {
   ArrowRight, 
   LogIn, 
   AlertCircle, 
-  Info, 
   ShieldAlert, 
-  Timer,
-  Activity,
-  Lock,
-  ShieldQuestion
+  Timer
 } from 'lucide-react';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { useSettings } from '@/context/settings-context';
+
+// Registry Integrity Constants
+const BANNED_TERMS = ['fuck', 'shit', 'asshole', 'bitch', 'admin', 'moderator', 'system', 'root', 'anonymous', 'stfu', 'fck'];
+const VIOLATION_THRESHOLD = 3;
+const PERSISTENCE_KEY = 'dntrng_terminal_lockdown_expiry';
 
 interface QuizIdentityProps {
   guestName: string;
@@ -38,13 +40,8 @@ interface QuizIdentityProps {
   duration?: string;
 }
 
-// Registry Integrity Constants
-const BANNED_TERMS = ['fuck', 'shit', 'asshole', 'bitch', 'admin', 'moderator', 'system', 'root', 'anonymous', 'stfu', 'fck'];
-const VIOLATION_THRESHOLD = 3;
-const LOCKOUT_DURATION = 1800; // 30 Minutes in seconds
-const PERSISTENCE_KEY = 'dntrng_terminal_lockdown_expiry';
-
 export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCount, duration }: QuizIdentityProps) {
+  const { settings } = useSettings();
   const [error, setError] = useState<string | null>(null);
   const [violationCount, setViolationCount] = useState(0);
   const [lockoutTime, setLockoutTime] = useState(0);
@@ -54,9 +51,15 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  // Registry Lockout Calibration
+  const lockdownDurationSeconds = useMemo(() => {
+    const mins = Number(settings.registry_lockdown_duration || '30');
+    return mins * 60;
+  }, [settings.registry_lockdown_duration]);
+
   const returnToUrl = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '');
 
-  // PERSISETNCE PROTOCOL: Restore ban from registry on mount
+  // PERSISTENCE PROTOCOL: Restore ban from registry on mount
   useEffect(() => {
     const savedExpiry = localStorage.getItem(PERSISTENCE_KEY);
     if (savedExpiry) {
@@ -157,9 +160,9 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
       setViolationCount(newCount);
       
       if (newCount >= VIOLATION_THRESHOLD) {
-        const expiry = Date.now() + LOCKOUT_DURATION * 1000;
+        const expiry = Date.now() + lockdownDurationSeconds * 1000;
         localStorage.setItem(PERSISTENCE_KEY, expiry.toString());
-        setLockoutTime(LOCKOUT_DURATION);
+        setLockoutTime(lockdownDurationSeconds);
         setViolationCount(0);
       }
       return;
@@ -198,7 +201,7 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
                 Registry Integrity Violation Detected
               </div>
               <p className="text-slate-400 font-medium leading-relaxed">
-                Your student node has been forensicallly quarantined for 30 minutes due to repeated validation failures. Access to the intelligence registry is strictly prohibited.
+                Your student node has been forensicallly quarantined for {Math.round(lockdownDurationSeconds / 60)} minutes due to repeated validation failures. Access to the intelligence registry is strictly prohibited.
               </p>
             </div>
 
@@ -259,7 +262,7 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
               <div className="flex items-center gap-2">
                 <div className="w-1 h-1 rounded-full bg-rose-400" />
                 <p className="text-[9px] font-black text-rose-600 uppercase tracking-tighter">
-                  CONSEQUENCE: 3 Failures = 30-Minute Platform Lockdown
+                  CONSEQUENCE: 3 Failures = {Math.round(lockdownDurationSeconds / 60)}-Minute Platform Lockdown
                 </p>
               </div>
             </div>

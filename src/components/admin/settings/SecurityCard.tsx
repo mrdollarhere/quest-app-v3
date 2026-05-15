@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardDescription } from "@/components/ui/
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Shield, Lock, Fingerprint, Clock } from 'lucide-react';
+import { Shield, Lock, Fingerprint, Clock, AlertTriangle } from 'lucide-react';
 
 interface SecurityCardProps {
   formData: Record<string, string>;
@@ -75,6 +75,22 @@ export function SecurityCard({ formData, setFormData, t }: SecurityCardProps) {
               />
             </div>
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="lockdown-duration" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{t('lockdownDuration')}</Label>
+          <div className="relative">
+            <AlertTriangle className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" aria-hidden="true" />
+            <Input 
+              id="lockdown-duration"
+              type="number"
+              value={formData.registry_lockdown_duration}
+              onChange={(e) => setFormData({ ...formData, registry_lockdown_duration: e.target.value })}
+              placeholder="30"
+              className="h-12 pl-11 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-black text-sm"
+            />
+          </div>
+          <p className="text-[9px] text-slate-400 italic px-1">Duration of platform quarantine for repeated identity violations.</p>
         </div>
 
         <div className="space-y-4">

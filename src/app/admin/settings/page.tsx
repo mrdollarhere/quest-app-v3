@@ -40,6 +40,7 @@ export default function AdminSettingsPage() {
     maintenance_mode: 'false',
     allowed_email_domains: '',
     session_timeout_hours: '24',
+    registry_lockdown_duration: '30',
     guest_access_allowed: 'true',
     google_sheet_url: ''
   });

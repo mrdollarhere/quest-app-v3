@@ -49,6 +49,7 @@ export const en = {
   allowedEmailDomains: "Authorized Domains",
   domainRestricted: "Authorization Denied: Node domain not recognized by registry.",
   sessionTimeout: "Session TTL (Hours)",
+  lockdownDuration: "Registry Lockdown (Minutes)",
   guestAccessAllowed: "Guest Authorization",
   loginRequiredTitle: "Identity Verification Required",
   loginRequiredDesc: "Guest entry restricted. Synchronize your student node with a registered identity to proceed.",

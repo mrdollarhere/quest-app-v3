@@ -157,6 +157,7 @@ export const vi = {
   protectionEnabled: "Bật bảo vệ mã truy cập",
   assessmentConfig: "Hiệu chuẩn bài thi",
   passThreshold: "Ngưỡng đạt (%)",
+  lockdownDuration: "Thời gian khóa hệ thống (Phút)",
   enableBenchmarking: "Bật so sánh xếp hạng",
   maintenanceMode: "Chế độ bảo trì",
   saveAllSettings: "Lưu tất cả thay đổi",
