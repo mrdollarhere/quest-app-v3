@@ -105,6 +105,9 @@ export function QuizActive({
             <div className="h-6 w-px bg-slate-100 hidden md:block" />
             <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
               <span className="text-sm md:text-base font-black text-primary">{quiz.currentQuestionIndex + 1}/{quiz.questions.length}</span>
+              {currentQuestion?.id && (
+                <span className="text-[10px] font-mono font-bold text-slate-300 uppercase tracking-tighter hidden lg:block">ID: {currentQuestion.id}</span>
+              )}
             </div>
           </div>
 
