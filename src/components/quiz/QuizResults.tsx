@@ -27,7 +27,6 @@ export function QuizResults({ title, testId, score, totalQuestions, questions, r
   const percentage = Math.round((score / (totalQuestions || 1)) * 100);
   
   // REGISTRY SCALING PROTOCOL: Normalize total possible to 1000
-  // Example: 42/45 -> (42/45) * 1000 = 933
   const normalizedScore = Math.round((score / (totalQuestions || 1)) * 1000);
   
   const verdict = getVerdictData(percentage);
@@ -87,18 +86,6 @@ export function QuizResults({ title, testId, score, totalQuestions, questions, r
           <PerformanceGauge percentage={percentage} score={score} totalQuestions={totalQuestions} compact={true} />
           <div className="flex-1 flex flex-col gap-6">
             <VerdictDisplay verdict={verdict} />
-            <div className="flex flex-wrap gap-4 px-2">
-               <div className="flex items-center gap-2.5 px-4 py-2 bg-slate-50 rounded-2xl border border-slate-100">
-                  <Zap className="w-3.5 h-3.5 text-primary" />
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Registry Index:</span>
-                  <span className="text-sm font-black text-slate-900">{normalizedScore} / 1000</span>
-               </div>
-               <div className="flex items-center gap-2.5 px-4 py-2 bg-slate-50 rounded-2xl border border-slate-100">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Correct Count:</span>
-                  <span className="text-sm font-black text-slate-900">{score}</span>
-               </div>
-            </div>
           </div>
         </Card>
 
