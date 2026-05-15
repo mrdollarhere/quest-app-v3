@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { User, RotateCcw, ArrowRight, FileBadge, Clock, Target, Trophy } from "lucide-react";
+import { User, RotateCcw, ArrowRight, FileBadge, Clock, Target, Trophy, Zap, CheckCircle2 } from "lucide-react";
 import Link from 'next/link';
 import { getVerdictData } from '@/lib/quiz-config';
 import { useSettings } from '@/context/settings-context';
@@ -25,6 +25,7 @@ export function QuizResults({ title, testId, score, totalQuestions, questions, r
   const [isGenerating, setIsGenerating] = useState(false);
 
   const percentage = Math.round((score / (totalQuestions || 1)) * 100);
+  const normalizedScore = Math.round((score / (totalQuestions || 1)) * 1000);
   const verdict = getVerdictData(percentage);
   const isPass = percentage >= Number(testMetadata?.passing_threshold || settings.default_pass_threshold || 70);
 
@@ -64,15 +65,32 @@ export function QuizResults({ title, testId, score, totalQuestions, questions, r
           <h2 className="text-xl font-black text-slate-400 uppercase tracking-[0.5em]">{title}</h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <StatCard icon={Trophy} label="Precision Score" value={`${percentage}%`} color="blue" />
-          <StatCard icon={Clock} label="Time Taken" value={formatDuration(duration || 0)} color="green" />
-          <StatCard icon={Target} label="Nodes Cleared" value={`${score}/${totalQuestions}`} color="purple" />
+        {/* Tactical Metrics Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+          <StatCard icon={Trophy} label="Precision (%)" value={`${percentage}%`} color="blue" />
+          <StatCard icon={Zap} label="Intel Index" value={normalizedScore} color="orange" />
+          <StatCard icon={CheckCircle2} label="Correct Nodes" value={score} color="green" />
+          <StatCard icon={Target} label="Mission Total" value={totalQuestions} color="purple" />
+          <StatCard icon={Clock} label="Mission Time" value={formatDuration(duration || 0)} color="rose" />
         </div>
 
         <Card className="p-8 md:p-10 border-none shadow-2xl rounded-[3rem] bg-white flex flex-col md:flex-row items-center gap-10">
           <PerformanceGauge percentage={percentage} score={score} totalQuestions={totalQuestions} compact={true} />
-          <VerdictDisplay verdict={verdict} />
+          <div className="flex-1 flex flex-col gap-6">
+            <VerdictDisplay verdict={verdict} />
+            <div className="flex flex-wrap gap-4 px-2">
+               <div className="flex items-center gap-2.5 px-4 py-2 bg-slate-50 rounded-2xl border border-slate-100">
+                  <Zap className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Registry Index:</span>
+                  <span className="text-sm font-black text-slate-900">{normalizedScore}</span>
+               </div>
+               <div className="flex items-center gap-2.5 px-4 py-2 bg-slate-50 rounded-2xl border border-slate-100">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Correct Count:</span>
+                  <span className="text-sm font-black text-slate-900">{score}</span>
+               </div>
+            </div>
+          </div>
         </Card>
 
         <BenchmarkingSection testId={testId} percentage={percentage} />
@@ -118,16 +136,18 @@ function StatCard({ icon: Icon, label, value, color }: any) {
   const colors: Record<string, string> = {
     blue: "bg-blue-50 text-blue-600 border-blue-100",
     green: "bg-emerald-50 text-emerald-600 border-emerald-100",
-    purple: "bg-purple-50 text-purple-600 border-purple-100"
+    purple: "bg-purple-50 text-purple-600 border-purple-100",
+    orange: "bg-orange-50 text-orange-600 border-orange-100",
+    rose: "bg-rose-50 text-rose-600 border-rose-100"
   };
   return (
-    <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex items-center gap-6 group hover:shadow-md transition-all">
-      <div className={cn("p-4 rounded-2xl border-2 transition-transform group-hover:scale-110", colors[color])}>
-        <Icon className="w-6 h-6" />
+    <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex items-center gap-4 group hover:shadow-md transition-all">
+      <div className={cn("p-3.5 rounded-xl border-2 transition-transform group-hover:scale-110", colors[color])}>
+        <Icon className="w-5 h-5" />
       </div>
       <div>
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{label}</p>
-        <p className="text-3xl font-black text-slate-900 tabular-nums leading-none">{value}</p>
+        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{label}</p>
+        <p className="text-2xl font-black text-slate-900 tabular-nums leading-none">{value}</p>
       </div>
     </div>
   );
