@@ -13,7 +13,9 @@ import {
   LayoutGrid,
   CheckCircle2,
   XCircle,
-  ArrowRight
+  ArrowRight,
+  Maximize,
+  Minimize
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { QuizTimer } from './QuizTimer';
@@ -58,13 +60,30 @@ export function QuizActive({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [textSize, setTextSize] = useState<'normal' | 'large' | 'small'>('normal');
+  const [isFullscreen, setIsFullscreen] = useState(false);
   
   useEffect(() => {
     const saved = localStorage.getItem('dntrng_text_size') as 'normal' | 'large' | 'small';
     if (saved && ['normal', 'large', 'small'].includes(saved)) {
       setTextSize(saved);
     }
+
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch((err) => {
+        console.warn(`Fullscreen alignment failed: ${err.message}`);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  };
 
   const currentQuestion = quiz.questions[quiz.currentQuestionIndex];
   const progress = useMemo(() => quiz.questions.length > 0 ? ((quiz.currentQuestionIndex + 1) / quiz.questions.length) * 100 : 0, [quiz.currentQuestionIndex, quiz.questions.length]);
@@ -105,9 +124,6 @@ export function QuizActive({
             <div className="h-6 w-px bg-slate-100 hidden md:block" />
             <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
               <span className="text-sm md:text-base font-black text-primary">{quiz.currentQuestionIndex + 1}/{quiz.questions.length}</span>
-              {currentQuestion?.id && (
-                <span className="text-[10px] font-mono font-bold text-slate-300 uppercase tracking-tighter hidden lg:block">ID: {currentQuestion.id}</span>
-              )}
             </div>
           </div>
 
@@ -119,7 +135,26 @@ export function QuizActive({
 
           <div className="flex items-center gap-2 md:gap-8">
             <div className="flex items-center gap-1 md:gap-4 text-slate-400">
-              <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(true)} className="rounded-full h-10 w-10 hover:bg-slate-50"><LayoutGrid className="w-5 h-5" /></Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setIsSidebarOpen(true)} 
+                className="rounded-full h-10 w-10 hover:bg-slate-50"
+                title="Navigation Grid"
+              >
+                <LayoutGrid className="w-5 h-5" />
+              </Button>
+              
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={toggleFullscreen} 
+                className="rounded-full h-10 w-10 hover:bg-slate-50 hidden sm:flex"
+                title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+              >
+                {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+              </Button>
+
               <div className="hidden sm:flex gap-1">
                 <Button 
                   variant="ghost" 
@@ -157,7 +192,7 @@ export function QuizActive({
               <Flag className={cn("w-4 h-4", isFlagged && "fill-current")} /> {isFlagged ? 'Flagged' : 'Mark for Later'}
             </Button>
             {quiz.currentQuestionIndex === quiz.questions.length - 1 && (!isTrainingMode || isAnswerConfirmed) ? (
-              <Button onClick={() => setIsConfirmOpen(true)} className="bg-primary hover:bg-primary/90 text-white rounded-xl h-12 px-8 font-black shadow-xl shadow-primary/20 transition-all hover:scale-105 border-none">COMMIT</Button>
+              <Button onClick={() => setIsConfirmOpen(true)} className="bg-primary hover:bg-primary/90 text-white rounded-xl h-12 px-8 font-black shadow-xl shadow-primary/20 transition-all hover:scale-[1.05] border-none">COMMIT</Button>
             ) : (
               <Button 
                 onClick={onNext} 
@@ -185,7 +220,7 @@ export function QuizActive({
             {isAnswered(currentQuestion.id) && (
               <Button 
                 onClick={onConfirmResponse} 
-                className="h-14 px-8 rounded-full bg-primary text-white font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20 transition-all hover:scale-105 border-none"
+                className="h-14 px-8 rounded-full bg-primary text-white font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20 transition-all hover:scale-[1.05] border-none"
               >
                 Check Answer <CheckCircle2 className="w-4 h-4 ml-2" />
               </Button>
@@ -227,6 +262,13 @@ export function QuizActive({
         )}
 
         <div className="max-w-4xl mx-auto bg-white shadow-[0_2px_12px_rgba(0,0,0,0.08)] rounded-[16px] p-8 md:p-12" data-textsize={textSize}>
+          {currentQuestion?.id && (
+            <div className="flex justify-start mb-6">
+              <span className="text-[9px] font-mono font-black text-slate-300 uppercase tracking-[0.2em] bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100 select-none">
+                Node ID: {currentQuestion.id}
+              </span>
+            </div>
+          )}
           {currentQuestion && (
             <QuestionRenderer 
               question={currentQuestion} 
