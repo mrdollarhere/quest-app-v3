@@ -3,7 +3,7 @@
  * 
  * Purpose: Registration step for guest users to enter their callsign.
  * Features strict full-name validation and identity registry bridge.
- * Updated: v18.9.8 - Added Registry Quarantine (Lockout) after 3 failed attempts.
+ * Updated: v18.9.9 - Increased lockout to 30 minutes for registry integrity.
  */
 
 "use client";
@@ -27,7 +27,7 @@ interface QuizIdentityProps {
 // Registry Integrity Constants
 const BANNED_TERMS = ['fuck', 'shit', 'asshole', 'bitch', 'admin', 'moderator', 'system', 'root', 'anonymous'];
 const VIOLATION_THRESHOLD = 3;
-const LOCKOUT_DURATION = 30; // Seconds
+const LOCKOUT_DURATION = 1800; // 30 Minutes in seconds (High-Stakes Protocol)
 
 export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCount, duration }: QuizIdentityProps) {
   const [error, setError] = useState<string | null>(null);
@@ -124,6 +124,12 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
     onContinue();
   };
 
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const isLocked = lockoutTime > 0;
 
   return (
@@ -188,7 +194,7 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
             isLocked ? "text-rose-500 font-bold" : "text-slate-400"
           )}>
             {isLocked 
-              ? `You have exceeded the violation threshold. Identity registry is frozen for safety.` 
+              ? `Identity registry is frozen for safety. Next sync available in ${formatTime(lockoutTime)}.` 
               : "Please enter your full real name (at least 2 words). Keyboard mashing and inappropriate terms are restricted."}
           </p>
         </div>
@@ -206,7 +212,7 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
           {isLocked ? (
             <span className="flex items-center gap-3">
               <Timer className="w-6 h-6 animate-pulse" />
-              Registry Locked: {lockoutTime}s
+              Locked: {formatTime(lockoutTime)}
             </span>
           ) : (
             <>Begin Mission <ArrowRight className="w-6 h-6 ml-3" /></>
