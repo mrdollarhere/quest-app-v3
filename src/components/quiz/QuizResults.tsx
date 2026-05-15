@@ -16,6 +16,7 @@ import confetti from 'canvas-confetti';
 import { VerdictDisplay } from './results/VerdictDisplay';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
+import { BackToTop } from '@/components/BackToTop';
 
 export function QuizResults({ title, testId, score, totalQuestions, questions, responses, serverReviewData, userName, onRestart, startTime, endTime, testMetadata, certificateId, duration }: any) {
   const { settings } = useSettings();
@@ -108,6 +109,7 @@ export function QuizResults({ title, testId, score, totalQuestions, questions, r
 
         <StepAnalytics questions={questions} responses={responses} serverReviewData={serverReviewData} textSize={textSize} />
       </div>
+      <BackToTop />
     </div>
   );
 }

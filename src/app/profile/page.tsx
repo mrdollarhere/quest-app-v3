@@ -7,6 +7,7 @@ import { useSettings } from '@/context/settings-context';
 import { useRouter } from 'next/navigation';
 import { AILoader } from '@/components/ui/ai-loader';
 import { trackEvent } from '@/lib/tracker';
+import { BackToTop } from '@/components/BackToTop';
 
 // Organized Sub-Components
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
@@ -141,6 +142,7 @@ export default function ProfilePage() {
 
         <ProfileHistory responses={responses} settings={settings} hasHistory={hasHistory} />
       </div>
+      <BackToTop />
     </div>
   );
 }

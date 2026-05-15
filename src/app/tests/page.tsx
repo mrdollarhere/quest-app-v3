@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { trackEvent } from '@/lib/tracker';
+import { BackToTop } from '@/components/BackToTop';
 
 export default function TestsLibrary() {
   const { t } = useLanguage();
@@ -165,6 +166,7 @@ export default function TestsLibrary() {
           </div>
         )}
       </main>
+      <BackToTop />
     </div>
   );
 }

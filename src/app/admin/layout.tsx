@@ -11,6 +11,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { LanguageProvider } from '@/context/language-context';
 import { AILoader } from '@/components/ui/ai-loader';
 import { REQUIRED_GAS_VERSION, GAS_CHANGELOG_URL } from '@/lib/gas-version';
+import { BackToTop } from '@/components/BackToTop';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading, logout } = useAuth();
@@ -151,6 +152,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
           </main>
         </div>
+        <BackToTop />
       </SidebarProvider>
     </LanguageProvider>
   );
