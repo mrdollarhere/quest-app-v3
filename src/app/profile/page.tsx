@@ -28,6 +28,14 @@ export default function ProfilePage() {
   const router = useRouter();
   const lastTracked = useRef<string | null>(null);
 
+  // SECURE ACCESS PROTOCOL: Redirect unauthenticated nodes to entry gateway
+  useEffect(() => {
+    if (!authLoading && !user) {
+      const fullPath = window.location.pathname + window.location.search;
+      router.push(`/login?returnTo=${encodeURIComponent(fullPath)}`);
+    }
+  }, [user, authLoading, router]);
+
   useEffect(() => {
     const key = 'page_view_profile' + window.location.pathname + Math.floor(Date.now() / 2000);
     if (lastTracked.current === key) return;
@@ -127,6 +135,9 @@ export default function ProfilePage() {
       </div>
     );
   }
+
+  // Guard: Prevent rendering while redirecting
+  if (!user) return null;
 
   const hasHistory = responses.length > 0;
 

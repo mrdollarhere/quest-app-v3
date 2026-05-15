@@ -74,7 +74,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (pathname === '/admin') return 'Dashboard';
     if (pathname === '/admin/events') return 'Site Events';
     const last = pathname.split('/').pop() || '';
-    if (last === 'new') return 'New Test';
+    if (last === 'new') return 'New Question';
     return last.replace(/-/g, ' ');
   };
 
