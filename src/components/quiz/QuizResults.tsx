@@ -25,7 +25,11 @@ export function QuizResults({ title, testId, score, totalQuestions, questions, r
   const [isGenerating, setIsGenerating] = useState(false);
 
   const percentage = Math.round((score / (totalQuestions || 1)) * 100);
+  
+  // REGISTRY SCALING PROTOCOL: Normalize total possible to 1000
+  // Example: 42/45 -> (42/45) * 1000 = 933
   const normalizedScore = Math.round((score / (totalQuestions || 1)) * 1000);
+  
   const verdict = getVerdictData(percentage);
   const isPass = percentage >= Number(testMetadata?.passing_threshold || settings.default_pass_threshold || 70);
 
@@ -59,8 +63,13 @@ export function QuizResults({ title, testId, score, totalQuestions, questions, r
       <div className="w-full max-w-5xl space-y-8 animate-in fade-in duration-700">
         <div className="flex flex-col items-center text-center space-y-6">
           <div className="inline-flex items-center gap-4 px-10 py-5 rounded-full bg-white border shadow-xl">
-            <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center shadow-lg"><User className="w-7 h-7 text-white" /></div>
-            <div className="text-left"><p className="text-[10px] font-black uppercase text-slate-400">Assessment Operator</p><h1 className="text-3xl font-black text-slate-900 uppercase">{userName}</h1></div>
+            <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center shadow-lg">
+              <User className="w-7 h-7 text-white" />
+            </div>
+            <div className="text-left">
+              <p className="text-[10px] font-black uppercase text-slate-400">Assessment Operator</p>
+              <h1 className="text-3xl font-black text-slate-900 uppercase">{userName}</h1>
+            </div>
           </div>
           <h2 className="text-xl font-black text-slate-400 uppercase tracking-[0.5em]">{title}</h2>
         </div>
@@ -82,7 +91,7 @@ export function QuizResults({ title, testId, score, totalQuestions, questions, r
                <div className="flex items-center gap-2.5 px-4 py-2 bg-slate-50 rounded-2xl border border-slate-100">
                   <Zap className="w-3.5 h-3.5 text-primary" />
                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Registry Index:</span>
-                  <span className="text-sm font-black text-slate-900">{normalizedScore}</span>
+                  <span className="text-sm font-black text-slate-900">{normalizedScore} / 1000</span>
                </div>
                <div className="flex items-center gap-2.5 px-4 py-2 bg-slate-50 rounded-2xl border border-slate-100">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
@@ -97,7 +106,13 @@ export function QuizResults({ title, testId, score, totalQuestions, questions, r
 
         {certificateId && isPass && (
           <div className="p-8 rounded-[2.5rem] bg-slate-900 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
-            <div className="flex items-center gap-6"><FileBadge className="w-12 h-12 text-primary" /><div><h4 className="text-primary font-black uppercase text-[10px]">Credential Issued</h4><p className="text-xl font-bold">Certification ready for download.</p></div></div>
+            <div className="flex items-center gap-6">
+              <FileBadge className="w-12 h-12 text-primary" />
+              <div>
+                <h4 className="text-primary font-black uppercase text-[10px]">Credential Issued</h4>
+                <p className="text-xl font-bold">Certification ready for download.</p>
+              </div>
+            </div>
             <Button onClick={handleDownload} disabled={isGenerating} className="h-14 rounded-full px-10 bg-primary font-black uppercase text-xs">
               {isGenerating ? 'Generating...' : 'Download Certificate'}
             </Button>
