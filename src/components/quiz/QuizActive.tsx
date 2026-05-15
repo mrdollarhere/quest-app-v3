@@ -13,8 +13,7 @@ import {
   LayoutGrid,
   CheckCircle2,
   XCircle,
-  ArrowRight,
-  Clock
+  ArrowRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { QuizTimer } from './QuizTimer';
@@ -26,7 +25,6 @@ interface QuizActiveProps {
   quiz: QuizState;
   quizTitle: string;
   timeLeft: number;
-  elapsedSeconds: number;
   isWrongInRace: boolean;
   onResponseChange: (val: any) => void;
   onConfirmResponse: () => void;
@@ -48,7 +46,6 @@ export function QuizActive({
   quiz,
   quizTitle,
   timeLeft,
-  elapsedSeconds,
   isWrongInRace,
   onResponseChange,
   onConfirmResponse,
@@ -68,12 +65,6 @@ export function QuizActive({
       setTextSize(saved);
     }
   }, []);
-
-  const formatTime = (totalSeconds: number) => {
-    const mins = Math.floor(totalSeconds / 60);
-    const secs = totalSeconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
 
   const currentQuestion = quiz.questions[quiz.currentQuestionIndex];
   const progress = useMemo(() => quiz.questions.length > 0 ? ((quiz.currentQuestionIndex + 1) / quiz.questions.length) * 100 : 0, [quiz.currentQuestionIndex, quiz.questions.length]);
@@ -114,10 +105,6 @@ export function QuizActive({
             <div className="h-6 w-px bg-slate-100 hidden md:block" />
             <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
               <span className="text-sm md:text-base font-black text-primary">{quiz.currentQuestionIndex + 1}/{quiz.questions.length}</span>
-              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                <Clock className="w-3 h-3" />
-                <span className="tabular-nums">{formatTime(elapsedSeconds)}</span>
-              </div>
             </div>
           </div>
 

@@ -28,7 +28,6 @@ function QuizContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [guestName, setGuestName] = useState("");
   const [timeLeft, setTimeLeft] = useState(900); 
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isWrongInRace, setIsWrongInRace] = useState(false);
   const [generatedCertificateId, setGeneratedCertificateId] = useState<string | null>(null);
   const [serverReviewData, setServerReviewData] = useState<any[]>([]);
@@ -82,8 +81,6 @@ function QuizContent() {
   useEffect(() => {
     if (isStarted && !quiz.isSubmitted) {
       timerRef.current = setInterval(() => {
-        setElapsedSeconds(prev => prev + 1);
-        
         // Per-question countdown logic (if limit exists)
         if (Number(globalData?.globalTimer || 0) > 0) {
           setTimeLeft(prev => {
@@ -223,7 +220,6 @@ function QuizContent() {
     
     const limit = Number(globalData?.globalTimer || 0);
     setTimeLeft(limit > 0 ? limit * 60 : 900);
-    setElapsedSeconds(0);
     quizStartTimeRef.current = Date.now();
     
     setIsStarted(true);
@@ -260,7 +256,7 @@ function QuizContent() {
 
   if (quiz.isSubmitted) return <QuizResults title={testMetadata?.title || 'Assessment'} testId={testId || undefined} score={quiz.score} totalQuestions={quiz.questions.length} questions={quiz.questions} responses={quiz.responses} serverReviewData={serverReviewData} userName={user?.displayName || guestName || 'Guest User'} onRestart={() => { setIsStarted(false); setQuiz(prev => ({...prev, isSubmitted: false, responses: []})); }} startTime={quiz.startTime} endTime={quiz.endTime} testMetadata={testMetadata} certificateId={generatedCertificateId || undefined} duration={finalDuration} />;
 
-  return <QuizActive quiz={quiz} quizTitle={testMetadata?.title || 'Assessment'} timeLeft={timeLeft} elapsedSeconds={elapsedSeconds} isWrongInRace={isWrongInRace} onResponseChange={handleResponseChange} onConfirmResponse={handleConfirmResponse} onNext={handleNext} onPrev={() => setQuiz({ ...quiz, currentQuestionIndex: Math.max(0, quiz.currentQuestionIndex - 1) })} onSubmit={submit} onJump={(i) => setQuiz({ ...quiz, currentQuestionIndex: i })} onToggleFlag={(id) => { setQuiz(prev => ({ ...prev, flaggedQuestionIds: prev.flaggedQuestionIds?.includes(id) ? prev.flaggedQuestionIds.filter(f => f !== id) : [...(prev.flaggedQuestionIds || []), id] })); }} />;
+  return <QuizActive quiz={quiz} quizTitle={testMetadata?.title || 'Assessment'} timeLeft={timeLeft} isWrongInRace={isWrongInRace} onResponseChange={handleResponseChange} onConfirmResponse={handleConfirmResponse} onNext={handleNext} onPrev={() => setQuiz({ ...quiz, currentQuestionIndex: Math.max(0, quiz.currentQuestionIndex - 1) })} onSubmit={submit} onJump={(i) => setQuiz({ ...quiz, currentQuestionIndex: i })} onToggleFlag={(id) => { setQuiz(prev => ({ ...prev, flaggedQuestionIds: prev.flaggedQuestionIds?.includes(id) ? prev.flaggedQuestionIds.filter(f => f !== id) : [...(prev.flaggedQuestionIds || []), id] })); }} />;
 }
 
 export default function QuizPage() {
