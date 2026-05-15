@@ -230,7 +230,16 @@ export function QuizActive({
       </main>
 
       <QuizSidebar quiz={quiz} isOpen={isSidebarOpen} onOpenChange={setIsSidebarOpen} onJump={onJump} isAnswered={isAnswered} />
-      <SubmissionDialog isOpen={isConfirmOpen} onOpenChange={setIsConfirmOpen} onSubmit={onSubmit} answeredCount={answeredCount} totalCount={quiz.questions.length} />
+      <SubmissionDialog 
+        isOpen={isConfirmOpen} 
+        onOpenChange={setIsConfirmOpen} 
+        onSubmit={onSubmit} 
+        answeredCount={answeredCount} 
+        totalCount={quiz.questions.length}
+        questions={quiz.questions}
+        isAnswered={isAnswered}
+        onJump={onJump}
+      />
     </div>
   );
 }
