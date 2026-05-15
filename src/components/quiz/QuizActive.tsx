@@ -187,9 +187,10 @@ export function QuizActive({
             <Button 
               variant="ghost" 
               onClick={() => currentQuestion && onToggleFlag(currentQuestion.id)} 
-              className={cn("rounded-xl h-12 gap-2 font-bold border-none hidden lg:flex transition-all", isFlagged ? "bg-orange-500 text-white hover:bg-orange-600" : "text-slate-500 bg-[#F1F5F9] hover:bg-slate-200")}
+              title={isFlagged ? 'Unmark' : 'Mark for Later'}
+              className={cn("rounded-xl h-12 w-12 flex items-center justify-center font-bold border-none hidden lg:flex transition-all", isFlagged ? "bg-orange-500 text-white hover:bg-orange-600" : "text-slate-500 bg-[#F1F5F9] hover:bg-slate-200")}
             >
-              <Flag className={cn("w-4 h-4", isFlagged && "fill-current")} /> {isFlagged ? 'Flagged' : 'Mark for Later'}
+              <Flag className={cn("w-4 h-4", isFlagged && "fill-current")} />
             </Button>
             {quiz.currentQuestionIndex === quiz.questions.length - 1 && (!isTrainingMode || isAnswerConfirmed) ? (
               <Button onClick={() => setIsConfirmOpen(true)} className="bg-primary hover:bg-primary/90 text-white rounded-xl h-12 px-8 font-black shadow-xl shadow-primary/20 transition-all hover:scale-[1.05] border-none">COMMIT</Button>
