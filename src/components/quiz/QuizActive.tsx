@@ -111,6 +111,12 @@ export function QuizActive({
             </div>
           </div>
 
+          <div className="hidden xl:flex flex-1 items-center justify-center px-8">
+            <h1 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 truncate max-w-sm text-center" title={quizTitle}>
+              {quizTitle}
+            </h1>
+          </div>
+
           <div className="flex items-center gap-2 md:gap-8">
             <div className="flex items-center gap-1 md:gap-4 text-slate-400">
               <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(true)} className="rounded-full h-10 w-10 hover:bg-slate-50"><LayoutGrid className="w-5 h-5" /></Button>
