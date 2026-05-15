@@ -4,11 +4,11 @@ export const en = {
   setupGuide: "Host Protocol",
   startQuiz: "Enter Mission",
   // Hero
-  heroBadge: "Real-time classroom assessments synchronized via Pusher protocol.",
-  heroTitle: "Host live evaluations with precision.",
-  heroSubtitle: "Coordinate classroom assessments, reveal diagnostic results in real-time, and archive performance analytics.",
-  browseTests: "Browse Modules",
-  tryDemo: "Live Sandbox",
+  heroBadge: "Professional Intelligence & Assessment Platform.",
+  heroTitle: "Precision Assessments. Instant Insights.",
+  heroSubtitle: "Unlock your potential through interactive evaluation. Access a global library of knowledge modules and track your evolution with surgical precision.",
+  browseTests: "Explore Intelligence Bank",
+  tryDemo: "Try Sandbox",
   // Admin & General
   dashboard: "Dashboard",
   testLibrary: "Assessment Bank",
