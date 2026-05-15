@@ -15,9 +15,11 @@ import { trackEvent } from '@/lib/tracker';
 import confetti from 'canvas-confetti';
 import { VerdictDisplay } from './results/VerdictDisplay';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/auth-context';
 
 export function QuizResults({ title, testId, score, totalQuestions, questions, responses, serverReviewData, userName, onRestart, startTime, endTime, testMetadata, certificateId, duration }: any) {
   const { settings } = useSettings();
+  const { user } = useAuth();
   const [textSize, setTextSize] = useState<'normal' | 'large' | 'small'>('normal');
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -83,7 +85,26 @@ export function QuizResults({ title, testId, score, totalQuestions, questions, r
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5"><Button onClick={onRestart} variant="outline" className="h-16 rounded-full font-black uppercase text-xs border-2"><RotateCcw className="mr-3" /> Try Again</Button><Link href="/tests"><Button className="w-full h-16 rounded-full font-black uppercase text-xs bg-primary text-white">Back to Tests <ArrowRight className="ml-3" /></Button></Link></div>
+        <div className={cn(
+          "grid gap-5",
+          user ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-1 sm:grid-cols-2"
+        )}>
+          <Button onClick={onRestart} variant="outline" className="h-16 rounded-full font-black uppercase text-xs border-2">
+            <RotateCcw className="mr-3 w-4 h-4" /> Try Again
+          </Button>
+          <Link href="/tests">
+            <Button className="w-full h-16 rounded-full font-black uppercase text-xs bg-primary text-white border-none">
+              Back to Tests <ArrowRight className="ml-3 w-4 h-4" />
+            </Button>
+          </Link>
+          {user && (
+            <Link href="/profile">
+              <Button variant="secondary" className="w-full h-16 rounded-full font-black uppercase text-xs shadow-sm bg-slate-900 text-white hover:bg-slate-800">
+                <User className="mr-3 w-4 h-4" /> Identity Registry
+              </Button>
+            </Link>
+          )}
+        </div>
 
         <StepAnalytics questions={questions} responses={responses} serverReviewData={serverReviewData} textSize={textSize} />
       </div>
