@@ -61,6 +61,7 @@ export function QuizActive({
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [textSize, setTextSize] = useState<'normal' | 'large' | 'small'>('normal');
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [activeShortcut, setActiveShortcut] = useState<string | null>(null);
   
   useEffect(() => {
     const saved = localStorage.getItem('dntrng_text_size') as 'normal' | 'large' | 'small';
@@ -74,6 +75,77 @@ export function QuizActive({
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
+
+  const triggerVisualFeedback = (key: string) => {
+    setActiveShortcut(key);
+    setTimeout(() => setActiveShortcut(null), 150) ;
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // INPUT PROTECTION PROTOCOL
+      const target = e.target as HTMLElement;
+      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+      if (isInput) return;
+
+      const currentQuestion = quiz.questions[quiz.currentQuestionIndex];
+      const isTrainingMode = quiz.mode === 'training';
+      const response = quiz.responses.find(r => r.questionId === currentQuestion?.id);
+      const isConfirmed = !!response?.isConfirmed;
+
+      switch (e.key) {
+        case 'ArrowRight':
+        case 'Enter':
+          e.preventDefault();
+          if (quiz.currentQuestionIndex < quiz.questions.length - 1) {
+            if (!isTrainingMode || isConfirmed) {
+              triggerVisualFeedback('next');
+              onNext();
+            }
+          } else if (!isTrainingMode || isConfirmed) {
+            setIsConfirmOpen(true);
+          }
+          break;
+        case 'ArrowLeft':
+          e.preventDefault();
+          if (quiz.currentQuestionIndex > 0 && !isConfirmed) {
+            triggerVisualFeedback('prev');
+            onPrev();
+          }
+          break;
+        case 'm':
+        case 'M':
+          if (currentQuestion) {
+            triggerVisualFeedback('flag');
+            onToggleFlag(currentQuestion.id);
+          }
+          break;
+        case 'g':
+        case 'G':
+          triggerVisualFeedback('grid');
+          setIsSidebarOpen(true);
+          break;
+        case '+':
+        case '=':
+          triggerVisualFeedback('font-plus');
+          setTextSize('large');
+          localStorage.setItem('dntrng_text_size', 'large');
+          break;
+        case '-':
+        case '_':
+          triggerVisualFeedback('font-minus');
+          setTextSize('small');
+          localStorage.setItem('dntrng_text_size', 'small');
+          break;
+        case ' ':
+          e.preventDefault(); // Scroll Prevention
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [quiz, onNext, onPrev, onToggleFlag]);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -117,7 +189,10 @@ export function QuizActive({
               variant="ghost" 
               onClick={onPrev} 
               disabled={quiz.currentQuestionIndex === 0 || quiz.mode === 'race' || isAnswerConfirmed} 
-              className="rounded-xl h-12 px-2 md:px-4 text-slate-400 font-bold hover:bg-slate-50 disabled:opacity-30"
+              className={cn(
+                "rounded-xl h-12 px-2 md:px-4 text-slate-400 font-bold hover:bg-slate-50 disabled:opacity-30 transition-all",
+                activeShortcut === 'prev' && "bg-primary/10 scale-95"
+              )}
             >
               <ChevronLeft className="w-5 h-5 mr-1" /> <span className="hidden sm:inline">Trước</span>
             </Button>
@@ -139,8 +214,11 @@ export function QuizActive({
                 variant="ghost" 
                 size="icon" 
                 onClick={() => setIsSidebarOpen(true)} 
-                className="rounded-full h-10 w-10 hover:bg-slate-50"
-                title="Navigation Grid"
+                className={cn(
+                  "rounded-full h-10 w-10 hover:bg-slate-50 transition-all",
+                  activeShortcut === 'grid' && "bg-primary/10 scale-95"
+                )}
+                title="Navigation Grid (G)"
               >
                 <LayoutGrid className="w-5 h-5" />
               </Button>
@@ -160,7 +238,12 @@ export function QuizActive({
                   variant="ghost" 
                   size="icon" 
                   onClick={() => { setTextSize('small'); localStorage.setItem('dntrng_text_size', 'small'); }}
-                  className={cn("rounded-full h-10 w-10 hover:bg-slate-50", textSize === 'small' && "text-primary bg-primary/5")}
+                  className={cn(
+                    "rounded-full h-10 w-10 hover:bg-slate-50 transition-all", 
+                    textSize === 'small' && "text-primary bg-primary/5",
+                    activeShortcut === 'font-minus' && "bg-primary/10 scale-95"
+                  )}
+                  title="Smaller Text (-)"
                 >
                   <span className="text-xs font-black">A-</span>
                 </Button>
@@ -176,7 +259,12 @@ export function QuizActive({
                   variant="ghost" 
                   size="icon" 
                   onClick={() => { setTextSize('large'); localStorage.setItem('dntrng_text_size', 'large'); }}
-                  className={cn("rounded-full h-10 w-10 hover:bg-slate-50", textSize === 'large' && "text-primary bg-primary/5")}
+                  className={cn(
+                    "rounded-full h-10 w-10 hover:bg-slate-50 transition-all", 
+                    textSize === 'large' && "text-primary bg-primary/5",
+                    activeShortcut === 'font-plus' && "bg-primary/10 scale-95"
+                  )}
+                  title="Larger Text (+)"
                 >
                   <span className="text-base font-black">A+</span>
                 </Button>
@@ -187,18 +275,33 @@ export function QuizActive({
             <Button 
               variant="ghost" 
               onClick={() => currentQuestion && onToggleFlag(currentQuestion.id)} 
-              title={isFlagged ? 'Unmark' : 'Mark for Later'}
-              className={cn("rounded-xl h-12 w-12 flex items-center justify-center font-bold border-none hidden lg:flex transition-all", isFlagged ? "bg-orange-500 text-white hover:bg-orange-600" : "text-slate-500 bg-[#F1F5F9] hover:bg-slate-200")}
+              title={isFlagged ? 'Unmark (M)' : 'Mark for Later (M)'}
+              className={cn(
+                "rounded-xl h-12 w-12 flex items-center justify-center font-bold border-none hidden lg:flex transition-all", 
+                isFlagged ? "bg-orange-500 text-white hover:bg-orange-600" : "text-slate-500 bg-[#F1F5F9] hover:bg-slate-200",
+                activeShortcut === 'flag' && "scale-95"
+              )}
             >
               <Flag className={cn("w-4 h-4", isFlagged && "fill-current")} />
             </Button>
             {quiz.currentQuestionIndex === quiz.questions.length - 1 && (!isTrainingMode || isAnswerConfirmed) ? (
-              <Button onClick={() => setIsConfirmOpen(true)} className="bg-primary hover:bg-primary/90 text-white rounded-xl h-12 px-8 font-black shadow-xl shadow-primary/20 transition-all hover:scale-[1.05] border-none">COMMIT</Button>
+              <Button 
+                onClick={() => setIsConfirmOpen(true)} 
+                className={cn(
+                  "bg-primary hover:bg-primary/90 text-white rounded-xl h-12 px-8 font-black shadow-xl shadow-primary/20 transition-all hover:scale-[1.05] border-none",
+                  activeShortcut === 'next' && "scale-95"
+                )}
+              >
+                COMMIT
+              </Button>
             ) : (
               <Button 
                 onClick={onNext} 
                 disabled={isTrainingMode && !isAnswerConfirmed}
-                className="bg-[#366DC7] hover:bg-[#2D5AB0] text-white rounded-xl h-12 px-4 md:px-8 font-black gap-3 transition-all border-none disabled:opacity-30"
+                className={cn(
+                  "bg-[#366DC7] hover:bg-[#2D5AB0] text-white rounded-xl h-12 px-4 md:px-8 font-black gap-3 transition-all border-none disabled:opacity-30",
+                  activeShortcut === 'next' && "scale-95"
+                )}
               >
                 Tiếp <ChevronRight className="w-5 h-5" />
               </Button>
