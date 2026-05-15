@@ -19,10 +19,10 @@ import { useLanguage } from '@/context/language-context';
 import { useSettings } from '@/context/settings-context';
 import { JsonLd } from '@/components/SEO';
 import { trackEvent } from '@/lib/tracker';
-import { API_URL } from '@/lib/api-config';
+import { SiteFooter } from '@/components/SiteFooter';
 
 export default function LandingPage() {
-  const { t, language, setLanguage } = useLanguage();
+  const { t } = useLanguage();
   const { settings } = useSettings();
   const [systemStatus, setSystemStatus] = useState('Optimal');
   const lastTracked = useRef<string | null>(null);
@@ -127,19 +127,7 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className="py-12 bg-[#F4F5F7]">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
-          <p className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-400">
-            {settings.custom_footer_text || `© ${new Date().getFullYear()} DNTRNG • PRECISION ASSESSMENT TERMINAL`}
-          </p>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-slate-200">
-              <div className={cn("w-2 h-2 rounded-full animate-pulse", systemStatus === 'Optimal' ? "bg-emerald-500" : "bg-amber-500")} />
-              <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Registry: {systemStatus}</span>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

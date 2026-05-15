@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from 'react';
@@ -27,6 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { GAS_CODE } from '@/lib/gas/latest';
 import { SETUP_GUIDE_CONTENT } from '@/app/lib/setup-guide-content';
+import { SiteFooter } from '@/components/SiteFooter';
 
 type Language = 'en' | 'vi';
 
@@ -45,7 +45,7 @@ export default function SetupGuide() {
   const t = SETUP_GUIDE_CONTENT[lang];
 
   return (
-    <div className="min-h-screen bg-slate-50 selection:bg-primary selection:text-white pb-32">
+    <div className="min-h-screen bg-slate-50 selection:bg-primary selection:text-white flex flex-col">
       <header className="py-12 border-b border-slate-200 bg-white shadow-sm">
         <div className="max-w-5xl mx-auto px-6 flex flex-col md:flex-row md:items-center justify-between gap-8">
           <div className="space-y-4">
@@ -79,7 +79,7 @@ export default function SetupGuide() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 py-16 space-y-24">
+      <main className="max-w-5xl mx-auto px-6 py-16 space-y-24 flex-1">
         {/* Step 1 */}
         <section className="space-y-8">
           <div className="flex items-center gap-6">
@@ -162,7 +162,7 @@ export default function SetupGuide() {
         </section>
 
         {/* Step 3 */}
-        <section className="space-y-12">
+        <section className="space-y-12 pb-20">
           <div className="flex items-center gap-6">
             <div className="w-14 h-14 rounded-2xl bg-slate-900 text-primary flex items-center justify-center text-xl font-black shadow-lg">{t.step3.num}</div>
             <div>
@@ -201,6 +201,8 @@ export default function SetupGuide() {
           </Card>
         </section>
       </main>
+      
+      <SiteFooter />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { AILoader } from '@/components/ui/ai-loader';
 import { trackEvent } from '@/lib/tracker';
 import { BackToTop } from '@/components/BackToTop';
+import { SiteFooter } from '@/components/SiteFooter';
 
 // Organized Sub-Components
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
@@ -130,18 +131,22 @@ export default function ProfilePage() {
   const hasHistory = responses.length > 0;
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] py-12 px-6 pb-32">
-      <div className="max-w-5xl mx-auto space-y-10 animate-in fade-in duration-700">
-        <ProfileHeader user={user} logout={logout} router={router} />
-        
-        <ProfileIdentity user={user} stats={stats} hasHistory={hasHistory} />
-        
-        <ProfileStats stats={stats} hasHistory={hasHistory} />
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col transition-all duration-300">
+      <div className="flex-1 py-12 px-6 pb-24">
+        <div className="max-w-5xl mx-auto space-y-10 animate-in fade-in duration-700">
+          <ProfileHeader user={user} logout={logout} router={router} />
+          
+          <ProfileIdentity user={user} stats={stats} hasHistory={hasHistory} />
+          
+          <ProfileStats stats={stats} hasHistory={hasHistory} />
 
-        <ProfileCharts chartData={chartData} recommendations={recommendations} hasHistory={hasHistory} />
+          <ProfileCharts chartData={chartData} recommendations={recommendations} hasHistory={hasHistory} />
 
-        <ProfileHistory responses={responses} settings={settings} hasHistory={hasHistory} />
+          <ProfileHistory responses={responses} settings={settings} hasHistory={hasHistory} />
+        </div>
       </div>
+      
+      <SiteFooter />
       <BackToTop />
     </div>
   );

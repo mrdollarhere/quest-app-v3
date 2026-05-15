@@ -17,6 +17,7 @@ import { VerdictDisplay } from './results/VerdictDisplay';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
 import { BackToTop } from '@/components/BackToTop';
+import { SiteFooter } from '@/components/SiteFooter';
 
 export function QuizResults({ title, testId, score, totalQuestions, questions, responses, serverReviewData, userName, onRestart, startTime, endTime, testMetadata, certificateId, duration }: any) {
   const { settings } = useSettings();
@@ -58,8 +59,8 @@ export function QuizResults({ title, testId, score, totalQuestions, questions, r
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center py-12 px-4 md:px-8 pb-32">
-      <div className="w-full max-w-5xl space-y-8 animate-in fade-in duration-700">
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center pt-12 transition-all duration-300">
+      <div className="w-full max-w-5xl space-y-8 animate-in fade-in duration-700 px-4 md:px-8 mb-20">
         <div className="flex flex-col items-center text-center space-y-6">
           <div className="inline-flex items-center gap-4 px-10 py-5 rounded-full bg-white border shadow-xl">
             <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center shadow-lg">
@@ -129,6 +130,8 @@ export function QuizResults({ title, testId, score, totalQuestions, questions, r
 
         <StepAnalytics questions={questions} responses={responses} serverReviewData={serverReviewData} textSize={textSize} />
       </div>
+      
+      <SiteFooter className="w-full" />
       <BackToTop />
     </div>
   );
