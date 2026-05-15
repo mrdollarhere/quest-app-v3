@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useSettings } from '@/context/settings-context';
 import { trackEvent } from '@/lib/tracker';
 
@@ -25,21 +25,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const { settings, loading: settingsLoading } = useSettings();
+  
+  // Registry Protocol: Track hydration state to prevent redundant initialization cycles
+  const hasHydrated = useRef(false);
 
   const logout = useCallback(async () => {
-    if (user) {
-      try {
-        await fetch('/api/proxy/log-activity', {
-          method: 'POST',
-          body: JSON.stringify({ 
-            email: user.email, 
-            name: user.displayName || 'User', 
-            event: 'Logout' 
-          })
-        });
-      } catch (e) {}
-      trackEvent('logout', { details: { role: user.role } });
-    }
+    // Capture current identity for final telemetry before state nullification
+    const currentUser = user;
     
     // Clear server-side cookie
     await fetch('/api/proxy/auth/logout', { method: 'POST' });
@@ -48,40 +40,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     localStorage.removeItem('questflow_user');
     localStorage.removeItem('questflow_login_ts');
+
+    if (currentUser) {
+      try {
+        await fetch('/api/proxy/log-activity', {
+          method: 'POST',
+          body: JSON.stringify({ 
+            email: currentUser.email, 
+            name: currentUser.displayName || 'User', 
+            event: 'Logout' 
+          })
+        });
+      } catch (e) {}
+      trackEvent('logout', { details: { role: currentUser.role } });
+    }
   }, [user]);
 
   // PROTOCOL OPTIMIZATION: Immediate client-side check to prevent "Sign In" button delay
+  // Hydration Protocol: Runs once on mount to restore session from local registry
   useEffect(() => {
+    if (hasHydrated.current) return;
+    
     const savedUser = localStorage.getItem('questflow_user');
     const loginTs = localStorage.getItem('questflow_login_ts');
     
-    if (!savedUser || savedUser.trim() === "") {
-      setLoading(false);
-      return;
-    }
-
-    if (savedUser && loginTs) {
+    if (savedUser && savedUser.trim() !== "" && loginTs) {
       try {
         const parsed = JSON.parse(savedUser);
         setUser(parsed);
-        
-        // If settings are already loaded, we can finalize the timeout check
-        if (!settingsLoading) {
-          const timeoutHours = Number(settings.session_timeout_hours || '24');
-          const elapsed = Date.now() - Number(loginTs);
-          const timeoutMs = timeoutHours * 60 * 60 * 1000;
-
-          if (elapsed > timeoutMs) {
-            logout();
-          }
-          setLoading(false);
-        }
       } catch (e) {
-        logout();
-        setLoading(false);
+        localStorage.removeItem('questflow_user');
+        localStorage.removeItem('questflow_login_ts');
       }
     }
-  }, [settingsLoading, settings.session_timeout_hours, logout]);
+    
+    hasHydrated.current = true;
+    setLoading(false);
+  }, []);
+
+  // Session Maintenance Protocol: Runs when settings are ready or identity changes
+  useEffect(() => {
+    if (settingsLoading || !user) return;
+
+    const loginTs = localStorage.getItem('questflow_login_ts');
+    if (loginTs) {
+      const timeoutHours = Number(settings.session_timeout_hours || '24');
+      const elapsed = Date.now() - Number(loginTs);
+      const timeoutMs = timeoutHours * 60 * 60 * 1000;
+
+      // Protocol Violation: Session TTL exceeded
+      if (elapsed > timeoutMs) {
+        logout();
+      }
+    }
+  }, [settingsLoading, settings.session_timeout_hours, user, logout]);
 
   const login = async (email: string, password?: string): Promise<{ success: boolean; message?: string }> => {
     try {
