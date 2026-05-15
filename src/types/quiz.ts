@@ -41,6 +41,7 @@ export interface UserResponse {
   questionId: string;
   answer: any;
   isCorrect?: boolean;
+  isConfirmed?: boolean;
 }
 
 export interface QuizState {

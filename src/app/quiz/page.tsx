@@ -122,6 +122,16 @@ function QuizContent() {
     setQuiz({ ...quiz, responses: updatedResponses });
   };
 
+  const handleConfirmResponse = () => {
+    const currentQuestion = quiz.questions[quiz.currentQuestionIndex];
+    const updatedResponses = [...quiz.responses];
+    const index = updatedResponses.findIndex(r => r.questionId === currentQuestion.id);
+    if (index > -1) {
+      updatedResponses[index].isConfirmed = true;
+      setQuiz({ ...quiz, responses: updatedResponses });
+    }
+  };
+
   const handleNext = () => {
     if (quiz.currentQuestionIndex < quiz.questions.length - 1) {
       const nextIdx = quiz.currentQuestionIndex + 1;
@@ -250,7 +260,7 @@ function QuizContent() {
 
   if (quiz.isSubmitted) return <QuizResults title={testMetadata?.title || 'Assessment'} testId={testId || undefined} score={quiz.score} totalQuestions={quiz.questions.length} questions={quiz.questions} responses={quiz.responses} serverReviewData={serverReviewData} userName={user?.displayName || guestName || 'Guest User'} onRestart={() => { setIsStarted(false); setQuiz(prev => ({...prev, isSubmitted: false, responses: []})); }} startTime={quiz.startTime} endTime={quiz.endTime} testMetadata={testMetadata} certificateId={generatedCertificateId || undefined} duration={finalDuration} />;
 
-  return <QuizActive quiz={quiz} quizTitle={testMetadata?.title || 'Assessment'} timeLeft={timeLeft} elapsedSeconds={elapsedSeconds} isWrongInRace={isWrongInRace} onResponseChange={handleResponseChange} onNext={handleNext} onPrev={() => setQuiz({ ...quiz, currentQuestionIndex: Math.max(0, quiz.currentQuestionIndex - 1) })} onSubmit={submit} onJump={(i) => setQuiz({ ...quiz, currentQuestionIndex: i })} onToggleFlag={(id) => { setQuiz(prev => ({ ...prev, flaggedQuestionIds: prev.flaggedQuestionIds?.includes(id) ? prev.flaggedQuestionIds.filter(f => f !== id) : [...(prev.flaggedQuestionIds || []), id] })); }} />;
+  return <QuizActive quiz={quiz} quizTitle={testMetadata?.title || 'Assessment'} timeLeft={timeLeft} elapsedSeconds={elapsedSeconds} isWrongInRace={isWrongInRace} onResponseChange={handleResponseChange} onConfirmResponse={handleConfirmResponse} onNext={handleNext} onPrev={() => setQuiz({ ...quiz, currentQuestionIndex: Math.max(0, quiz.currentQuestionIndex - 1) })} onSubmit={submit} onJump={(i) => setQuiz({ ...quiz, currentQuestionIndex: i })} onToggleFlag={(id) => { setQuiz(prev => ({ ...prev, flaggedQuestionIds: prev.flaggedQuestionIds?.includes(id) ? prev.flaggedQuestionIds.filter(f => f !== id) : [...(prev.flaggedQuestionIds || []), id] })); }} />;
 }
 
 export default function QuizPage() {

@@ -29,6 +29,7 @@ interface QuizActiveProps {
   elapsedSeconds: number;
   isWrongInRace: boolean;
   onResponseChange: (val: any) => void;
+  onConfirmResponse: () => void;
   onNext: () => void;
   onPrev: () => void;
   onSubmit: () => void;
@@ -50,6 +51,7 @@ export function QuizActive({
   elapsedSeconds,
   isWrongInRace,
   onResponseChange,
+  onConfirmResponse,
   onNext,
   onPrev,
   onSubmit,
@@ -60,8 +62,6 @@ export function QuizActive({
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [textSize, setTextSize] = useState<'normal' | 'large' | 'small'>('normal');
   
-  const [isAnswerConfirmed, setIsAnswerConfirmed] = useState(false);
-
   useEffect(() => {
     const saved = localStorage.getItem('dntrng_text_size') as 'normal' | 'large' | 'small';
     if (saved && ['normal', 'large', 'small'].includes(saved)) {
@@ -77,31 +77,12 @@ export function QuizActive({
 
   const currentQuestion = quiz.questions[quiz.currentQuestionIndex];
   const progress = useMemo(() => quiz.questions.length > 0 ? ((quiz.currentQuestionIndex + 1) / quiz.questions.length) * 100 : 0, [quiz.currentQuestionIndex, quiz.questions.length]);
-  const currentResponse = quiz.responses.find(r => r.questionId === currentQuestion?.id)?.answer;
+  
+  const currentResponseObj = quiz.responses.find(r => r.questionId === currentQuestion?.id);
+  const currentResponse = currentResponseObj?.answer;
+  const isAnswerConfirmed = !!currentResponseObj?.isConfirmed;
+  
   const isFlagged = quiz.flaggedQuestionIds?.includes(currentQuestion?.id);
-
-  useEffect(() => {
-    if (quiz.mode === 'training') {
-      const hasAnswered = quiz.responses.some(r => r.questionId === currentQuestion?.id);
-      setIsAnswerConfirmed(hasAnswered);
-    } else {
-      setIsAnswerConfirmed(false);
-    }
-  }, [quiz.currentQuestionIndex, quiz.mode, currentQuestion?.id]);
-
-  const handleResponse = (val: any) => {
-    if (isAnswerConfirmed) return;
-    onResponseChange(val);
-    
-    if (quiz.mode === 'training') {
-      setIsAnswerConfirmed(true);
-    }
-  };
-
-  const handleNextWithFeedback = () => {
-    if (quiz.mode === 'training' && !isAnswerConfirmed) return;
-    onNext();
-  };
 
   const isAnswered = (questionId: string) => {
     const resp = quiz.responses.find(r => r.questionId === questionId)?.answer;
@@ -183,7 +164,7 @@ export function QuizActive({
               <Button onClick={() => setIsConfirmOpen(true)} className="bg-primary hover:bg-primary/90 text-white rounded-xl h-12 px-8 font-black shadow-xl shadow-primary/20 transition-all hover:scale-105 border-none">COMMIT</Button>
             ) : (
               <Button 
-                onClick={handleNextWithFeedback} 
+                onClick={onNext} 
                 disabled={isTrainingMode && !isAnswerConfirmed}
                 className="bg-[#366DC7] hover:bg-[#2D5AB0] text-white rounded-xl h-12 px-4 md:px-8 font-black gap-3 transition-all border-none disabled:opacity-30"
               >
@@ -197,12 +178,22 @@ export function QuizActive({
 
       <main className="flex-1 w-full max-w-5xl py-12 md:py-20 px-6 md:px-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
         {isTrainingMode && !isAnswerConfirmed && (
-          <div className="mb-8 p-6 bg-blue-50/50 border-2 border-blue-100 rounded-[2.5rem] flex items-center gap-6 max-w-4xl mx-auto animate-in slide-in-from-top-2 duration-500">
-            <div className="bg-white p-3 rounded-2xl shadow-sm"><RotateCcw className="w-6 h-6 text-primary" /></div>
-            <div>
-              <h4 className="text-lg font-black text-slate-900 uppercase tracking-tight">Practice Mode</h4>
-              <p className="text-sm font-medium text-slate-500">Immediate feedback is enabled. Your answer will be locked after selection.</p>
+          <div className="mb-8 p-6 bg-blue-50/50 border-2 border-blue-100 rounded-[2.5rem] flex items-center justify-between max-w-4xl mx-auto animate-in slide-in-from-top-2 duration-500">
+            <div className="flex items-center gap-6">
+              <div className="bg-white p-3 rounded-2xl shadow-sm"><RotateCcw className="w-6 h-6 text-primary" /></div>
+              <div>
+                <h4 className="text-lg font-black text-slate-900 uppercase tracking-tight">Practice Mode</h4>
+                <p className="text-sm font-medium text-slate-500">Select your alignment nodes then check accuracy.</p>
+              </div>
             </div>
+            {isAnswered(currentQuestion.id) && (
+              <Button 
+                onClick={onConfirmResponse} 
+                className="h-14 px-8 rounded-full bg-primary text-white font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20 transition-all hover:scale-105 border-none"
+              >
+                Check Answer <CheckCircle2 className="w-4 h-4 ml-2" />
+              </Button>
+            )}
           </div>
         )}
 
@@ -244,7 +235,7 @@ export function QuizActive({
             <QuestionRenderer 
               question={currentQuestion} 
               value={currentResponse} 
-              onChange={handleResponse} 
+              onChange={onResponseChange} 
               reviewMode={isAnswerConfirmed} 
             />
           )}
