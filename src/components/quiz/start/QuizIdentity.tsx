@@ -22,7 +22,7 @@ interface QuizIdentityProps {
 }
 
 // Registry Integrity Constants
-const BANNED_TERMS = ['fuck', 'shit', 'asshole', 'bitch', 'admin', 'moderator', 'system', 'root'];
+const BANNED_TERMS = ['fuck', 'shit', 'asshole', 'bitch', 'admin', 'moderator', 'system', 'root', 'anonymous'];
 
 export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCount, duration }: QuizIdentityProps) {
   const [error, setError] = useState<string | null>(null);
@@ -32,26 +32,59 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
 
   const returnToUrl = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '');
 
+  /**
+   * IDENTITY INTEGRITY PROTOCOL
+   * 
+   * Detects and blocks:
+   * 1. Profanity
+   * 2. Numeric-only strings
+   * 3. Character repetition (e.g. "aaaaa")
+   * 4. Consonant clumps (e.g. "sdfgh")
+   * 5. Pattern mashing (e.g. "sbsbsb")
+   * 6. Low vowel density (phonetic invalidity)
+   */
   const validateName = (name: string) => {
     const trimmed = name.trim().toLowerCase();
+    const clean = trimmed.replace(/\s+/g, '');
     
-    // Length Protocol
+    // 1. Length Protocol
     if (trimmed.length < 2) return "Callsign must be at least 2 characters.";
     
-    // Profanity Protocol
+    // 2. Profanity Protocol
     if (BANNED_TERMS.some(term => trimmed.includes(term))) {
-      return "Inappropriate language detected. Please use a professional callsign.";
+      return "Inappropriate language detected.";
     }
 
-    // Gibberish Protocol: Numeric only
-    if (/^[0-9\s]+$/.test(trimmed)) return "Callsign cannot consist only of numeric nodes.";
+    // 3. Numeric Protocol
+    if (/^[0-9\s]+$/.test(trimmed)) return "Callsign cannot be numeric only.";
     
-    // Gibberish Protocol: Repeating characters (e.g. "aaaaa")
-    if (/^(.)\1{2,}$/.test(trimmed)) return "Meaningless character repetition detected.";
+    // 4. Repetition Protocol
+    if (/^(.)\1{2,}$/.test(clean)) return "Meaningless character repetition detected.";
     
-    // Gibberish Protocol: No vowels (if long enough)
-    if (trimmed.length > 5 && !/[aeiouy]/.test(trimmed) && !trimmed.includes(' ')) {
-      return "Please enter a recognizable name.";
+    // 5. Consonant Clump Protocol (Mash Detection)
+    // Block more than 4 consecutive consonants (rare in most languages for first names)
+    const consonantClump = /[^aeiouy\s\d]{5,}/i;
+    if (consonantClump.test(trimmed)) return "Irregular character sequence (mash) detected.";
+
+    // 6. Pattern Mash Detector (Repeating bigrams)
+    if (clean.length > 8) {
+      const bigramCounts: Record<string, number> = {};
+      for (let i = 0; i < clean.length - 1; i++) {
+        const b = clean.substring(i, i + 2);
+        bigramCounts[b] = (bigramCounts[b] || 0) + 1;
+      }
+      const maxRep = Math.max(...Object.values(bigramCounts), 0);
+      if (maxRep > 2) return "Patterned keyboard input detected.";
+    }
+
+    // 7. Vowel Density Protocol (Phonetic Validity)
+    // Most names have at least 20% vowels (e.g. "Trinh" is 20%, "Nguyen" is 50%)
+    if (clean.length > 5) {
+      const vowels = (clean.match(/[aeiouy]/gi) || []).length;
+      const density = vowels / clean.length;
+      if (density < 0.20 && !trimmed.includes(' ')) {
+        return "Callsign does not appear to be a valid name.";
+      }
     }
 
     return null;
@@ -90,7 +123,12 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <Label className="font-black text-[10px] uppercase text-slate-400 ml-1">Operator Callsign</Label>
-          {error && <span className="text-[9px] font-bold text-rose-500 uppercase flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {error}</span>}
+          {error && (
+            <span className="text-[9px] font-bold text-rose-500 uppercase flex items-center gap-1.5 animate-in slide-in-from-right-2">
+              <AlertCircle className="w-3.5 h-3.5" /> 
+              {error}
+            </span>
+          )}
         </div>
         <div className="relative">
           <User className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
@@ -103,7 +141,7 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
             }}
             className={cn(
               "h-18 pl-14 rounded-2xl border-2 text-xl font-black transition-all",
-              error ? "border-rose-200 bg-rose-50/30" : "border-slate-100"
+              error ? "border-rose-200 bg-rose-50/30 focus:ring-rose-500/20" : "border-slate-100 focus:ring-primary/20"
             )}
             onKeyDown={(e) => e.key === 'Enter' && handleBegin()}
           />
