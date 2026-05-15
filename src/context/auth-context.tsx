@@ -50,36 +50,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('questflow_login_ts');
   }, [user]);
 
+  // PROTOCOL OPTIMIZATION: Immediate client-side check to prevent "Sign In" button delay
   useEffect(() => {
-    const checkSession = () => {
-      const savedUser = localStorage.getItem('questflow_user');
-      const loginTs = localStorage.getItem('questflow_login_ts');
-      
-      if (savedUser && savedUser.trim() !== "" && loginTs) {
-        try {
+    const savedUser = localStorage.getItem('questflow_user');
+    const loginTs = localStorage.getItem('questflow_login_ts');
+    
+    if (!savedUser || savedUser.trim() === "") {
+      setLoading(false);
+      return;
+    }
+
+    if (savedUser && loginTs) {
+      try {
+        const parsed = JSON.parse(savedUser);
+        setUser(parsed);
+        
+        // If settings are already loaded, we can finalize the timeout check
+        if (!settingsLoading) {
           const timeoutHours = Number(settings.session_timeout_hours || '24');
           const elapsed = Date.now() - Number(loginTs);
           const timeoutMs = timeoutHours * 60 * 60 * 1000;
 
           if (elapsed > timeoutMs) {
             logout();
-          } else if (!user) {
-            // INFRASTRUCTURE GUARD: Only hydrate if user state is currently null.
-            // This prevents the infinite loop caused by the logout function dependency changing
-            // every time the user state is updated.
-            setUser(JSON.parse(savedUser));
           }
-        } catch (e) {
-          logout();
+          setLoading(false);
         }
+      } catch (e) {
+        logout();
+        setLoading(false);
       }
-      setLoading(false);
-    };
-
-    if (!settingsLoading) {
-      checkSession();
     }
-  }, [settings, settingsLoading, logout, user]);
+  }, [settingsLoading, settings.session_timeout_hours, logout]);
 
   const login = async (email: string, password?: string): Promise<{ success: boolean; message?: string }> => {
     try {

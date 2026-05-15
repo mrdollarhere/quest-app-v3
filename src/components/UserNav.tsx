@@ -20,7 +20,8 @@ export function UserNav() {
   const { user, logout, loading } = useAuth();
   const { t } = useLanguage();
 
-  if (loading) return <div className="w-10 h-10 rounded-full bg-slate-100 animate-pulse" />;
+  // VISUAL STABILITY PROTOCOL: Render a button-shaped skeleton during initialization
+  if (loading) return <div className="h-10 w-24 rounded-full bg-slate-100 animate-pulse" />;
 
   if (!user) {
     return (
