@@ -15,10 +15,12 @@ export default function RootLoading() {
       <AILoader 
         showBrand={true} 
         messages={[
-          "Initializing System...",
-          "Syncing Registry...",
-          "Establishing Secure Link...",
-          "Hydrating UI Nodes..."
+          "Initializing System Core...",
+          "Establishing Secure Registry Link...",
+          "Retrieving Calibration Parameters...",
+          "Synchronizing UI Telemetry Nodes...",
+          "Hydrating Intelligence Registry...",
+          "Operational Readiness: Optimal"
         ]}
       />
     </div>

@@ -248,9 +248,44 @@ function QuizContent() {
     );
   }
 
-  if (qLoading || configLoading || isSyncingTraining) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><AILoader showBrand={true} messages={isSyncingTraining ? ["Syncing Answer Key...", "Preparing Practice Environment..."] : undefined} /></div>;
+  if (qLoading || configLoading || isSyncingTraining) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <AILoader 
+          showBrand={true} 
+          messages={isSyncingTraining ? [
+            "Establishing Registry Link...", 
+            "Retrieving Answer Key...", 
+            "Optimizing Training Environment...",
+            "Hydrating Practice Nodes..."
+          ] : [
+            "Initializing Assessment Protocol...",
+            "Retrieving Module Metadata...",
+            "Synchronizing Intelligence Registry...",
+            "Ready for Entry..."
+          ]} 
+        />
+      </div>
+    );
+  }
 
-  if (isSubmitting) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><AILoader showBrand={true} messages={["Submitting assessment...", "Calculating your score"]} /></div>;
+  if (isSubmitting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <AILoader 
+          showBrand={true} 
+          messages={[
+            "Processing Response Registry...",
+            "Aggregating Interaction Nodes...",
+            "Calculating Mean Precision...",
+            "Verifying Cryptographic Alignment...",
+            "Finalizing Audit Report...",
+            "Committing to Master Sheets..."
+          ]} 
+        />
+      </div>
+    );
+  }
 
   if (!isStarted) return <QuizStart title={testMetadata?.title || 'Assessment'} questionsCount={questionsData?.length || 0} duration={testMetadata?.duration} user={user} guestName={guestName} setGuestName={setGuestName} protocolSalt={globalData?.salt} isProtectionEnabled={globalData?.protection} guestAccessAllowed={globalData?.guest} onStart={handleStart} testId={testId || undefined} />;
 
