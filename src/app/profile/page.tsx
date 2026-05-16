@@ -47,6 +47,8 @@ export default function ProfilePage() {
     user?.email ? `results-${user.email}` : null,
     async () => {
       // REGISTRY PROTOCOL: Hydrate through secure proxy
+      // The /api/proxy/responses endpoint is now identity-aware and returns 
+      // the FULL history for the logged-in student, solving the 500-record truncation.
       const [respRes, testsRes] = await Promise.all([
         fetch('/api/proxy/responses'),
         fetch('/api/proxy/tests')

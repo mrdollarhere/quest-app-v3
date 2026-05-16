@@ -1,12 +1,12 @@
 export const GAS_CODE = `/**
- * QUESTFLOW BACKEND v18.9.7 - HARDENED ADMINISTRATIVE PROTOCOL
+ * QUESTFLOW BACKEND v18.9.8 - HARDENED ADMINISTRATIVE PROTOCOL
  * 
  * ACTIONS SUPPORTED:
  * - GET: login, getTests, getUsers, getResponses, getQuestions, getActivity, getSettings, getVersion, getEvents, getPublicStats
  * - POST: submitResponse, saveTest, deleteTest, saveUser, deleteUser, saveQuestion, saveQuestions, saveUsers, logActivity, saveSetting, deleteResponse, logEvent, cleanDuplicates
  */
 
-const GAS_VERSION = "18.9.7";
+const GAS_VERSION = "18.9.8";
 
 function doGet(e) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -82,7 +82,17 @@ function doGet(e) {
     if (action === 'getResponses') {
       const sheet = ss.getSheetByName('Responses');
       if (!sheet) return createResponse([]);
-      return createResponse(getRowsAsObjects(sheet).reverse().slice(0, 1000));
+      const email = e.parameter.email;
+      let data = getRowsAsObjects(sheet);
+      
+      if (email) {
+        // Targeted Identity Filter: Returns ALL records for a specific user
+        const filtered = data.filter(r => String(r['User Email'] || '').toLowerCase() === String(email).toLowerCase());
+        return createResponse(filtered.reverse());
+      }
+      
+      // Global View: Return expanded slice for administrative oversight
+      return createResponse(data.reverse().slice(0, 2000));
     }
 
     if (action === 'getActivity') {
