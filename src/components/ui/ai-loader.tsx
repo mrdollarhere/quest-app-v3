@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Loader2, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSettings } from '@/context/settings-context';
 import { Progress } from "@/components/ui/progress";
@@ -33,6 +33,7 @@ interface AILoaderProps {
  * 
  * Implements a strictly monotonic progress tracker with linear interpolation
  * across a sequential task matrix. Ensures full visual minimum is met.
+ * Optimized Velocity: 4s total duration.
  */
 export function AILoader({ 
   className, 
@@ -48,7 +49,7 @@ export function AILoader({
   const brandName = String(settings?.platform_name || "DNTRNG");
 
   useEffect(() => {
-    const totalDuration = 6000; // Visual Minimum: 6s
+    const totalDuration = 4000; // Visual Minimum: 4s (Optimized from 6s)
     const startTime = performance.now();
     let animationFrame: number;
 
@@ -110,14 +111,12 @@ export function AILoader({
         </div>
       )}
 
-      <div className="relative w-20 h-20 mb-12">
-        <Loader2 className={cn("w-20 h-20 animate-spin text-primary absolute top-0 left-0 stroke-[3px] opacity-20", iconClassName)} />
-        <Loader2 
-          className={cn("w-20 h-20 animate-spin text-primary absolute top-0 left-0 stroke-[3px] transition-all duration-300")} 
-          style={{ clipPath: `inset(${100 - progress}% 0 0 0)` }} 
-        />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Sparkles className="w-8 h-8 text-primary animate-pulse" />
+      <div className="relative w-24 h-24 mb-12 flex items-center justify-center">
+        {/* Pulsing Aura Protocol - Replaces Legacy Spinner */}
+        <div className="absolute inset-0 bg-primary/10 rounded-full animate-ping opacity-25" />
+        <div className="absolute inset-2 bg-primary/5 rounded-full animate-pulse" />
+        <div className="relative z-10 flex items-center justify-center">
+          <Sparkles className={cn("w-12 h-12 text-primary animate-pulse drop-shadow-[0_0_15px_rgba(var(--primary),0.4)]", iconClassName)} />
         </div>
       </div>
       
