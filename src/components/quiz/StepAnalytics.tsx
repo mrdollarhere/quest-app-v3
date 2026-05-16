@@ -101,7 +101,7 @@ export function StepAnalytics({ questions, serverReviewData = [], textSize }: St
         </div>
       </div>
 
-      <div className={cn("transition-all duration-500 ease-in-out overflow-hidden", isCollapsed ? "max-h-0 opacity-0" : "max-h-[10000px] opacity-100 mt-10")}>
+      <div className={cn("transition-all duration-500 ease-in-out overflow-hidden", isCollapsed ? "max-h-0 opacity-0" : "max-h-[99999px] opacity-100 mt-10")}>
         {filteredItems.length > 0 ? (
           <Accordion type="single" collapsible className="space-y-4">
             {filteredItems.map((item, idx) => (
