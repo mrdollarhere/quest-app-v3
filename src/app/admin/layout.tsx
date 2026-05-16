@@ -81,7 +81,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50/30 dark:bg-slate-950">
-        <AILoader />
+        <AILoader showBrand={true} />
       </div>
     );
   }

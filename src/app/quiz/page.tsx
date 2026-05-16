@@ -248,9 +248,9 @@ function QuizContent() {
     );
   }
 
-  if (qLoading || configLoading || isSyncingTraining) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><AILoader messages={isSyncingTraining ? ["Syncing Answer Key...", "Preparing Practice Environment..."] : undefined} /></div>;
+  if (qLoading || configLoading || isSyncingTraining) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><AILoader showBrand={true} messages={isSyncingTraining ? ["Syncing Answer Key...", "Preparing Practice Environment..."] : undefined} /></div>;
 
-  if (isSubmitting) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><AILoader messages={["Submitting assessment...", "Calculating your score"]} /></div>;
+  if (isSubmitting) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><AILoader showBrand={true} messages={["Submitting assessment...", "Calculating your score"]} /></div>;
 
   if (!isStarted) return <QuizStart title={testMetadata?.title || 'Assessment'} questionsCount={questionsData?.length || 0} duration={testMetadata?.duration} user={user} guestName={guestName} setGuestName={setGuestName} protocolSalt={globalData?.salt} isProtectionEnabled={globalData?.protection} guestAccessAllowed={globalData?.guest} onStart={handleStart} testId={testId || undefined} />;
 
@@ -261,7 +261,7 @@ function QuizContent() {
 
 export default function QuizPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><AILoader /></div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><AILoader showBrand={true} /></div>}>
       <QuizContent />
     </Suspense>
   );

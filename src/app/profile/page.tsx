@@ -131,7 +131,7 @@ export default function ProfilePage() {
   if (authLoading || resultsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <AILoader />
+        <AILoader showBrand={true} />
       </div>
     );
   }
