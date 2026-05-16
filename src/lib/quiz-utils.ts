@@ -15,27 +15,23 @@ export const shuffleArray = <T,>(array: T[]): T[] => {
 
 /**
  * Robustly parses a registry field that might be a JSON array or a comma-separated string.
+ * Hardened: Ensures all string items are trimmed to prevent registry lookup failures.
  */
 export const parseRegistryArray = (input: any): string[] => {
   if (!input) return [];
   
-  // If it's already an array, just normalize items to strings
   if (Array.isArray(input)) return input.map(item => String(item ?? "").trim());
 
   const str = String(input).trim();
   if (!str) return [];
   
-  // Try parsing as JSON first for maximum data integrity
   if ((str.startsWith('[') && str.endsWith(']')) || (str.startsWith('{') && str.endsWith('}'))) {
     try {
       const parsed = JSON.parse(str);
       if (Array.isArray(parsed)) return parsed.map(item => String(item ?? "").trim());
-    } catch (e) {
-      // Fallback to standard comma splitting if JSON is malformed
-    }
+    } catch (e) {}
   }
   
-  // Fallback for comma separated strings
   return str.split(',').map(s => s.trim()).filter(s => s.length > 0);
 };
 
@@ -59,6 +55,7 @@ export const getRegistryValue = (obj: any, keys: string[]): any => {
 /**
  * Calculates whether a user's response is correct for a given question.
  * Used for both server-side scoring and client-side review feedback.
+ * Hardened: Implements case-insensitive comparison across all complex types.
  */
 export const calculateScoreForQuestion = (q: Question, response: any): boolean => {
   if (!q) return false;
@@ -66,19 +63,13 @@ export const calculateScoreForQuestion = (q: Question, response: any): boolean =
   const questionType = String(q.question_type || '').toLowerCase().replace(/[\s_]/g, '');
   const correctArr = parseRegistryArray(q.correct_answer);
 
-  // 0. Rating Protocol: Handle graded and survey rating interactions
   if (questionType === 'rating') {
     if (response === undefined || response === null) return false;
-    
-    // Survey Protocol: If no correct answer is set, award a point automatically for participation
     if (correctArr.length === 0) return true;
-
     const userRating = parseInt(String(response));
     const targetRating = parseInt(String(correctArr[0]));
-    
     if (isNaN(userRating) || isNaN(targetRating)) return false;
 
-    // Optional Tolerance Protocol: Award point if within ±1 star
     let hasTolerance = false;
     try {
       const meta = JSON.parse(q.metadata || "{}");
@@ -88,36 +79,30 @@ export const calculateScoreForQuestion = (q: Question, response: any): boolean =
     if (hasTolerance) {
       return Math.abs(userRating - targetRating) <= 1;
     }
-
     return userRating === targetRating;
   }
 
-  // General Guard Protocol
   if (q.correct_answer === undefined && questionType !== 'hotspot') return false;
   if (response === undefined || response === null) return false;
   
-  // 1. Choice Based (Single, T/F, Dropdown, Short Text)
   if (['singlechoice', 'oneanswer', 'truefalse', 'shorttext', 'dropdown'].includes(questionType)) {
     const userVal = String(response || "").trim().toLowerCase();
     const targetVal = String(correctArr[0] || "").trim().toLowerCase();
     return userVal === targetVal;
   } 
   
-  // 2. Multiple Choice
   if (['multiplechoice', 'manyanswers'].includes(questionType)) {
     const resArr = (Array.isArray(response) ? response : []).map(r => String(r).trim().toLowerCase()).sort();
     const sortedCorrect = [...correctArr].map(c => String(c).trim().toLowerCase()).sort();
     return JSON.stringify(resArr) === JSON.stringify(sortedCorrect);
   } 
   
-  // 3. Ordering
   if (questionType === 'ordering') {
-    const responseArr = (Array.isArray(response) ? response : []).map(r => String(r).trim());
-    const targetArr = [...correctArr].map(c => String(c).trim());
+    const responseArr = (Array.isArray(response) ? response : []).map(r => String(r).trim().toLowerCase());
+    const targetArr = [...correctArr].map(c => String(c).trim().toLowerCase());
     return JSON.stringify(responseArr) === JSON.stringify(targetArr);
   } 
   
-  // 4. Hotspot (Spatial)
   if (questionType === 'hotspot') {
     try {
       const zones: HotspotZone[] = JSON.parse(q.metadata || "[]");
@@ -131,41 +116,45 @@ export const calculateScoreForQuestion = (q: Question, response: any): boolean =
     } catch (e) { return false; }
   } 
   
-  // 5. Matching
   if (questionType === 'matching') {
-    const userPairs = Object.entries((response || {}) as Record<string, string>)
-      .map(([k, v]) => `${String(k).trim()}|${String(v).trim()}`)
-      .sort();
+    const userResp = (response || {}) as Record<string, string>;
+    const userKeys = Object.keys(userResp);
     
-    const sortedCorrect = [...correctArr].map(c => String(c).trim()).sort();
-    
-    if (sortedCorrect.length !== userPairs.length) return false;
-    return JSON.stringify(userPairs) === JSON.stringify(sortedCorrect);
+    if (userKeys.length !== correctArr.length) return false;
+
+    // Matching protocol: Check every correct pair against the submitted mapping case-insensitively
+    return correctArr.every(pair => {
+      const [k, v] = String(pair).split('|').map(s => s.trim().toLowerCase());
+      // Find key in user response that matches k case-insensitively
+      const actualKey = userKeys.find(uk => uk.trim().toLowerCase() === k);
+      if (!actualKey) return false;
+      return String(userResp[actualKey] || "").trim().toLowerCase() === v;
+    });
   }
 
-  // 6. Multiple True/False
   if (['multipletruefalse', 'multitf'].includes(questionType)) {
     const statements = parseRegistryArray(q.order_group);
     const userResp = (response || {}) as Record<string, string>;
-    
-    if (Object.keys(userResp).length !== statements.length) return false;
+    const userKeys = Object.keys(userResp);
 
     return statements.every((s, i) => {
-      const userVal = String(userResp[s] || "").trim().toLowerCase();
+      const k = s.trim().toLowerCase();
+      const actualKey = userKeys.find(uk => uk.trim().toLowerCase() === k);
+      const userVal = actualKey ? String(userResp[actualKey] || "").trim().toLowerCase() : "";
       const correctVal = String(correctArr[i] || "").trim().toLowerCase();
       return userVal === correctVal;
     });
   }
 
-  // 7. Matrix Choice
   if (['matrixchoice', 'matrix'].includes(questionType)) {
     const rows = parseRegistryArray(q.order_group);
     const userResp = (response || {}) as Record<string, string>;
-
-    if (Object.keys(userResp).length !== rows.length) return false;
+    const userKeys = Object.keys(userResp);
 
     return rows.every((row, i) => {
-      const userVal = String(userResp[row] || "").trim().toLowerCase();
+      const k = row.trim().toLowerCase();
+      const actualKey = userKeys.find(uk => uk.trim().toLowerCase() === k);
+      const userVal = actualKey ? String(userResp[actualKey] || "").trim().toLowerCase() : "";
       const correctVal = String(correctArr[i] || "").trim().toLowerCase();
       return userVal === correctVal;
     });

@@ -16,17 +16,19 @@ function arraysMatch(a: string[], b: string[]) {
 /**
  * UTILITY: Registry Field Parser
  * Robustly parses fields that might be arrays or stringified JSON arrays.
+ * Hardened: Ensures all string items are trimmed to prevent registry lookup failures.
  */
 function parseJsonField(field: unknown): any[] {
   if (!field) return [];
-  if (Array.isArray(field)) return field;
+  if (Array.isArray(field)) return field.map(v => typeof v === 'string' ? v.trim() : v);
   if (typeof field === 'string') {
     const trimmed = field.trim();
     if (!trimmed) return [];
     if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
       try {
         const parsed = JSON.parse(trimmed);
-        return Array.isArray(parsed) ? parsed : [parsed];
+        const arr = Array.isArray(parsed) ? parsed : [parsed];
+        return arr.map(v => typeof v === 'string' ? v.trim() : v);
       } catch {
         return trimmed.split(',').map(s => s.trim());
       }
@@ -66,15 +68,20 @@ function gradeQuestion(question: Question, submitted: unknown): boolean {
     case 'matrix_choice':
     case 'matrixchoice':
       if (typeof submitted !== 'object' || !submitted) return false;
-      return orderArr.every((key, i) => 
-        String((submitted as any)[key] ?? '').trim().toLowerCase() === String(correctArr[i] ?? '').trim().toLowerCase()
-      );
+      // Registry lookup: Iterate through orderArr keys and verify against submitted values
+      return orderArr.every((key, i) => {
+        const userVal = String((submitted as any)[key] ?? '').trim().toLowerCase();
+        const correctVal = String(correctArr[i] ?? '').trim().toLowerCase();
+        return userVal === correctVal;
+      });
 
     case 'matching':
       if (typeof submitted !== 'object' || !submitted) return false;
+      // Matching protocol: Check every correct pair against the submitted mapping
       return correctArr.every(pair => {
         const [k, v] = String(pair).split('|').map(s => s.trim());
-        return String((submitted as any)[k] ?? '').trim().toLowerCase() === String(v ?? '').trim().toLowerCase();
+        const userVal = String((submitted as any)[k] ?? '').trim().toLowerCase();
+        return userVal === String(v ?? '').trim().toLowerCase();
       });
 
     case 'ordering':
