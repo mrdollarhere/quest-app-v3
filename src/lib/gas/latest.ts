@@ -83,16 +83,33 @@ function doGet(e) {
       const sheet = ss.getSheetByName('Responses');
       if (!sheet) return createResponse([]);
       const email = e.parameter.email;
-      let data = getRowsAsObjects(sheet);
+      const allData = sheet.getDataRange().getValues();
+      if (allData.length < 2) return createResponse([]);
+      
+      const headers = allData.shift();
+      const emailIdx = headers.indexOf('User Email');
       
       if (email) {
-        // Targeted Identity Filter: Returns ALL records for a specific user
-        const filtered = data.filter(r => String(r['User Email'] || '').toLowerCase() === String(email).toLowerCase());
+        // Targeted Identity Filter: Returns ALL records for a specific user but minimizes payload size
+        const normalizedEmail = String(email).toLowerCase().trim();
+        const filtered = allData
+          .filter(row => String(row[emailIdx] || '').toLowerCase().trim() === normalizedEmail)
+          .map(row => {
+            const obj = {};
+            headers.forEach((h, i) => obj[h] = row[i]);
+            return obj;
+          });
         return createResponse(filtered.reverse());
       }
       
-      // Global View: Return expanded slice for administrative oversight
-      return createResponse(data.reverse().slice(0, 2000));
+      // Global View: Return expanded slice (Last 2000) for administrative oversight
+      const lastRows = allData.slice(-2000).reverse();
+      const result = lastRows.map(row => {
+        const obj = {};
+        headers.forEach((h, i) => obj[h] = row[i]);
+        return obj;
+      });
+      return createResponse(result);
     }
 
     if (action === 'getActivity') {
