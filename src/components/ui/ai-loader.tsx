@@ -1,17 +1,17 @@
+
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSettings } from '@/context/settings-context';
-import { Progress } from "@/components/ui/progress";
 
 interface AILoaderProps {
   className?: string;
   iconClassName?: string;
   showBrand?: boolean;
-  isDataReady?: boolean; // Anchored Prop
-  onComplete?: () => void; // Final transition callback
+  isDataReady?: boolean; 
+  onComplete?: () => void; 
 }
 
 /**
@@ -21,8 +21,7 @@ interface AILoaderProps {
  * Logic:
  * 1. REQUEST_SENT: 0% -> 30%
  * 2. DATA_AWAITING: 30% -> 75% (Slow Coast)
- * 3. DATA_RESOLVED: 75% -> 95% (On isDataReady)
- * 4. COMPONENT_READY: 100%
+ * 3. DATA_RESOLVED: 75% -> 100% (Rapid Snap on isDataReady)
  */
 export function AILoader({ 
   className, 
@@ -42,53 +41,45 @@ export function AILoader({
   useEffect(() => {
     const timer = setInterval(() => {
       setVisualProgress(prev => {
-        // MONOTONIC PROTOCOL: Always move forward
         if (prev < 30) {
-          return Math.min(30, prev + 2); // Fast ramp-up
+          return Math.min(30, prev + 3); // Faster ramp-up
         }
         
         if (!isDataReady) {
-          // LATENCY AUDIT: Check if network is taking > 3s
           if (Date.now() - startTimeRef.current > 3000) {
             setIsSlow(true);
           }
           
           if (prev < 75) {
-            return prev + 0.2; // Slow coast while waiting
+            return prev + 0.5; // Slightly faster coast
           }
           return prev;
         }
 
-        // isDataReady is TRUE
-        if (prev < 95) {
-          return Math.min(95, prev + 5); // Rapid snap to validation
-        }
-
+        // isDataReady is TRUE: Rapid resolution protocol
         if (prev < 100) {
-          return prev + 1; // Final commit pulse
+          return Math.min(100, prev + 15); // Instant snap to 100%
         }
 
         return 100;
       });
-    }, 50);
+    }, 40); // 40ms interval for smoother 25fps pulse
 
     return () => clearInterval(timer);
   }, [isDataReady]);
 
-  // NAVIGATION GUARD: Trigger onComplete only when visual progress is 100
+  // NAVIGATION GUARD: Trigger onComplete immediately upon 100% visual parity
   useEffect(() => {
     if (visualProgress >= 100 && !hasTriggeredComplete.current) {
       hasTriggeredComplete.current = true;
-      setTimeout(() => {
-        onComplete?.();
-      }, 500); // 500ms Hold per Protocol
+      // No artificial hold - immediate transition per operator feedback
+      onComplete?.();
     }
   }, [visualProgress, onComplete]);
 
-  // TELEMETRY PHRASING LOGIC
   const getTelemetryPhrase = () => {
     if (visualProgress === 100) return "MISSION STATUS: 100%";
-    if (visualProgress >= 95) return "INTELLIGENCE RECEIVED. VALIDATING CHECKSUM...";
+    if (visualProgress >= 85) return "INTELLIGENCE RECEIVED. VALIDATING CHECKSUM...";
     if (isSlow) return "OPTIMIZING PACKET FRAGMENTS...";
     return "INITIALIZING DATA UPLINK...";
   };
@@ -96,7 +87,7 @@ export function AILoader({
   return (
     <div className={cn("flex flex-col items-center justify-center p-8", className)}>
       {showBrand && (
-        <div className="mb-16 flex flex-col items-center animate-in fade-in zoom-in duration-1000">
+        <div className="mb-16 flex flex-col items-center animate-in fade-in zoom-in duration-700">
            {settings?.logo_url ? (
              <img 
                src={settings.logo_url} 
@@ -144,10 +135,10 @@ export function AILoader({
           </div>
           <div className="h-1 w-full bg-slate-100 dark:bg-slate-800 relative overflow-hidden">
              <div 
-               className="absolute top-0 left-0 h-full bg-primary transition-all duration-300"
+               className="absolute top-0 left-0 h-full bg-primary"
                style={{ 
                  width: `${visualProgress}%`,
-                 transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)'
+                 transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                }}
              />
           </div>

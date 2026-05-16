@@ -1,12 +1,13 @@
+
 "use client";
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Zap, LogIn, Loader2, ArrowLeft, Mail, Lock, UserPlus, Eye, EyeOff, CheckCircle2, ShieldCheck } from "lucide-react";
+import { Zap, LogIn, Loader2, ArrowLeft, Mail, Lock, UserPlus, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { useSettings } from '@/context/settings-context';
 import { useToast } from "@/hooks/use-toast";
@@ -23,7 +24,7 @@ import {
 } from "@/components/ui/dialog";
 
 function LoginContent() {
-  const { login, user } = useAuth();
+  const { login } = useAuth();
   const { settings } = useSettings();
   const { t } = useLanguage();
   const router = useRouter();
@@ -31,28 +32,12 @@ function LoginContent() {
   const { toast } = useToast();
   
   const [loading, setLoading] = useState(false);
-  const [loginSuccess, setLoginSuccess] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSignUpDialogOpen, setIsSignUpDialogOpen] = useState(false);
 
-  // Protocol: Explicit string casting to prevent type errors from numeric sheet entries
   const brandName = String(settings.platform_name || "DNTRNG");
-
-  useEffect(() => {
-    if (loginSuccess) {
-      const timer = setTimeout(() => {
-        const returnTo = searchParams.get('returnTo');
-        if (returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//')) {
-          router.push(returnTo);
-        } else {
-          router.push('/profile');
-        }
-      }, 2200); // Calibration delay for UX immersion
-      return () => clearTimeout(timer);
-    }
-  }, [loginSuccess, router, searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,7 +47,13 @@ function LoginContent() {
     const result = await login(email, password);
     
     if (result.success) {
-      setLoginSuccess(true);
+      // IDENTITY HANDSHAKE COMPLETE: Immediate redirection protocol
+      const returnTo = searchParams.get('returnTo');
+      if (returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//')) {
+        router.push(returnTo);
+      } else {
+        router.push('/profile');
+      }
     } else {
       let errorDesc = "Invalid credentials. Access denied.";
       if (result.message === "domain_restricted") {
@@ -77,55 +68,6 @@ function LoginContent() {
       setLoading(false);
     }
   };
-
-  if (loginSuccess && user) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 animate-in fade-in duration-500">
-        <Card className="w-full max-w-md border-none shadow-[0_40px_100px_-15px_rgba(0,0,0,0.1)] rounded-[3rem] overflow-hidden bg-white">
-          <div className="p-12 text-center space-y-8">
-            <div className="relative mx-auto w-24 h-24">
-              <div className="absolute inset-0 bg-primary/10 rounded-full animate-ping opacity-25" />
-              <div className="relative bg-primary rounded-[2rem] w-24 h-24 flex items-center justify-center shadow-2xl shadow-primary/30 rotate-3">
-                <CheckCircle2 className="w-12 h-12 text-white" />
-              </div>
-            </div>
-            
-            <div className="space-y-3">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 rounded-full text-[9px] font-black uppercase tracking-[0.2em] text-emerald-600">
-                <ShieldCheck className="w-3 h-3" /> Identity Verified
-              </div>
-              <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none">
-                Welcome back<span className="text-primary">.</span>
-              </h2>
-              <p className="text-slate-500 font-medium">{user.displayName || user.email}</p>
-            </div>
-
-            <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 space-y-4">
-              <div className="flex items-center justify-between text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                <span>Mission Registry</span>
-                <span className="text-primary">Synchronizing...</span>
-              </div>
-              <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
-                <div className="h-full bg-primary rounded-full animate-[progress_2s_ease-in-out]" />
-              </div>
-              <style jsx>{`
-                @keyframes progress {
-                  0% { width: 0%; }
-                  100% { width: 100%; }
-                }
-              `}</style>
-            </div>
-
-            <div className="flex items-center justify-center gap-3">
-              <Loader2 className="w-4 h-4 text-slate-300 animate-spin" />
-              <span className="text-[10px] font-black uppercase text-slate-300 tracking-[0.4em]">Initializing Terminal</span>
-            </div>
-          </div>
-        </Card>
-        <p className="mt-12 text-[9px] font-black uppercase tracking-[0.6em] text-slate-300">DNTRNG™ • AUTHENTICATION PROTOCOL COMPLETE</p>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center pt-20 transition-all duration-300">

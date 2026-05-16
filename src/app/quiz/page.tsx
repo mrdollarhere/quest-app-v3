@@ -1,9 +1,10 @@
+
 /**
  * page.tsx (Quiz)
  * 
  * Route: /quiz
  * Purpose: Primary interaction terminal for all assessment modules.
- * Refactored: v18.9.8 - Moved complex lifecycle loading to QuizLoadingManager.
+ * Refactored: v19.1.0 - Streamlined loading protocols for high-velocity navigation.
  */
 
 "use client";
@@ -17,12 +18,9 @@ import { QuizActive } from '@/components/quiz/QuizActive';
 import { useToast } from '@/hooks/use-toast';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
-import { useSettings } from '@/context/settings-context';
 import { trackEvent } from '@/lib/tracker';
 import { AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-
-// Extracted Sub-components
 import { QuizLoadingManager } from '@/components/quiz/lifecycle/QuizLoadingManager';
 
 function QuizContent() {
@@ -41,14 +39,12 @@ function QuizContent() {
   const [serverReviewData, setServerReviewData] = useState<any[]>([]);
   const [finalDuration, setFinalDuration] = useState<number>(0);
 
-  // LIFECYCLE ORCHESTRATION STATES
+  // REDUCED LATENCY LIFECYCLE STATES
   const [isInitialVisuallyLoading, setIsInitialVisuallyLoading] = useState(true);
   const [isInitialDataReady, setIsInitialDataReady] = useState(false);
-  const [isInitialAnimationDone, setIsInitialAnimationDone] = useState(false);
   
   const [isSubmittingVisually, setIsSubmittingVisually] = useState(false);
   const [isSubmissionDataReady, setIsSubmissionDataReady] = useState(false);
-  const [isSubmissionAnimationDone, setIsSubmissionAnimationDone] = useState(false);
   const [pendingSubmissionResult, setPendingSubmissionResult] = useState<any>(null);
   
   const [quiz, setQuiz] = useState<QuizState>({
@@ -63,7 +59,6 @@ function QuizContent() {
     flaggedQuestionIds: []
   });
 
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const quizStartTimeRef = useRef<number | null>(null);
 
   const { data: questionsData, isLoading: qLoading, error: qError } = useSWR(
@@ -91,24 +86,19 @@ function QuizContent() {
     if (!qLoading && !configLoading && !!questionsData && !!globalData) setIsInitialDataReady(true);
   }, [qLoading, configLoading, questionsData, globalData]);
 
-  useEffect(() => {
-    if (isInitialDataReady && isInitialAnimationDone) setIsInitialVisuallyLoading(false);
-  }, [isInitialDataReady, isInitialAnimationDone]);
-
-  useEffect(() => {
-    if (isSubmissionDataReady && isSubmissionAnimationDone && pendingSubmissionResult) {
-      const data = pendingSubmissionResult;
-      const testMetadata = globalData?.tests.find(t => String(t.id) === String(testId));
-      const passingThreshold = Number(testMetadata?.passing_threshold || globalData?.defaultThreshold || 70);
-      const isPassed = Math.round((data.score / (data.total || 1)) * 100) >= passingThreshold;
-      
-      if (isPassed && testMetadata?.certificate_enabled !== 'FALSE') setGeneratedCertificateId(data.certificateId);
-      setServerReviewData(data.reviewData || []);
-      setQuiz(prev => ({ ...prev, isSubmitted: true, score: data.score, endTime: Date.now() }));
-      if (user?.email) globalMutate(`results-${user.email}`);
-      setIsSubmittingVisually(false); setIsSubmissionDataReady(false); setIsSubmissionAnimationDone(false); setPendingSubmissionResult(null);
-    }
-  }, [isSubmissionDataReady, isSubmissionAnimationDone, pendingSubmissionResult, globalData, testId, user]);
+  const finalizeSubmission = () => {
+    if (!pendingSubmissionResult) return;
+    const data = pendingSubmissionResult;
+    const testMetadata = globalData?.tests.find(t => String(t.id) === String(testId));
+    const passingThreshold = Number(testMetadata?.passing_threshold || globalData?.defaultThreshold || 70);
+    const isPassed = Math.round((data.score / (data.total || 1)) * 100) >= passingThreshold;
+    
+    if (isPassed && testMetadata?.certificate_enabled !== 'FALSE') setGeneratedCertificateId(data.certificateId);
+    setServerReviewData(data.reviewData || []);
+    setQuiz(prev => ({ ...prev, isSubmitted: true, score: data.score, endTime: Date.now() }));
+    if (user?.email) globalMutate(`results-${user.email}`);
+    setIsSubmittingVisually(false); setIsSubmissionDataReady(false); setPendingSubmissionResult(null);
+  };
 
   const submit = async () => {
     if (isSubmittingVisually) return;
@@ -123,7 +113,10 @@ function QuizContent() {
         body: JSON.stringify({ testId, responses: quiz.responses, userName: user?.displayName || guestName || 'Guest User', userEmail: user?.email || 'Anonymous', duration, mode: quiz.mode, certificateId: `CRT-${testId}-${now.toString().slice(-6)}`.toUpperCase() })
       });
       const data = await res.json();
-      if (res.ok) { setPendingSubmissionResult(data); setIsSubmissionDataReady(true); }
+      if (res.ok) { 
+        setPendingSubmissionResult(data); 
+        setIsSubmissionDataReady(true); 
+      }
       else throw new Error(data.error);
     } catch (e: any) {
       setIsSubmittingVisually(false); toast({ variant: "destructive", title: "Submission Failure" });
@@ -151,8 +144,8 @@ function QuizContent() {
   if (isInitialVisuallyLoading || isSyncingTraining || isSubmittingVisually) {
     return (
       <QuizLoadingManager 
-        isSubmitting={isSubmittingVisually} isSubmissionDataReady={isSubmissionDataReady} onSubmissionComplete={() => setIsSubmissionAnimationDone(true)}
-        isInitialLoading={isInitialVisuallyLoading} isInitialDataReady={isInitialDataReady} onInitialComplete={() => setIsInitialAnimationDone(true)}
+        isSubmitting={isSubmittingVisually} isSubmissionDataReady={isSubmissionDataReady} onSubmissionComplete={finalizeSubmission}
+        isInitialLoading={isInitialVisuallyLoading} isInitialDataReady={isInitialDataReady} onInitialComplete={() => setIsInitialVisuallyLoading(false)}
         isSyncingTraining={isSyncingTraining}
       />
     );
