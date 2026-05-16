@@ -1,3 +1,11 @@
+/**
+ * page.tsx (Quiz)
+ * 
+ * Route: /quiz
+ * Purpose: Primary interaction terminal for all assessment modules.
+ * Refactored: v18.9.8 - Moved complex lifecycle loading to QuizLoadingManager.
+ */
+
 "use client";
 
 import React, { useState, useEffect, Suspense, useRef } from 'react';
@@ -9,11 +17,13 @@ import { QuizActive } from '@/components/quiz/QuizActive';
 import { useToast } from '@/hooks/use-toast';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
-import { AILoader } from '@/components/ui/ai-loader';
 import { useSettings } from '@/context/settings-context';
 import { trackEvent } from '@/lib/tracker';
-import { AlertCircle, ArrowLeft, Home } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+
+// Extracted Sub-components
+import { QuizLoadingManager } from '@/components/quiz/lifecycle/QuizLoadingManager';
 
 function QuizContent() {
   const searchParams = useSearchParams();
@@ -21,7 +31,6 @@ function QuizContent() {
   const router = useRouter();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { settings } = useSettings();
   
   const [isStarted, setIsStarted] = useState(false);
   const [isSyncingTraining, setIsSyncingTraining] = useState(false);
@@ -57,11 +66,6 @@ function QuizContent() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const quizStartTimeRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    const savedName = localStorage.getItem('dntrng_guest_name');
-    if (savedName) setGuestName(savedName);
-  }, []);
-
   const { data: questionsData, isLoading: qLoading, error: qError } = useSWR(
     testId ? `/api/proxy/questions?id=${testId}` : null
   );
@@ -69,12 +73,8 @@ function QuizContent() {
   const { data: globalData, isLoading: configLoading } = useSWR(
     '/api/proxy/settings',
     async (url) => {
-      const [sRes, tRes] = await Promise.all([
-        fetch('/api/proxy/settings'),
-        fetch('/api/proxy/tests')
-      ]);
-      const sData = await sRes.json();
-      const tData = await tRes.json();
+      const [sRes, tRes] = await Promise.all([fetch('/api/proxy/settings'), fetch('/api/proxy/tests')]);
+      const [sData, tData] = await Promise.all([sRes.json(), tRes.json()]);
       return {
         tests: Array.isArray(tData) ? tData : [],
         salt: sData.daily_key_salt || "",
@@ -87,241 +87,83 @@ function QuizContent() {
     }
   );
 
-  // INITIAL HYDRATION SYNC
   useEffect(() => {
-    const isReady = !qLoading && !configLoading && !!questionsData && !!globalData;
-    if (isReady) {
-      setIsInitialDataReady(true);
-    }
+    if (!qLoading && !configLoading && !!questionsData && !!globalData) setIsInitialDataReady(true);
   }, [qLoading, configLoading, questionsData, globalData]);
 
-  // NAVIGATION GUARD: INITIAL LOAD
   useEffect(() => {
-    if (isInitialDataReady && isInitialAnimationDone) {
-      setIsInitialVisuallyLoading(false);
-    }
+    if (isInitialDataReady && isInitialAnimationDone) setIsInitialVisuallyLoading(false);
   }, [isInitialDataReady, isInitialAnimationDone]);
 
-  // SUBMISSION ORCHESTRATION
   useEffect(() => {
     if (isSubmissionDataReady && isSubmissionAnimationDone && pendingSubmissionResult) {
       const data = pendingSubmissionResult;
+      const testMetadata = globalData?.tests.find(t => String(t.id) === String(testId));
       const passingThreshold = Number(testMetadata?.passing_threshold || globalData?.defaultThreshold || 70);
-      const finalPercentage = Math.round((data.score / (data.total || 1)) * 100);
-      const isPassed = finalPercentage >= passingThreshold;
+      const isPassed = Math.round((data.score / (data.total || 1)) * 100) >= passingThreshold;
       
-      if (isPassed && testMetadata?.certificate_enabled !== 'FALSE') {
-        setGeneratedCertificateId(data.certificateId);
-      }
-
+      if (isPassed && testMetadata?.certificate_enabled !== 'FALSE') setGeneratedCertificateId(data.certificateId);
       setServerReviewData(data.reviewData || []);
       setQuiz(prev => ({ ...prev, isSubmitted: true, score: data.score, endTime: Date.now() }));
-      
       if (user?.email) globalMutate(`results-${user.email}`);
-      
-      setIsSubmittingVisually(false);
-      // Reset flags
-      setIsSubmissionDataReady(false);
-      setIsSubmissionAnimationDone(false);
-      setPendingSubmissionResult(null);
+      setIsSubmittingVisually(false); setIsSubmissionDataReady(false); setIsSubmissionAnimationDone(false); setPendingSubmissionResult(null);
     }
-  }, [isSubmissionDataReady, isSubmissionAnimationDone, pendingSubmissionResult]);
-
-  useEffect(() => {
-    if (isStarted && !quiz.isSubmitted) {
-      timerRef.current = setInterval(() => {
-        if (Number(globalData?.globalTimer || 0) > 0) {
-          setTimeLeft(prev => {
-            if (prev <= 1) {
-              if (quiz.mode === 'race') {
-                submit();
-                return 0;
-              }
-              return 0;
-            }
-            return prev - 1;
-          });
-        }
-      }, 1000);
-    } else {
-      if (timerRef.current) clearInterval(timerRef.current);
-    }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [isStarted, quiz.isSubmitted, globalData, quiz.mode]);
-
-  const testMetadata = globalData?.tests.find(t => String(t.id) === String(testId));
-
-  const handleResponseChange = (val: any) => {
-    const currentQuestion = quiz.questions[quiz.currentQuestionIndex];
-    const updatedResponses = [...quiz.responses];
-    const index = updatedResponses.findIndex(r => r.questionId === currentQuestion.id);
-    
-    if (index > -1) {
-      updatedResponses[index].answer = val;
-    } else {
-      updatedResponses.push({ questionId: currentQuestion.id, answer: val });
-    }
-    setQuiz({ ...quiz, responses: updatedResponses });
-  };
-
-  const handleConfirmResponse = () => {
-    const currentQuestion = quiz.questions[quiz.currentQuestionIndex];
-    const updatedResponses = [...quiz.responses];
-    const index = updatedResponses.findIndex(r => r.questionId === currentQuestion.id);
-    if (index > -1) {
-      updatedResponses[index].isConfirmed = true;
-      setQuiz({ ...quiz, responses: updatedResponses });
-    }
-  };
-
-  const handleNext = () => {
-    if (quiz.currentQuestionIndex < quiz.questions.length - 1) {
-      const nextIdx = quiz.currentQuestionIndex + 1;
-      setQuiz({ ...quiz, currentQuestionIndex: nextIdx, highestStepReached: Math.max(quiz.highestStepReached, nextIdx) });
-    }
-  };
+  }, [isSubmissionDataReady, isSubmissionAnimationDone, pendingSubmissionResult, globalData, testId, user]);
 
   const submit = async () => {
     if (isSubmittingVisually) return;
-    
     const now = Date.now();
     const duration = now - (quizStartTimeRef.current || now);
     setFinalDuration(duration);
-
-    const finalName = user?.displayName || guestName || 'Guest User';
-    const finalEmail = user?.email || 'Anonymous';
-
     setIsSubmittingVisually(true);
-    setIsSubmissionDataReady(false);
-    setIsSubmissionAnimationDone(false);
-    
     try {
       const res = await fetch('/api/proxy/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          testId,
-          responses: quiz.responses,
-          userName: finalName,
-          userEmail: finalEmail,
-          duration: duration,
-          mode: quiz.mode,
-          certificateId: `CRT-${testId}-${now.toString().slice(-6)}`.toUpperCase()
-        })
+        body: JSON.stringify({ testId, responses: quiz.responses, userName: user?.displayName || guestName || 'Guest User', userEmail: user?.email || 'Anonymous', duration, mode: quiz.mode, certificateId: `CRT-${testId}-${now.toString().slice(-6)}`.toUpperCase() })
       });
-
       const data = await res.json();
-      
-      if (res.ok) {
-        setPendingSubmissionResult(data);
-        setIsSubmissionDataReady(true); // Anchor for AILoader jump
-        
-        trackEvent('quiz_submit', { 
-          test_id: testId || '', 
-          test_name: testMetadata?.title,
-          score: data.score, 
-          details: { passed: data.percentage >= 70, total: data.total, duration } 
-        });
-      } else {
-        throw new Error(data.error);
-      }
+      if (res.ok) { setPendingSubmissionResult(data); setIsSubmissionDataReady(true); }
+      else throw new Error(data.error);
     } catch (e: any) {
-      setIsSubmittingVisually(false);
-      toast({ variant: "destructive", title: "Submission Failure", description: e.message || "The registry handshake failed." });
+      setIsSubmittingVisually(false); toast({ variant: "destructive", title: "Submission Failure" });
     }
   };
 
   const handleStart = async (mode: QuizMode) => {
     let q = questionsData || [];
-
     if (mode === 'training') {
       setIsSyncingTraining(true);
-      try {
-        const res = await fetch(`/api/proxy/questions?id=${testId}&training=true`);
-        if (!res.ok) throw new Error();
-        q = await res.json();
-      } catch (e) {
-        toast({ variant: "destructive", title: "Sync Error", description: "Could not retrieve answer key for practice." });
-        setIsSyncingTraining(false);
-        return;
-      }
+      try { const res = await fetch(`/api/proxy/questions?id=${testId}&training=true`); q = await res.json(); }
+      catch (e) { toast({ variant: "destructive", title: "Sync Error" }); setIsSyncingTraining(false); return; }
       setIsSyncingTraining(false);
     }
-
-    if (!q || q.length === 0) {
-      toast({ variant: "destructive", title: "Module Error", description: "This assessment contains no active questions." });
-      return;
-    }
-    
+    if (!q || q.length === 0) return;
     if (mode === 'test') q = [...q].sort(() => Math.random() - 0.5);
-    
-    const limit = Number(globalData?.globalTimer || 0);
-    setTimeLeft(limit > 0 ? limit * 60 : 900);
+    setTimeLeft(Number(globalData?.globalTimer || 0) > 0 ? Number(globalData?.globalTimer) * 60 : 900);
     quizStartTimeRef.current = Date.now();
-    
-    setIsStarted(true);
-    setQuiz(prev => ({ ...prev, questions: q, startTime: Date.now(), mode: mode, currentQuestionIndex: 0, responses: [] }));
-    trackEvent('quiz_start', { test_id: testId || '', test_name: testMetadata?.title, details: { mode } });
+    setIsStarted(true); setQuiz(prev => ({ ...prev, questions: q, mode, currentQuestionIndex: 0, responses: [] }));
   };
 
-  if (globalData?.maintenance) {
+  if (globalData?.maintenance) return <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center"><AlertCircle className="w-12 h-12 text-amber-500 mb-6" /><h2 className="text-3xl font-black text-slate-900 uppercase">Maintenance Mode</h2><Button onClick={() => router.push('/')} className="mt-8 rounded-full">Return Home</Button></div>;
+  if (qError || (questionsData && questionsData.length === 0)) return <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center"><AlertCircle className="w-16 h-16 text-rose-500 mb-6" /><h2 className="text-3xl font-black text-slate-900">Module Empty</h2><Button onClick={() => router.push('/tests')} className="mt-8 rounded-full">Return to Library</Button></div>;
+
+  if (isInitialVisuallyLoading || isSyncingTraining || isSubmittingVisually) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-8 text-center">
-        <AlertCircle className="w-12 h-12 text-amber-500 mb-6" />
-        <h2 className="text-3xl font-black text-slate-900 uppercase">Maintenance Mode</h2>
-        <p className="text-slate-500 mb-8">Platform registry is currently undergoing calibration.</p>
-        <Button onClick={() => router.push('/')} className="rounded-full px-8">Return Home</Button>
-      </div>
+      <QuizLoadingManager 
+        isSubmitting={isSubmittingVisually} isSubmissionDataReady={isSubmissionDataReady} onSubmissionComplete={() => setIsSubmissionAnimationDone(true)}
+        isInitialLoading={isInitialVisuallyLoading} isInitialDataReady={isInitialDataReady} onInitialComplete={() => setIsInitialAnimationDone(true)}
+        isSyncingTraining={isSyncingTraining}
+      />
     );
   }
 
-  if (qError || (questionsData && questionsData.length === 0)) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-8 text-center">
-        <AlertCircle className="w-16 h-16 text-rose-500 mb-6" />
-        <h2 className="text-3xl font-black text-slate-900">Module Empty</h2>
-        <Button onClick={() => router.push('/tests')} className="rounded-full px-8">Return to Library</Button>
-      </div>
-    );
-  }
+  if (!isStarted) return <QuizStart title={globalData?.tests.find(t => String(t.id) === String(testId))?.title || 'Assessment'} questionsCount={questionsData?.length || 0} user={user} guestName={guestName} setGuestName={setGuestName} protocolSalt={globalData?.salt} isProtectionEnabled={globalData?.protection} guestAccessAllowed={globalData?.guest} onStart={handleStart} testId={testId || undefined} />;
+  if (quiz.isSubmitted) return <QuizResults title={globalData?.tests.find(t => String(t.id) === String(testId))?.title || 'Assessment'} score={quiz.score} totalQuestions={quiz.questions.length} questions={quiz.questions} responses={quiz.responses} serverReviewData={serverReviewData} userName={user?.displayName || guestName || 'Guest User'} onRestart={() => { setIsStarted(false); setQuiz(prev => ({...prev, isSubmitted: false, responses: []})); }} certificateId={generatedCertificateId || undefined} duration={finalDuration} />;
 
-  if (isInitialVisuallyLoading || isSyncingTraining) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <AILoader 
-          showBrand={true} 
-          isDataReady={isInitialDataReady}
-          onComplete={() => setIsInitialAnimationDone(true)}
-        />
-      </div>
-    );
-  }
-
-  if (isSubmittingVisually) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <AILoader 
-          showBrand={true} 
-          isDataReady={isSubmissionDataReady}
-          onComplete={() => setIsSubmissionAnimationDone(true)}
-        />
-      </div>
-    );
-  }
-
-  if (!isStarted) return <QuizStart title={testMetadata?.title || 'Assessment'} questionsCount={questionsData?.length || 0} duration={testMetadata?.duration} user={user} guestName={guestName} setGuestName={setGuestName} protocolSalt={globalData?.salt} isProtectionEnabled={globalData?.protection} guestAccessAllowed={globalData?.guest} onStart={handleStart} testId={testId || undefined} />;
-
-  if (quiz.isSubmitted) return <QuizResults title={testMetadata?.title || 'Assessment'} testId={testId || undefined} score={quiz.score} totalQuestions={quiz.questions.length} questions={quiz.questions} responses={quiz.responses} serverReviewData={serverReviewData} userName={user?.displayName || guestName || 'Guest User'} onRestart={() => { setIsStarted(false); setQuiz(prev => ({...prev, isSubmitted: false, responses: []})); }} startTime={quiz.startTime} endTime={quiz.endTime} testMetadata={testMetadata} certificateId={generatedCertificateId || undefined} duration={finalDuration} />;
-
-  return <QuizActive quiz={quiz} quizTitle={testMetadata?.title || 'Assessment'} timeLeft={timeLeft} isWrongInRace={isWrongInRace} onResponseChange={handleResponseChange} onConfirmResponse={handleConfirmResponse} onNext={handleNext} onPrev={() => setQuiz({ ...quiz, currentQuestionIndex: Math.max(0, quiz.currentQuestionIndex - 1) })} onSubmit={submit} onJump={(i) => setQuiz({ ...quiz, currentQuestionIndex: i })} onToggleFlag={(id) => { setQuiz(prev => ({ ...prev, flaggedQuestionIds: prev.flaggedQuestionIds?.includes(id) ? prev.flaggedQuestionIds.filter(f => f !== id) : [...(prev.flaggedQuestionIds || []), id] })); }} />;
+  return <QuizActive quiz={quiz} quizTitle={globalData?.tests.find(t => String(t.id) === String(testId))?.title || 'Assessment'} timeLeft={timeLeft} isWrongInRace={isWrongInRace} onResponseChange={(val) => { const q = quiz.questions[quiz.currentQuestionIndex]; const updated = [...quiz.responses]; const idx = updated.findIndex(r => r.questionId === q.id); if (idx > -1) updated[idx].answer = val; else updated.push({ questionId: q.id, answer: val }); setQuiz({ ...quiz, responses: updated }); }} onConfirmResponse={() => { const q = quiz.questions[quiz.currentQuestionIndex]; const updated = [...quiz.responses]; const idx = updated.findIndex(r => r.questionId === q.id); if (idx > -1) { updated[idx].isConfirmed = true; setQuiz({ ...quiz, responses: updated }); } }} onNext={() => { if (quiz.currentQuestionIndex < quiz.questions.length - 1) { const nextIdx = quiz.currentQuestionIndex + 1; setQuiz({ ...quiz, currentQuestionIndex: nextIdx, highestStepReached: Math.max(quiz.highestStepReached, nextIdx) }); } }} onPrev={() => setQuiz({ ...quiz, currentQuestionIndex: Math.max(0, quiz.currentQuestionIndex - 1) })} onSubmit={submit} onJump={(i) => setQuiz({ ...quiz, currentQuestionIndex: i })} onToggleFlag={(id) => { setQuiz(prev => ({ ...prev, flaggedQuestionIds: prev.flaggedQuestionIds?.includes(id) ? prev.flaggedQuestionIds.filter(f => f !== id) : [...(prev.flaggedQuestionIds || []), id] })); }} />;
 }
 
 export default function QuizPage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><AILoader showBrand={true} /></div>}>
-      <QuizContent />
-    </Suspense>
-  );
+  return <Suspense fallback={null}><QuizContent /></Suspense>;
 }
