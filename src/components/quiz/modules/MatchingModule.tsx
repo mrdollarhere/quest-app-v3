@@ -23,7 +23,10 @@ const MatchingAnswerContent = ({ value }: { value: string }) => {
 
   if (!isImage) {
     return (
-      <span className="option-text font-bold text-xs text-center leading-relaxed break-words px-2 py-1">
+      <span 
+        className="option-text font-bold text-xs text-center leading-relaxed break-words px-2 py-1 select-none pointer-events-none"
+        draggable={false}
+      >
         {value}
       </span>
     );
@@ -31,7 +34,7 @@ const MatchingAnswerContent = ({ value }: { value: string }) => {
 
   if (error) {
     return (
-      <div className="w-full h-[80px] bg-slate-100 rounded-xl flex flex-col items-center justify-center border-2 border-dashed border-slate-200">
+      <div className="w-full h-[80px] bg-slate-100 rounded-xl flex flex-col items-center justify-center border-2 border-dashed border-slate-200 select-none">
         <AlertCircle className="w-4 h-4 text-slate-300" />
         <span className="text-[8px] font-black text-slate-300 uppercase mt-1">Broken Asset</span>
       </div>
@@ -43,7 +46,8 @@ const MatchingAnswerContent = ({ value }: { value: string }) => {
       src={value} 
       alt="Answer Node" 
       onError={() => setError(true)} 
-      className="max-w-full max-h-[120px] object-contain rounded-xl border bg-white shadow-sm p-1" 
+      className="max-w-full max-h-[120px] object-contain rounded-xl border bg-white shadow-sm p-1 select-none pointer-events-none" 
+      draggable={false}
     />
   );
 };
@@ -84,7 +88,7 @@ export const MatchingModule: React.FC<Props> = ({ question, value, onChange, rev
                       (userVal ? "bg-rose-50 border-rose-500 shadow-sm" : "bg-slate-50 border-slate-200 opacity-60")
                     )
                   )}>
-                    <div className="flex-1 min-w-0 w-full text-center sm:text-left">
+                    <div className="flex-1 min-w-0 w-full text-center sm:text-left select-none">
                       <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-2">Key Node</span>
                       <p className={cn("option-text font-bold text-lg leading-tight", reviewMode && isCorrect ? "text-emerald-900" : "text-slate-700")}>
                         {pair.left}
@@ -114,12 +118,12 @@ export const MatchingModule: React.FC<Props> = ({ question, value, onChange, rev
                           if (data) onChange({ ...responses, [pair.left]: data });
                         }}
                         className={cn(
-                          "min-w-[180px] w-full sm:w-[220px] min-h-[100px] rounded-[1.5rem] border-2 border-dashed flex items-center justify-center transition-all p-4 relative shrink-0",
+                          "min-w-[180px] w-full sm:w-[220px] min-h-[100px] rounded-[1.5rem] border-2 border-dashed flex items-center justify-center transition-all p-4 relative shrink-0 select-none",
                           userVal ? (reviewMode ? "border-transparent bg-white/50" : "border-primary bg-white shadow-lg") : "border-slate-300 bg-slate-50/50"
                         )}
                       >
                         {userVal ? (
-                          <div className="flex flex-col items-center justify-center w-full">
+                          <div className="flex flex-col items-center justify-center w-full select-none">
                             <MatchingAnswerContent value={userVal} />
                             {!reviewMode && (
                               <button 
@@ -136,7 +140,7 @@ export const MatchingModule: React.FC<Props> = ({ question, value, onChange, rev
                             )}
                           </div>
                         ) : (
-                          <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest text-center px-2">
+                          <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest text-center px-2 pointer-events-none">
                             {reviewMode ? "NO SUBMISSION" : "Drop Data Node"}
                           </span>
                         )}
@@ -146,11 +150,11 @@ export const MatchingModule: React.FC<Props> = ({ question, value, onChange, rev
                   
                   {reviewMode && !isCorrect && (
                     <div className="mx-8 p-4 bg-emerald-50/40 rounded-b-[2rem] border-x border-b border-emerald-200 border-dashed flex items-center justify-between animate-in slide-in-from-top-1 -mt-4 pt-8">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 select-none">
                         <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                         <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Correct Alignment:</span>
                       </div>
-                      <div className="max-w-[220px]">
+                      <div className="max-w-[220px] select-none">
                         <MatchingAnswerContent value={pair.right} />
                       </div>
                     </div>
@@ -163,8 +167,8 @@ export const MatchingModule: React.FC<Props> = ({ question, value, onChange, rev
 
         {!reviewMode && (
           <div className="lg:col-span-5">
-            <div className="sticky top-28 p-10 bg-slate-100/50 rounded-[3rem] border-2 border-dashed border-slate-200 min-h-[450px]">
-              <div className="text-center mb-10">
+            <div className="sticky top-28 p-10 bg-slate-100/50 rounded-[3rem] border-2 border-dashed border-slate-200 min-h-[450px] select-none">
+              <div className="text-center mb-10 pointer-events-none">
                 <h3 className="text-[11px] font-black uppercase text-slate-400 tracking-[0.4em] mb-2">Unallocated Intelligence</h3>
                 <p className="text-[10px] font-medium text-slate-400">Drag items from this pool to the registry targets</p>
               </div>
@@ -179,18 +183,18 @@ export const MatchingModule: React.FC<Props> = ({ question, value, onChange, rev
                     }} 
                     onDragEnd={() => setDraggingItem(null)} 
                     className={cn(
-                      "p-4 bg-white border-2 border-white rounded-[1.5rem] shadow-sm cursor-grab active:cursor-grabbing hover:border-primary hover:shadow-2xl transition-all duration-300",
+                      "p-4 bg-white border-2 border-white rounded-[1.5rem] shadow-sm cursor-grab active:cursor-grabbing hover:border-primary hover:shadow-2xl transition-all duration-300 select-none",
                       draggingItem === ans && "opacity-20 grayscale scale-95"
                     )}
                   >
-                    <div className="max-w-[200px]">
+                    <div className="max-w-[200px] pointer-events-none">
                       <MatchingAnswerContent value={ans} />
                     </div>
                   </div>
                 ))}
               </div>
               {availableAnswers.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-20 opacity-30">
+                <div className="flex flex-col items-center justify-center py-20 opacity-30 pointer-events-none">
                   <div className="w-12 h-12 rounded-full border-2 border-dashed border-slate-400 flex items-center justify-center mb-4">
                     <Check className="w-6 h-6 text-slate-400" />
                   </div>
