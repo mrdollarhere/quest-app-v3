@@ -6,90 +6,92 @@ import { cn } from "@/lib/utils";
 import { useSettings } from '@/context/settings-context';
 import { Progress } from "@/components/ui/progress";
 
-/**
- * DNTRNG™ COGNITIVE TASK REGISTRY
- * Each phase is mapped to a strictly increasing target percentage.
- */
-const AI_PHASES = [
-  { text: "INITIALIZING ASSESSMENT PROTOCOL...", target: 12 },
-  { text: "SCANNING RESPONSE TOPOLOGY FOR COGNITIVE PATTERNS...", target: 28 },
-  { text: "EXECUTING HEURISTIC CROSS-VALIDATION ON ITEM MATRIX...", target: 45 },
-  { text: "BENCHMARKING SEMANTIC DENSITY AGAINST RUBRIC MODELS...", target: 62 },
-  { text: "CALCULATING PROBABILISTIC COMPETENCY QUOTIENT...", target: 78 },
-  { text: "FINALIZING INTELLIGENCE REGISTRY LOGS...", target: 92 },
-  { text: "MISSION STATUS: COMPLETE. READY FOR DISPATCH.", target: 100 }
-];
-
 interface AILoaderProps {
   className?: string;
   iconClassName?: string;
   showBrand?: boolean;
-  messages?: string[]; // Preserved for legacy support
-  onComplete?: () => void; // Sequence dispatcher callback
+  isDataReady?: boolean; // Anchored Prop
+  onComplete?: () => void; // Final transition callback
 }
 
 /**
- * DNTRNG™ COGNITIVE EVALUATION ENGINE
+ * DNTRNG™ STATE-LINKED EVALUATION ENGINE
  * 
- * Implements a strictly monotonic progress tracker with linear interpolation
- * across a sequential task matrix. Ensures full visual minimum is met.
- * Optimized Velocity: 4s total duration.
+ * Implements a network-aware state machine for progress tracking.
+ * Logic:
+ * 1. REQUEST_SENT: 0% -> 30%
+ * 2. DATA_AWAITING: 30% -> 75% (Slow Coast)
+ * 3. DATA_RESOLVED: 75% -> 95% (On isDataReady)
+ * 4. COMPONENT_READY: 100%
  */
 export function AILoader({ 
   className, 
   iconClassName,
   showBrand = false,
+  isDataReady = false,
   onComplete
 }: AILoaderProps) {
-  const [index, setIndex] = useState(0);
-  const [progress, setProgress] = useState(0);
+  const [visualProgress, setVisualProgress] = useState(0);
+  const [isSlow, setIsSlow] = useState(false);
   const { settings } = useSettings();
-  const hasFinished = useRef(false);
-
   const brandName = String(settings?.platform_name || "DNTRNG");
+  
+  const startTimeRef = useRef(Date.now());
+  const hasTriggeredComplete = useRef(false);
 
   useEffect(() => {
-    const totalDuration = 4000; // Visual Minimum: 4s (Optimized from 6s)
-    const startTime = performance.now();
-    let animationFrame: number;
-
-    const update = (currentTime: number) => {
-      const elapsed = currentTime - startTime;
-      const rawProgress = Math.min((elapsed / totalDuration) * 100, 100);
-      
-      // MONOTONIC PROTOCOL: Ensure progress never moves backward
-      setProgress(prev => Math.max(prev, rawProgress));
-
-      // PHASE SYNCHRONIZATION: Map raw progress to current task index
-      const newIndex = AI_PHASES.findIndex((p, i) => {
-        const nextTarget = AI_PHASES[i + 1]?.target || 101;
-        return rawProgress < nextTarget;
-      });
-
-      if (newIndex !== -1 && newIndex !== index) {
-        setIndex(newIndex);
-      }
-
-      if (rawProgress >= 100) {
-        setProgress(100);
-        setIndex(AI_PHASES.length - 1);
-        
-        // Finalize Protocol: Trigger onComplete after a brief "Hold" period
-        if (!hasFinished.current) {
-          hasFinished.current = true;
-          setTimeout(() => {
-            onComplete?.();
-          }, 500);
+    const timer = setInterval(() => {
+      setVisualProgress(prev => {
+        // MONOTONIC PROTOCOL: Always move forward
+        if (prev < 30) {
+          return Math.min(30, prev + 2); // Fast ramp-up
         }
-        return;
-      }
+        
+        if (!isDataReady) {
+          // LATENCY AUDIT: Check if network is taking > 3s
+          if (Date.now() - startTimeRef.current > 3000) {
+            setIsSlow(true);
+          }
+          
+          if (prev < 75) {
+            return prev + 0.2; // Slow coast while waiting
+          }
+          return prev;
+        }
 
-      animationFrame = requestAnimationFrame(update);
-    };
+        // isDataReady is TRUE
+        if (prev < 95) {
+          return Math.min(95, prev + 5); // Rapid snap to validation
+        }
 
-    animationFrame = requestAnimationFrame(update);
-    return () => cancelAnimationFrame(animationFrame);
-  }, [index, onComplete]);
+        if (prev < 100) {
+          return prev + 1; // Final commit pulse
+        }
+
+        return 100;
+      });
+    }, 50);
+
+    return () => clearInterval(timer);
+  }, [isDataReady]);
+
+  // NAVIGATION GUARD: Trigger onComplete only when visual progress is 100
+  useEffect(() => {
+    if (visualProgress >= 100 && !hasTriggeredComplete.current) {
+      hasTriggeredComplete.current = true;
+      setTimeout(() => {
+        onComplete?.();
+      }, 500); // 500ms Hold per Protocol
+    }
+  }, [visualProgress, onComplete]);
+
+  // TELEMETRY PHRASING LOGIC
+  const getTelemetryPhrase = () => {
+    if (visualProgress === 100) return "MISSION STATUS: 100%";
+    if (visualProgress >= 95) return "INTELLIGENCE RECEIVED. VALIDATING CHECKSUM...";
+    if (isSlow) return "OPTIMIZING PACKET FRAGMENTS...";
+    return "INITIALIZING DATA UPLINK...";
+  };
 
   return (
     <div className={cn("flex flex-col items-center justify-center p-8", className)}>
@@ -112,7 +114,6 @@ export function AILoader({
       )}
 
       <div className="relative w-24 h-24 mb-12 flex items-center justify-center">
-        {/* Pulsing Aura Protocol - Replaces Legacy Spinner */}
         <div className="absolute inset-0 bg-primary/10 rounded-full animate-ping opacity-25" />
         <div className="absolute inset-2 bg-primary/5 rounded-full animate-pulse" />
         <div className="relative z-10 flex items-center justify-center">
@@ -123,15 +124,15 @@ export function AILoader({
       <div className="w-full max-w-sm space-y-6 text-center">
         <div className="space-y-2 min-h-[40px]">
           <p className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-900 dark:text-white transition-all duration-500 leading-relaxed">
-            {AI_PHASES[index]?.text}
+            {getTelemetryPhrase()}
           </p>
           <div className="flex items-center justify-center gap-2">
             <span className={cn(
               "w-1.5 h-1.5 rounded-full bg-primary",
-              progress < 100 && "animate-pulse"
+              visualProgress < 100 && "animate-pulse"
             )} />
             <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">
-              {progress === 100 ? "Optimization Complete" : "Evaluation in progress"}
+              {visualProgress === 100 ? "Optimization Complete" : "Evaluation in progress"}
             </p>
           </div>
         </div>
@@ -139,12 +140,17 @@ export function AILoader({
         <div className="space-y-3">
           <div className="flex justify-between items-end px-1">
             <span className="text-[8px] font-black uppercase tracking-widest text-slate-300">Mission Status</span>
-            <span className="text-xs font-black tabular-nums text-primary">{Math.round(progress)}%</span>
+            <span className="text-xs font-black tabular-nums text-primary">{Math.round(visualProgress)}%</span>
           </div>
-          <Progress 
-            value={progress} 
-            className="h-1 bg-slate-100 dark:bg-slate-800 rounded-none border-none transition-all duration-300" 
-          />
+          <div className="h-1 w-full bg-slate-100 dark:bg-slate-800 relative overflow-hidden">
+             <div 
+               className="absolute top-0 left-0 h-full bg-primary transition-all duration-300"
+               style={{ 
+                 width: `${visualProgress}%`,
+                 transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)'
+               }}
+             />
+          </div>
         </div>
       </div>
 

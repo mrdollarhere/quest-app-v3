@@ -32,9 +32,11 @@ function QuizContent() {
   const [serverReviewData, setServerReviewData] = useState<any[]>([]);
   const [finalDuration, setFinalDuration] = useState<number>(0);
 
-  // VISUAL MINIMUM ORCHESTRATION STATES
+  // LIFECYCLE ORCHESTRATION STATES
   const [isInitialVisuallyLoading, setIsInitialVisuallyLoading] = useState(true);
+  const [isInitialDataReady, setIsInitialDataReady] = useState(false);
   const [isInitialAnimationDone, setIsInitialAnimationDone] = useState(false);
+  
   const [isSubmittingVisually, setIsSubmittingVisually] = useState(false);
   const [isSubmissionDataReady, setIsSubmissionDataReady] = useState(false);
   const [isSubmissionAnimationDone, setIsSubmissionAnimationDone] = useState(false);
@@ -85,13 +87,20 @@ function QuizContent() {
     }
   );
 
-  // INITIAL LOADING ORCHESTRATION
+  // INITIAL HYDRATION SYNC
   useEffect(() => {
-    const isDataLoaded = !qLoading && !configLoading;
-    if (isDataLoaded && isInitialAnimationDone) {
+    const isReady = !qLoading && !configLoading && !!questionsData && !!globalData;
+    if (isReady) {
+      setIsInitialDataReady(true);
+    }
+  }, [qLoading, configLoading, questionsData, globalData]);
+
+  // NAVIGATION GUARD: INITIAL LOAD
+  useEffect(() => {
+    if (isInitialDataReady && isInitialAnimationDone) {
       setIsInitialVisuallyLoading(false);
     }
-  }, [qLoading, configLoading, isInitialAnimationDone]);
+  }, [isInitialDataReady, isInitialAnimationDone]);
 
   // SUBMISSION ORCHESTRATION
   useEffect(() => {
@@ -111,7 +120,7 @@ function QuizContent() {
       if (user?.email) globalMutate(`results-${user.email}`);
       
       setIsSubmittingVisually(false);
-      // Reset flags for next session
+      // Reset flags
       setIsSubmissionDataReady(false);
       setIsSubmissionAnimationDone(false);
       setPendingSubmissionResult(null);
@@ -207,7 +216,7 @@ function QuizContent() {
       
       if (res.ok) {
         setPendingSubmissionResult(data);
-        setIsSubmissionDataReady(true);
+        setIsSubmissionDataReady(true); // Anchor for AILoader jump
         
         trackEvent('quiz_submit', { 
           test_id: testId || '', 
@@ -283,6 +292,7 @@ function QuizContent() {
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <AILoader 
           showBrand={true} 
+          isDataReady={isInitialDataReady}
           onComplete={() => setIsInitialAnimationDone(true)}
         />
       </div>
@@ -294,6 +304,7 @@ function QuizContent() {
       <div className="min-h-screen flex items-center justify-center bg-white">
         <AILoader 
           showBrand={true} 
+          isDataReady={isSubmissionDataReady}
           onComplete={() => setIsSubmissionAnimationDone(true)}
         />
       </div>
