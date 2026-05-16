@@ -1,6 +1,8 @@
 export const en = {
   // Navbar
-  library: "Intelligence Library",
+  library: "Tests",
+  profile: "My Profile",
+  joinLive: "Join",
   setupGuide: "Host Protocol",
   startQuiz: "Enter Mission",
   // Hero

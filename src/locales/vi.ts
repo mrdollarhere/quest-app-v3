@@ -1,6 +1,8 @@
 export const vi = {
   // Navbar
-  library: "Thư viện bài thi",
+  library: "Bài thi",
+  profile: "Hồ sơ",
+  joinLive: "Vào phòng",
   setupGuide: "Hướng dẫn",
   startQuiz: "Vào thi",
   // Hero

@@ -30,10 +30,12 @@ import { useSettings } from '@/context/settings-context';
 import { JsonLd } from '@/components/SEO';
 import { trackEvent } from '@/lib/tracker';
 import { SiteFooter } from '@/components/SiteFooter';
+import { useAuth } from '@/context/auth-context';
 
 export default function LandingPage() {
   const { t } = useLanguage();
   const { settings } = useSettings();
+  const { user } = useAuth();
   const [systemStatus, setSystemStatus] = useState('Optimal');
   const lastTracked = useRef<string | null>(null);
 
@@ -81,8 +83,10 @@ export default function LandingPage() {
           
           <nav className="hidden md:flex items-center gap-10 text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">
             <Link href="/tests" className="hover:text-primary transition-colors">{t('library')}</Link>
-            <Link href="/profile" className="hover:text-primary transition-colors">Identity Registry</Link>
-            <Link href="/join" className="hover:text-rose-500 transition-colors">Join Live</Link>
+            {user && (
+              <Link href="/profile" className="hover:text-primary transition-colors">{t('profile')}</Link>
+            )}
+            <Link href="/join" className="hover:text-rose-500 transition-colors">{t('joinLive')}</Link>
           </nav>
           
           <div className="flex items-center gap-4">
