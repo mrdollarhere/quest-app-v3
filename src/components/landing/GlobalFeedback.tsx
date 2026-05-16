@@ -28,11 +28,11 @@ const FEEDBACK_REGISTRY: FeedbackNode[] = [
     lang: "en"
   },
   {
-    name: "Minh Phan",
-    location: "Vietnam",
-    comment: "Hệ thống rất mượt mà. Rất tuyệt vời cho việc ôn tập từ vựng tiếng Anh.",
+    name: "Akira Sato",
+    location: "Japan",
+    comment: "非常に使いやすく、リアルタイムの同期が素晴らしいです。教育現場に最適です。",
     rating: 5,
-    lang: "vi"
+    lang: "ja"
   },
   {
     name: "Elena Rodriguez",
@@ -42,6 +42,13 @@ const FEEDBACK_REGISTRY: FeedbackNode[] = [
     lang: "es"
   },
   {
+    name: "Amélie Laurent",
+    location: "France",
+    comment: "Une interface intuitive et une synchronisation ultra-rapide. Je recommande vivement.",
+    rating: 5,
+    lang: "fr"
+  },
+  {
     name: "James Knight",
     location: "United Kingdom",
     comment: "A straightforward assessment tool that actually works. No fluff, just results.",
@@ -49,18 +56,11 @@ const FEEDBACK_REGISTRY: FeedbackNode[] = [
     lang: "en"
   },
   {
-    name: "Thu Trang",
-    location: "Vietnam",
-    comment: "Giao diện hiện đại, dễ sử dụng. Thật sự hữu ích cho việc tự học tại nhà.",
+    name: "Hans Müller",
+    location: "Germany",
+    comment: "Die Performance ist beeindruckend. Google Sheets als Datenbank zu nutzen ist genial.",
     rating: 5,
-    lang: "vi"
-  },
-  {
-    name: "Marco Silva",
-    location: "Brazil",
-    comment: "Excelente ferramenta para treinamentos corporativos. Sincronização perfeita.",
-    rating: 5,
-    lang: "pt"
+    lang: "de"
   }
 ];
 
