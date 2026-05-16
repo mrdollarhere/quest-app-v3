@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Loader2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSettings } from '@/context/settings-context';
@@ -24,27 +24,31 @@ interface AILoaderProps {
   className?: string;
   iconClassName?: string;
   showBrand?: boolean;
+  messages?: string[]; // Preserved for legacy support
+  onComplete?: () => void; // Sequence dispatcher callback
 }
 
 /**
  * DNTRNG™ COGNITIVE EVALUATION ENGINE
  * 
  * Implements a strictly monotonic progress tracker with linear interpolation
- * across a sequential task matrix.
+ * across a sequential task matrix. Ensures full visual minimum is met.
  */
 export function AILoader({ 
   className, 
   iconClassName,
   showBrand = false,
+  onComplete
 }: AILoaderProps) {
   const [index, setIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const { settings } = useSettings();
+  const hasFinished = useRef(false);
 
   const brandName = String(settings?.platform_name || "DNTRNG");
 
   useEffect(() => {
-    const totalDuration = 6000; // Simulated 6s evaluation window
+    const totalDuration = 6000; // Visual Minimum: 6s
     const startTime = performance.now();
     let animationFrame: number;
 
@@ -65,14 +69,26 @@ export function AILoader({
         setIndex(newIndex);
       }
 
-      if (rawProgress < 100) {
-        animationFrame = requestAnimationFrame(update);
+      if (rawProgress >= 100) {
+        setProgress(100);
+        setIndex(AI_PHASES.length - 1);
+        
+        // Finalize Protocol: Trigger onComplete after a brief "Hold" period
+        if (!hasFinished.current) {
+          hasFinished.current = true;
+          setTimeout(() => {
+            onComplete?.();
+          }, 500);
+        }
+        return;
       }
+
+      animationFrame = requestAnimationFrame(update);
     };
 
     animationFrame = requestAnimationFrame(update);
     return () => cancelAnimationFrame(animationFrame);
-  }, [index]);
+  }, [index, onComplete]);
 
   return (
     <div className={cn("flex flex-col items-center justify-center p-8", className)}>
@@ -111,7 +127,10 @@ export function AILoader({
             {AI_PHASES[index]?.text}
           </p>
           <div className="flex items-center justify-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+            <span className={cn(
+              "w-1.5 h-1.5 rounded-full bg-primary",
+              progress < 100 && "animate-pulse"
+            )} />
             <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">
               {progress === 100 ? "Optimization Complete" : "Evaluation in progress"}
             </p>

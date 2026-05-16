@@ -25,13 +25,20 @@ function QuizContent() {
   
   const [isStarted, setIsStarted] = useState(false);
   const [isSyncingTraining, setIsSyncingTraining] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [guestName, setGuestName] = useState("");
   const [timeLeft, setTimeLeft] = useState(900); 
   const [isWrongInRace, setIsWrongInRace] = useState(false);
   const [generatedCertificateId, setGeneratedCertificateId] = useState<string | null>(null);
   const [serverReviewData, setServerReviewData] = useState<any[]>([]);
   const [finalDuration, setFinalDuration] = useState<number>(0);
+
+  // VISUAL MINIMUM ORCHESTRATION STATES
+  const [isInitialVisuallyLoading, setIsInitialVisuallyLoading] = useState(true);
+  const [isInitialAnimationDone, setIsInitialAnimationDone] = useState(false);
+  const [isSubmittingVisually, setIsSubmittingVisually] = useState(false);
+  const [isSubmissionDataReady, setIsSubmissionDataReady] = useState(false);
+  const [isSubmissionAnimationDone, setIsSubmissionAnimationDone] = useState(false);
+  const [pendingSubmissionResult, setPendingSubmissionResult] = useState<any>(null);
   
   const [quiz, setQuiz] = useState<QuizState>({
     questions: [],
@@ -78,15 +85,46 @@ function QuizContent() {
     }
   );
 
+  // INITIAL LOADING ORCHESTRATION
+  useEffect(() => {
+    const isDataLoaded = !qLoading && !configLoading;
+    if (isDataLoaded && isInitialAnimationDone) {
+      setIsInitialVisuallyLoading(false);
+    }
+  }, [qLoading, configLoading, isInitialAnimationDone]);
+
+  // SUBMISSION ORCHESTRATION
+  useEffect(() => {
+    if (isSubmissionDataReady && isSubmissionAnimationDone && pendingSubmissionResult) {
+      const data = pendingSubmissionResult;
+      const passingThreshold = Number(testMetadata?.passing_threshold || globalData?.defaultThreshold || 70);
+      const finalPercentage = Math.round((data.score / (data.total || 1)) * 100);
+      const isPassed = finalPercentage >= passingThreshold;
+      
+      if (isPassed && testMetadata?.certificate_enabled !== 'FALSE') {
+        setGeneratedCertificateId(data.certificateId);
+      }
+
+      setServerReviewData(data.reviewData || []);
+      setQuiz(prev => ({ ...prev, isSubmitted: true, score: data.score, endTime: Date.now() }));
+      
+      if (user?.email) globalMutate(`results-${user.email}`);
+      
+      setIsSubmittingVisually(false);
+      // Reset flags for next session
+      setIsSubmissionDataReady(false);
+      setIsSubmissionAnimationDone(false);
+      setPendingSubmissionResult(null);
+    }
+  }, [isSubmissionDataReady, isSubmissionAnimationDone, pendingSubmissionResult]);
+
   useEffect(() => {
     if (isStarted && !quiz.isSubmitted) {
       timerRef.current = setInterval(() => {
-        // Per-question countdown logic (if limit exists)
         if (Number(globalData?.globalTimer || 0) > 0) {
           setTimeLeft(prev => {
             if (prev <= 1) {
               if (quiz.mode === 'race') {
-                // Auto-fail in race mode if time expires
                 submit();
                 return 0;
               }
@@ -137,7 +175,7 @@ function QuizContent() {
   };
 
   const submit = async () => {
-    if (isSubmitting) return;
+    if (isSubmittingVisually) return;
     
     const now = Date.now();
     const duration = now - (quizStartTimeRef.current || now);
@@ -145,9 +183,10 @@ function QuizContent() {
 
     const finalName = user?.displayName || guestName || 'Guest User';
     const finalEmail = user?.email || 'Anonymous';
-    const passingThreshold = Number(testMetadata?.passing_threshold || globalData?.defaultThreshold || 70);
 
-    setIsSubmitting(true);
+    setIsSubmittingVisually(true);
+    setIsSubmissionDataReady(false);
+    setIsSubmissionAnimationDone(false);
     
     try {
       const res = await fetch('/api/proxy/submit', {
@@ -167,30 +206,21 @@ function QuizContent() {
       const data = await res.json();
       
       if (res.ok) {
-        const finalPercentage = Math.round((data.score / (data.total || 1)) * 100);
-        const isPassed = finalPercentage >= passingThreshold;
-        
-        if (isPassed && testMetadata?.certificate_enabled !== 'FALSE') {
-          setGeneratedCertificateId(data.certificateId);
-        }
-
-        setServerReviewData(data.reviewData || []);
-        setQuiz({ ...quiz, isSubmitted: true, score: data.score, endTime: now });
-        if (user?.email) globalMutate(`results-${user.email}`);
+        setPendingSubmissionResult(data);
+        setIsSubmissionDataReady(true);
         
         trackEvent('quiz_submit', { 
           test_id: testId || '', 
           test_name: testMetadata?.title,
           score: data.score, 
-          details: { passed: isPassed, total: data.total, duration } 
+          details: { passed: data.percentage >= 70, total: data.total, duration } 
         });
       } else {
         throw new Error(data.error);
       }
     } catch (e: any) {
+      setIsSubmittingVisually(false);
       toast({ variant: "destructive", title: "Submission Failure", description: e.message || "The registry handshake failed." });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -248,40 +278,23 @@ function QuizContent() {
     );
   }
 
-  if (qLoading || configLoading || isSyncingTraining) {
+  if (isInitialVisuallyLoading || isSyncingTraining) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <AILoader 
           showBrand={true} 
-          messages={isSyncingTraining ? [
-            "Establishing Registry Link...", 
-            "Retrieving Answer Key...", 
-            "Optimizing Training Environment...",
-            "Hydrating Practice Nodes..."
-          ] : [
-            "Initializing Assessment Protocol...",
-            "Retrieving Module Metadata...",
-            "Synchronizing Intelligence Registry...",
-            "Ready for Entry..."
-          ]} 
+          onComplete={() => setIsInitialAnimationDone(true)}
         />
       </div>
     );
   }
 
-  if (isSubmitting) {
+  if (isSubmittingVisually) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <AILoader 
           showBrand={true} 
-          messages={[
-            "Processing Response Registry...",
-            "Aggregating Interaction Nodes...",
-            "Calculating Mean Precision...",
-            "Verifying Cryptographic Alignment...",
-            "Finalizing Audit Report...",
-            "Committing to Master Sheets..."
-          ]} 
+          onComplete={() => setIsSubmissionAnimationDone(true)}
         />
       </div>
     );
