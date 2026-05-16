@@ -3,7 +3,7 @@
  * 
  * Route: /
  * Purpose: Primary landing gateway redesigned for high-fidelity brand immersion.
- * Refactored: v18.9.8 - Extracted large sections into atomic components for maintainability.
+ * Refactored: v19.1.0 - Integrated QuickSignIn and Global Feedback modules.
  */
 
 "use client";
@@ -23,6 +23,8 @@ import { useAuth } from '@/context/auth-context';
 import { HeroSection } from '@/components/landing/HeroSection';
 import { FeatureGrid } from '@/components/landing/FeatureGrid';
 import { TacticalSection } from '@/components/landing/TacticalSection';
+import { GlobalFeedback } from '@/components/landing/GlobalFeedback';
+import { QuickSignIn } from '@/components/landing/QuickSignIn';
 
 export default function LandingPage() {
   const { t } = useLanguage();
@@ -89,7 +91,9 @@ export default function LandingPage() {
 
       <main className="flex-1">
         <HeroSection t={t} />
+        <QuickSignIn />
         <FeatureGrid t={t} />
+        <GlobalFeedback />
         <TacticalSection />
       </main>
 
