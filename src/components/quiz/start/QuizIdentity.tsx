@@ -1,13 +1,14 @@
+
 /**
  * src/components/quiz/start/QuizIdentity.tsx
  * 
  * Purpose: Registration step for student nodes with advanced identity validation.
- * Features: Progressive lockout, bilingual error feedback, and bot honeypot.
+ * Features: Extreme Lockdown Protocol, progressive lockout, and bot honeypot.
  */
 
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,17 +20,15 @@ import {
   ArrowRight, 
   LogIn, 
   AlertCircle, 
-  ShieldAlert, 
-  Timer,
-  ShieldCheck,
-  Zap
+  Zap,
+  ShieldCheck
 } from 'lucide-react';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { useSettings } from '@/context/settings-context';
 import { useLanguage } from '@/context/language-context';
 import { validateStudentName } from '@/lib/name-validator';
 import { useNameLockout } from '@/hooks/use-name-lockout';
+import { ExtremeLockdown } from '../ExtremeLockdown';
 
 interface QuizIdentityProps {
   guestName: string;
@@ -43,25 +42,27 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
   const { language } = useLanguage();
   const { isLocked, lockoutTime, triggerViolation } = useNameLockout();
   const [error, setError] = useState<string | null>(null);
-  const [honeypot, setHoneypot] = useState(''); // Bot Trap
+  const [honeypot, setHoneypot] = useState(''); 
+  const [isGracePeriod, setIsGracePeriod] = useState(false);
   
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const returnToUrl = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '');
 
-  // Interaction Suppression Protocol
+  // Grace Period Protocol after unlocking
   useEffect(() => {
-    if (isLocked) {
-      document.body.style.overflow = 'hidden';
-      return () => { document.body.style.overflow = 'auto'; };
+    if (!isLocked && lockoutTime === 0) {
+      setIsGracePeriod(true);
+      const timer = setTimeout(() => setIsGracePeriod(false), 3000);
+      return () => clearTimeout(timer);
     }
-  }, [isLocked]);
+  }, [isLocked, lockoutTime]);
 
   const handleBegin = () => {
-    if (isLocked) return;
+    if (isLocked || isGracePeriod) return;
 
-    // BOT DETECTION: If honeypot is filled, trigger maximum quarantine
+    // BOT DETECTION: Honeypot triggers immediate max quarantine
     if (honeypot.length > 0) {
       triggerViolation(true);
       return;
@@ -80,68 +81,30 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
     onContinue();
   };
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  const lockReason = {
+    en: "Your student node has been quarantined due to repeated identity validation failures. Entry is strictly prohibited.",
+    vi: "Nút sinh viên của bạn đã bị cách ly do liên tục vi phạm quy trình xác thực định danh. Truy cập bị nghiêm cấm."
   };
 
   return (
     <>
-      {/* FULL-SCREEN QUARANTINE OVERLAY */}
-      {isLocked && (
-        <div className="fixed inset-0 z-[1000] bg-slate-950/98 backdrop-blur-2xl flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
-          <div className="max-w-md w-full space-y-12">
-            <div className="relative">
-              <div className="absolute inset-0 bg-rose-500/20 rounded-full blur-3xl animate-pulse" />
-              <div className="relative w-24 h-24 bg-rose-500 rounded-[2rem] flex items-center justify-center mx-auto shadow-2xl">
-                <ShieldAlert className="w-12 h-12 text-white animate-bounce" />
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <h2 className="text-4xl font-black text-white uppercase tracking-tighter leading-none">
-                {language === 'vi' ? 'Terminal Bị Khóa' : 'Terminal Locked'}
-              </h2>
-              <div className="inline-flex items-center gap-2 px-4 py-1 bg-rose-500/10 border border-rose-500/20 rounded-full text-rose-500 text-[10px] font-black uppercase tracking-widest">
-                Registry Integrity Violation
-              </div>
-              <p className="text-slate-400 font-medium leading-relaxed">
-                {language === 'vi' 
-                  ? 'Nút sinh viên của bạn đã bị cách ly do vi phạm quy trình xác thực định danh. Vui lòng chờ cho đến khi thời gian khóa kết thúc.'
-                  : 'Your student node has been quarantined due to identity validation failures. Access to the intelligence registry is strictly prohibited until reset.'
-                }
-              </p>
-            </div>
+      <ExtremeLockdown 
+        isLocked={isLocked} 
+        lockoutTime={lockoutTime} 
+        reason={lockReason}
+        onUnlock={() => {}} 
+      />
 
-            <div className="p-10 bg-white/5 rounded-[3rem] border border-white/10 space-y-6">
-              <div className="space-y-1">
-                <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Reset Pulse In</p>
-                <p className="text-6xl font-black text-white tabular-nums tracking-tighter">
-                  {formatTime(lockoutTime)}
-                </p>
-              </div>
-              <div className="flex items-center justify-center gap-3">
-                <Timer className="w-4 h-4 text-rose-500 animate-spin" />
-                <span className="text-[9px] font-black text-rose-500 uppercase tracking-[0.3em]">Protocol Active</span>
-              </div>
-            </div>
-
-            <p className="text-[8px] font-bold text-slate-600 uppercase tracking-[0.6em]">
-              Security Protocol v4.0 — DNTRNG™
-            </p>
-          </div>
-        </div>
-      )}
-
-      <div className="space-y-10 animate-in fade-in slide-in-from-right-4 duration-500">
+      <div className={cn(
+        "space-y-10 animate-in fade-in slide-in-from-right-4 duration-500",
+        isLocked && "opacity-0 pointer-events-none"
+      )}>
         <div className="grid grid-cols-3 gap-4">
           <StatNode icon={ListChecks} value={questionsCount} label={language === 'vi' ? 'Câu hỏi' : 'Nodes'} color="blue" />
           <StatNode icon={Clock} value={duration || '15m'} label={language === 'vi' ? 'Thời gian' : 'Limit'} color="indigo" />
           <StatNode icon={BarChart3} value="v4.0" label="Logic" color="slate" />
         </div>
 
-        {/* INSTRUCTIONAL NODE */}
         <div className="p-6 bg-slate-900 rounded-[2.5rem] flex items-start gap-5 shadow-2xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity"><ShieldCheck className="w-20 h-20 text-white" /></div>
           <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shrink-0 shadow-lg">
@@ -151,8 +114,8 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
             <h4 className="text-[10px] font-black uppercase text-primary tracking-[0.3em]">Registry Protocol</h4>
             <p className="text-sm font-bold text-white leading-relaxed">
               {language === 'vi' 
-                ? 'Nhập đầy đủ Họ và Tên thật để bắt đầu. Hệ thống sẽ từ chối các định danh không hợp lệ hoặc ngẫu nhiên.'
-                : 'Input your Full Legal Name to initialize. The registry will reject random mashing or low-fidelity identity nodes.'
+                ? 'Nhập đầy đủ Họ và Tên thật để bắt đầu. Hệ thống sẽ từ chối các định danh không hợp lệ.'
+                : 'Input your Full Legal Name to initialize. The registry will reject random mashing or low-fidelity nodes.'
               }
             </p>
           </div>
@@ -171,7 +134,6 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
           <div className="relative">
             <User className={cn("absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors", error ? "text-rose-400" : "text-slate-300")} />
             
-            {/* HONEYPOT BOT TRAP (sr-only) */}
             <input 
               type="text" 
               className="sr-only" 
@@ -184,13 +146,15 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
             <Input 
               placeholder={language === 'vi' ? "Ví dụ: Nguyễn Văn A" : "E.G. John Doe"}
               value={guestName}
+              disabled={isGracePeriod}
               onChange={(e) => {
                 setGuestName(e.target.value);
                 if (error) setError(null);
               }}
               className={cn(
                 "h-20 pl-14 rounded-2xl border-2 text-xl font-black transition-all",
-                error ? "border-rose-200 bg-rose-50/30 focus:ring-rose-500/20" : "border-slate-100 focus:ring-primary/20"
+                error ? "border-rose-200 bg-rose-50/30 focus:ring-rose-500/20" : "border-slate-100 focus:ring-primary/20",
+                isGracePeriod && "opacity-50"
               )}
               onKeyDown={(e) => e.key === 'Enter' && handleBegin()}
             />
@@ -200,10 +164,10 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
         <div className="space-y-5">
           <Button 
             onClick={handleBegin}
-            disabled={!guestName.trim() || isLocked}
+            disabled={!guestName.trim() || isLocked || isGracePeriod}
             className="w-full h-20 rounded-full text-2xl font-black uppercase tracking-tighter shadow-2xl transition-all border-none bg-primary text-white hover:scale-[1.02]"
           >
-            {language === 'vi' ? 'Bắt Đầu Mission' : 'Initialize Mission'} <ArrowRight className="w-6 h-6 ml-3" />
+            {isGracePeriod ? 'INITIALIZING...' : (language === 'vi' ? 'Bắt Đầu Mission' : 'Initialize Mission')} <ArrowRight className="w-6 h-6 ml-3" />
           </Button>
 
           <div className="flex items-center gap-4 py-2">
@@ -214,6 +178,7 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
 
           <Button 
             variant="outline"
+            disabled={isGracePeriod}
             onClick={() => router.push(`/login?returnTo=${encodeURIComponent(returnToUrl)}`)}
             className="w-full h-16 rounded-full border-2 border-slate-200 font-black text-sm uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all"
           >
