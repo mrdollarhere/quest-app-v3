@@ -2,7 +2,7 @@
  * TacticalSection.tsx
  * 
  * Purpose: Final conversion node for the landing gateway.
- * Logic: High-contrast callout for assessment entry.
+ * Compliance: Protocol v18.9.7 - Rectangular Geometry Enforced.
  */
 
 "use client";
@@ -16,7 +16,7 @@ export function TacticalSection() {
   return (
     <section className="py-32 bg-[#F8FAFC]">
       <div className="max-w-7xl mx-auto px-6">
-        <div className="bg-slate-900 rounded-[4rem] p-12 md:p-24 flex flex-col lg:flex-row items-center gap-16 relative overflow-hidden shadow-2xl">
+        <div className="bg-slate-900 rounded-none p-12 md:p-24 flex flex-col lg:flex-row items-center gap-16 relative overflow-hidden shadow-2xl">
           <div className="absolute top-0 right-0 w-96 h-96 bg-primary/20 rounded-full blur-[100px] -mr-48 -mt-48" />
           
           <div className="flex-1 space-y-8 relative z-10">
@@ -50,7 +50,7 @@ export function TacticalSection() {
 
 function TacticalBadge({ icon: Icon, label }: { icon: any, label: string }) {
   return (
-    <div className="p-6 bg-white/5 backdrop-blur-md rounded-3xl border border-white/10 flex flex-col items-center gap-3 w-40">
+    <div className="p-6 bg-white/5 backdrop-blur-md rounded-none border border-white/10 flex flex-col items-center gap-3 w-40">
       <Icon className="w-6 h-6 text-primary" />
       <span className="text-[10px] font-black uppercase text-white tracking-widest text-center">{label}</span>
     </div>

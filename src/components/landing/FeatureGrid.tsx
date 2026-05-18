@@ -2,7 +2,7 @@
  * FeatureGrid.tsx
  * 
  * Purpose: Displays the modular capabilities of the assessment engine.
- * Logic: Maps high-level features to graphical cards with hover interpolation.
+ * Compliance: Protocol v18.9.7 - Rectangular Geometry Enforced.
  */
 
 "use client";
@@ -52,8 +52,8 @@ export function FeatureGrid({ t }: FeatureGridProps) {
 
 function FeatureCard({ icon: Icon, title, desc }: any) {
   return (
-    <div className="space-y-6 p-10 rounded-[3rem] bg-slate-50 border border-slate-100 hover:bg-white hover:shadow-2xl hover:-translate-y-2 transition-all group">
-      <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-primary shadow-sm group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all duration-500">
+    <div className="space-y-6 p-10 rounded-none bg-slate-50 border border-slate-100 hover:bg-white hover:shadow-2xl hover:-translate-y-2 transition-all group">
+      <div className="w-16 h-16 rounded-none bg-white border border-slate-200 flex items-center justify-center text-primary shadow-sm group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all duration-500">
         <Icon className="w-8 h-8" />
       </div>
       <div className="space-y-3">
