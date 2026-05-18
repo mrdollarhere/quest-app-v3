@@ -1,12 +1,13 @@
 export const GAS_CODE = `/**
- * QUESTFLOW BACKEND v18.9.9 - HARDENED AUDIT PROTOCOL
+ * QUESTFLOW BACKEND v19.0.0 - UNIFIED REGISTRY PROTOCOL
  * 
  * ACTIONS SUPPORTED:
- * - GET: login, getTests, getUsers, getResponses, getQuestions, getActivity, getSettings, getVersion, getEvents
- * - POST: submitResponse, saveTest, deleteTest, saveUser, deleteUser, saveQuestion, saveQuestions, saveUsers, logActivity, saveSetting, deleteResponse, logEvent
+ * - GET: login, getTests, getUsers, getResponses, getQuestions, getSettings, getVersion, getActivity
+ * - POST: submitResponse, saveTest, deleteTest, saveUser, deleteUser, saveQuestion, saveQuestions, saveUsers, saveSetting, deleteResponse, logEvent, logActivity
  */
 
-const GAS_VERSION = "18.9.9";
+const GAS_VERSION = "19.0.0";
+const ACTIVITY_SHEET_NAME = "System_Activity";
 
 function doGet(e) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -17,19 +18,12 @@ function doGet(e) {
       return createResponse({ version: GAS_VERSION });
     }
 
-    if (action === 'getEvents') {
-      const sheet = ss.getSheetByName('Events');
+    if (action === 'getActivity') {
+      const sheet = ss.getSheetByName(ACTIVITY_SHEET_NAME);
       if (!sheet) return createResponse([]);
-      const limit = parseInt(e.parameter.limit || "1000");
+      const limit = parseInt(e.parameter.limit || "2000");
       let data = getRowsAsObjects(sheet).reverse();
       return createResponse(data.slice(0, limit));
-    }
-
-    if (action === 'getActivity') {
-      const sheet = ss.getSheetByName('Activity');
-      if (!sheet) return createResponse([]);
-      const limit = parseInt(e.parameter.limit || "1000");
-      return createResponse(getRowsAsObjects(sheet).reverse().slice(0, limit));
     }
 
     if (action === 'login') {
@@ -114,9 +108,10 @@ function doPost(e) {
     const payload = JSON.parse(e.postData.contents);
     const action = payload.action;
 
-    if (action === 'logEvent') {
-      let sheet = ss.getSheetByName('Events') || ss.insertSheet('Events');
-      const headers = ['timestamp', 'session_id', 'user_id', 'user_name', 'user_role', 'event_type', 'page', 'test_id', 'test_name', 'question_id', 'score', 'details', 'device', 'browser', 'ip'];
+    // UNIFIED LOGGING PROTOCOL
+    if (action === 'logEvent' || action === 'logActivity') {
+      let sheet = ss.getSheetByName(ACTIVITY_SHEET_NAME) || ss.insertSheet(ACTIVITY_SHEET_NAME);
+      const headers = ['timestamp', 'user_name', 'user_email', 'user_role', 'event_type', 'context', 'details', 'ip_address', 'device', 'browser', 'status', 'session_id'];
       
       if (sheet.getLastRow() === 0) {
         sheet.appendRow(headers);
@@ -129,36 +124,20 @@ function doPost(e) {
         });
       }
       
+      // Standardized Data Mapping
       const rowData = headers.map(h => {
         let val = payload[h];
+        // Handle legacy field names from logActivity
+        if (h === 'timestamp' && !val) val = new Date();
+        if (h === 'user_name' && !val) val = payload.name;
+        if (h === 'user_email' && !val) val = payload.email;
+        if (h === 'event_type' && !val) val = payload.event;
+        if (h === 'ip_address' && !val) val = payload.ip;
+        if (h === 'user_role' && !val) val = payload.Role || 'user';
+        if (h === 'context' && !val) val = payload.page || 'System';
+        if (h === 'status' && !val) val = 'VERIFIED';
+        
         if (h === 'details' && typeof val === 'object') val = JSON.stringify(val);
-        return (val !== undefined && val !== null) ? val : "";
-      });
-      sheet.appendRow(rowData);
-      return createResponse({ status: 'success' });
-    }
-
-    if (action === 'logActivity') {
-      let sheet = ss.getSheetByName('Activity') || ss.insertSheet('Activity');
-      const headers = ['Timestamp', 'User Name', 'User Email', 'Event', 'IP Address', 'Device', 'Role', 'Browser'];
-      
-      if (sheet.getLastRow() === 0) {
-        sheet.appendRow(headers);
-      } else {
-        const currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-        headers.forEach(h => {
-          if (currentHeaders.indexOf(h) === -1) {
-            sheet.getRange(1, sheet.getLastColumn() + 1).setValue(h);
-          }
-        });
-      }
-      
-      const rowData = headers.map(h => {
-        let val = payload[h];
-        if (h === 'Timestamp') val = new Date();
-        if (h === 'User Name') val = payload.name;
-        if (h === 'User Email') val = payload.email;
-        if (h === 'IP Address') val = payload.ip;
         return (val !== undefined && val !== null) ? val : "";
       });
       

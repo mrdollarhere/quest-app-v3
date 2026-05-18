@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils';
  * SYSTEM ACTIVITY COMMAND CENTER
  * 
  * Orchestrates the unified forensic audit terminal.
- * Normalizes data from two registry nodes: Events and Activity.
+ * Hydrates from a single consolidated registry node: System_Activity.
  */
 export default function AdminActivityPage() {
   const { t } = useLanguage();
@@ -33,9 +33,8 @@ export default function AdminActivityPage() {
   const [activeTab, setActiveTab] = useState<'all' | 'access' | 'views' | 'nav'>('all');
   const [dateRange, setDateRange] = useState<'today' | 'week' | 'month' | 'all'>('all');
 
-  // REGISTRY HANDSHAKE: Fetch high-capacity slices from both telemetry sources
-  const { data: events, isLoading: eventsLoading, mutate: mutateEvents } = useSWR('/api/proxy/admin/events?limit=2000');
-  const { data: logins, isLoading: loginsLoading, mutate: mutateLogins } = useSWR('/api/proxy/admin/activity?limit=2000');
+  // REGISTRY HANDSHAKE: Fetch unified telemetry stream
+  const { data: activityLogs, isLoading, mutate } = useSWR('/api/proxy/admin/activity?limit=2000');
 
   useEffect(() => {
     const key = 'page_view_admin_activity' + window.location.pathname + Math.floor(Date.now() / 2000);
@@ -45,63 +44,53 @@ export default function AdminActivityPage() {
   }, []);
 
   const refreshAll = () => {
-    mutateEvents();
-    mutateLogins();
-    toast({ title: "Registry Synchronized", description: "All telemetry nodes updated." });
+    mutate();
+    toast({ title: "Registry Synchronized", description: "Consolidated telemetry node updated." });
   };
 
   /**
-   * DATA NORMALIZATION PROTOCOL v2.5
-   * Standardizes records from multiple registry nodes for the Unified Audit Hub.
+   * DATA NORMALIZATION PROTOCOL v3.0
+   * Standardizes records from the unified System_Activity registry.
    */
   const unifiedData = useMemo(() => {
-    const normalizedEvents = (Array.isArray(events) ? events : []).map(e => ({
-      timestamp: e.timestamp,
-      user_name: e.user_name || 'Anonymous',
-      user_email: e.user_id || 'N/A',
-      user_role: e.user_role || 'user',
-      event_type: e.event_type,
-      context: e.page || e.test_name || 'N/A',
-      ip: e.ip || e.details?.ip || 'N/A',
-      device: e.device || 'N/A',
-      browser: e.browser || 'N/A',
-      status: 'LOGGED',
-      details: e.details,
-      source: 'telemetry'
-    }));
+    if (!Array.isArray(activityLogs)) return [];
 
-    const normalizedLogins = (Array.isArray(logins) ? logins : []).map(l => ({
-      timestamp: l.Timestamp,
-      user_name: l['User Name'] || 'Unknown',
-      user_email: l['User Email'] || 'N/A',
-      user_role: l.Role || 'admin',
-      event_type: l.Event,
-      context: 'Access Gate',
-      ip: l['IP Address'] || 'N/A',
-      device: l['Device'] || 'N/A',
-      browser: l.Browser || 'N/A',
-      status: 'VERIFIED',
-      details: { raw: l },
-      source: 'activity'
-    }));
-
-    return [...normalizedEvents, ...normalizedLogins].sort((a, b) => 
+    return activityLogs.map(log => ({
+      timestamp: log.timestamp || log.Timestamp,
+      user_name: log.user_name || 'Anonymous',
+      user_email: log.user_email || 'N/A',
+      user_role: log.user_role || 'user',
+      event_type: log.event_type || 'SYSTEM',
+      context: log.context || 'N/A',
+      ip: log.ip_address || log.ip || 'N/A',
+      device: log.device || 'N/A',
+      browser: log.browser || 'N/A',
+      status: log.status || 'VERIFIED',
+      details: typeof log.details === 'string' ? JSON.parse(log.details || '{}') : (log.details || {}),
+      source: 'unified'
+    })).sort((a, b) => 
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     );
-  }, [events, logins]);
+  }, [activityLogs]);
 
   const stats = useMemo(() => {
     const now = new Date().toDateString();
     return {
       total: unifiedData.length,
       uniqueUsers: new Set(unifiedData.map(d => d.user_email)).size,
-      loginsToday: unifiedData.filter(d => d.event_type.toLowerCase() === 'login' && new Date(d.timestamp).toDateString() === now).length,
-      navEvents: unifiedData.filter(d => d.event_type.toLowerCase().includes('page') || d.event_type.toLowerCase().includes('nav')).length
+      loginsToday: unifiedData.filter(d => 
+        (d.event_type.toLowerCase().includes('login')) && 
+        new Date(d.timestamp).toDateString() === now
+      ).length,
+      navEvents: unifiedData.filter(d => 
+        d.event_type.toLowerCase().includes('page') || 
+        d.event_type.toLowerCase().includes('nav')
+      ).length
     };
   }, [unifiedData]);
 
-  if ((eventsLoading || loginsLoading) && unifiedData.length === 0) {
-    return <div className="py-40"><AILoader messages={["Synchronizing Telemetry Nodes...", "Analyzing Forensic Timeline..."]} /></div>;
+  if (isLoading && unifiedData.length === 0) {
+    return <div className="py-40"><AILoader messages={["Accessing Unified Registry...", "Synchronizing Telemetry Stream..."]} /></div>;
   }
 
   return (
@@ -109,11 +98,11 @@ export default function AdminActivityPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-2">
         <div>
           <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tight">System Activity</h1>
-          <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2">Unified Forensic Audit & Site Telemetry</p>
+          <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2">Consolidated Forensic Audit Terminal</p>
         </div>
         <div className="flex items-center gap-3">
           <Button variant="outline" size="icon" onClick={refreshAll} className="rounded-full h-12 w-12 border-2">
-            <RefreshCcw className={cn("w-4 h-4", (eventsLoading || loginsLoading) && "animate-spin")} />
+            <RefreshCcw className={cn("w-4 h-4", isLoading && "animate-spin")} />
           </Button>
           <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border flex items-center gap-3">
             <Activity className="w-5 h-5 text-primary" />
@@ -126,13 +115,13 @@ export default function AdminActivityPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatNode icon={Users} label="Identity Nodes" value={stats.uniqueUsers} color="blue" />
         <StatNode icon={LogIn} label="Logins Today" value={stats.loginsToday} color="emerald" />
-        <StatNode icon={MousePointer2} label="Nav Pulses" value={stats.navEvents} color="purple" />
+        <StatNode icon={MousePointer2} label="Interaction Pulses" value={stats.navEvents} color="purple" />
         <StatNode icon={Calendar} label="Active Period" value={dateRange === 'all' ? 'Historical' : dateRange.toUpperCase()} color="amber" />
       </div>
 
       <UnifiedAuditTerminal 
         data={unifiedData}
-        loading={eventsLoading || loginsLoading}
+        loading={isLoading}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         dateRange={dateRange}

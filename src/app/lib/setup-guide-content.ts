@@ -1,6 +1,6 @@
 /**
  * Static content registry for the Setup Guide.
- * simplified for functional clarity.
+ * Updated: v19.0.0 - Consolidated telemetry registry into a single 'System_Activity' tab.
  */
 
 export const SETUP_GUIDE_CONTENT = {
@@ -14,11 +14,11 @@ export const SETUP_GUIDE_CONTENT = {
       title: "Database Setup",
       desc: "Use Google Sheets™ as your primary database.",
       alertTitle: "Required Tabs",
-      alertDesc: "Create SIX tabs with these exact names: Tests, Users, Responses, Activity, Events, Settings.",
+      alertDesc: "Create FIVE tabs with these exact names: Tests, Users, Responses, System_Activity, Settings.",
       tabTests: "Tests",
       tabUsers: "Users",
       tabResponses: "Logs",
-      tabActivity: "Access",
+      tabActivity: "Activity",
       tabEvents: "Events",
       tabSettings: "Settings",
       testsTitle: "Tab: Tests",
@@ -27,10 +27,8 @@ export const SETUP_GUIDE_CONTENT = {
       usersHeaders: "id, name, email, role, password, image_url",
       responsesTitle: "Tab: Responses",
       responsesHeaders: "Timestamp, User Name, User Email, Test ID, Score, Total, Duration (ms), Raw Responses, Certificate ID",
-      activityTitle: "Tab: Activity (Access Logs)",
-      activityHeaders: "Timestamp, User Name, User Email, Event, IP Address, Device, Role, Browser",
-      eventsTitle: "Tab: Events (Site Telemetry)",
-      eventsHeaders: "timestamp, session_id, user_id, user_name, user_role, event_type, page, test_id, test_name, question_id, score, details, device, browser, ip",
+      activityTitle: "Tab: System_Activity (Unified Audit)",
+      activityHeaders: "timestamp, user_name, user_email, user_role, event_type, context, details, ip_address, device, browser, status, session_id",
       settingsTitle: "Tab: Settings",
       settingsHeaders: "key, value",
       dynamicTitle: "Question Tabs",
@@ -72,11 +70,11 @@ export const SETUP_GUIDE_CONTENT = {
       title: "Cấu trúc dữ liệu",
       desc: "Sử dụng Google Sheets™ làm cơ sở dữ liệu chính.",
       alertTitle: "Các tab bắt buộc",
-      alertDesc: "Tạo 6 tab với tên chính xác: Tests, Users, Responses, Activity, Events, Settings.",
+      alertDesc: "Tạo 5 tab với tên chính xác: Tests, Users, Responses, System_Activity, Settings.",
       tabTests: "Tests",
       tabUsers: "Users",
       tabResponses: "Kết quả",
-      tabActivity: "Truy cập",
+      tabActivity: "Hoạt động",
       tabEvents: "Sự kiện",
       tabSettings: "Cấu hình",
       testsTitle: "Tab: Tests",
@@ -85,10 +83,8 @@ export const SETUP_GUIDE_CONTENT = {
       usersHeaders: "id, name, email, role, password, image_url",
       responsesTitle: "Tab: Responses",
       responsesHeaders: "Timestamp, User Name, User Email, Test ID, Score, Total, Duration (ms), Raw Responses, Certificate ID",
-      activityTitle: "Tab: Activity (Nhật ký truy cập)",
-      activityHeaders: "Timestamp, User Name, User Email, Event, IP Address, Device, Role, Browser",
-      eventsTitle: "Tab: Events (Hoạt động hệ thống)",
-      eventsHeaders: "timestamp, session_id, user_id, user_name, user_role, event_type, page, test_id, test_name, question_id, score, details, device, browser, ip",
+      activityTitle: "Tab: System_Activity (Nhật ký hợp nhất)",
+      activityHeaders: "timestamp, user_name, user_email, user_role, event_type, context, details, ip_address, device, browser, status, session_id",
       settingsTitle: "Tab: Settings",
       settingsHeaders: "key, value",
       dynamicTitle: "Tab câu hỏi",
