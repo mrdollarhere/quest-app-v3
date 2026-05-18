@@ -108,7 +108,7 @@ function doPost(e) {
     const payload = JSON.parse(e.postData.contents);
     const action = payload.action;
 
-    // UNIFIED LOGGING PROTOCOL
+    // UNIFIED LOGGING PROTOCOL - AUTONOMOUS SCHEMA HANDLING
     if (action === 'logEvent' || action === 'logActivity') {
       let sheet = ss.getSheetByName(ACTIVITY_SHEET_NAME) || ss.insertSheet(ACTIVITY_SHEET_NAME);
       const headers = ['timestamp', 'user_name', 'user_email', 'user_role', 'event_type', 'context', 'details', 'ip_address', 'device', 'browser', 'status', 'session_id'];
@@ -116,7 +116,7 @@ function doPost(e) {
       if (sheet.getLastRow() === 0) {
         sheet.appendRow(headers);
       } else {
-        const currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+        const currentHeaders = sheet.getRange(1, 1, 1, Math.max(1, sheet.getLastColumn())).getValues()[0];
         headers.forEach(h => {
           if (currentHeaders.indexOf(h) === -1) {
             sheet.getRange(1, sheet.getLastColumn() + 1).setValue(h);
@@ -127,12 +127,12 @@ function doPost(e) {
       // Standardized Data Mapping
       const rowData = headers.map(h => {
         let val = payload[h];
-        // Handle legacy field names from logActivity
+        // Handle legacy field names from logActivity and logEvent
         if (h === 'timestamp' && !val) val = new Date();
         if (h === 'user_name' && !val) val = payload.name;
         if (h === 'user_email' && !val) val = payload.email;
         if (h === 'event_type' && !val) val = payload.event;
-        if (h === 'ip_address' && !val) val = payload.ip;
+        if (h === 'ip_address' && !val) val = payload.ip || payload.ip_address;
         if (h === 'user_role' && !val) val = payload.Role || 'user';
         if (h === 'context' && !val) val = payload.page || 'System';
         if (h === 'status' && !val) val = 'VERIFIED';
@@ -180,7 +180,7 @@ function doPost(e) {
       if (sheet.getLastRow() === 0) {
         sheet.appendRow(headers);
       } else {
-        const currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+        const currentHeaders = sheet.getRange(1, 1, 1, Math.max(1, sheet.getLastColumn())).getValues()[0];
         headers.forEach(h => {
           if (currentHeaders.indexOf(h) === -1) {
             sheet.getRange(1, sheet.getLastColumn() + 1).setValue(h);
@@ -234,8 +234,9 @@ function doPost(e) {
 }
 
 function getRowsAsObjects(sheet, excludeKeys = []) {
-  const data = sheet.getDataRange().getValues();
-  if (data.length < 1) return [];
+  const range = sheet.getDataRange();
+  if (range.getNumRows() < 1) return [];
+  const data = range.getValues();
   const headers = data.shift();
   return data.map(row => {
     const obj = {};
@@ -245,8 +246,9 @@ function getRowsAsObjects(sheet, excludeKeys = []) {
 }
 
 function upsertRow(sheet, idKey, idValue, data) {
-  const values = sheet.getDataRange().getValues();
-  if (values.length === 0) return;
+  const range = sheet.getDataRange();
+  if (range.getNumRows() === 0) return;
+  const values = range.getValues();
   const headers = values[0];
   const idIdx = headers.indexOf(idKey);
   if (idIdx === -1) return;
@@ -277,8 +279,9 @@ function upsertRow(sheet, idKey, idValue, data) {
 }
 
 function deleteRow(sheet, idKey, idValue) {
-  const values = sheet.getDataRange().getValues();
-  if (values.length < 2) return;
+  const range = sheet.getDataRange();
+  if (range.getNumRows() < 2) return;
+  const values = range.getValues();
   const headers = values[0];
   const idIdx = headers.indexOf(idKey);
   if (idIdx === -1) return;
