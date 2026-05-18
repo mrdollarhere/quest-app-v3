@@ -90,8 +90,8 @@ export default function LandingPage() {
       </header>
 
       <main className="flex-1">
-        <HeroSection t={t} />
         <QuickSignIn />
+        <HeroSection t={t} />
         <FeatureGrid t={t} />
         <GlobalFeedback />
         <TacticalSection />
