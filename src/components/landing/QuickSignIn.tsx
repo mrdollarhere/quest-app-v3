@@ -3,7 +3,7 @@
  * 
  * Purpose: Embedded identity handshake node for the landing gateway.
  * Refactored: v19.2.0 - Optimized as a modular card for horizontal hero integration.
- * Compliance: Protocol v18.9.7 - Rectangular Geometry Enforced.
+ * Compliance: Protocol v18.9.7 - Custom Radius Exception for Identity Highlight.
  */
 
 "use client";
@@ -44,13 +44,13 @@ export function QuickSignIn() {
 
   return (
     <div className={cn(
-      "w-full overflow-hidden shadow-2xl transition-all duration-700 rounded-none border animate-in fade-in slide-in-from-right-8",
+      "w-full overflow-hidden shadow-2xl transition-all duration-700 rounded-[2.5rem] border animate-in fade-in slide-in-from-right-8",
       user ? "bg-slate-900 text-white p-10" : "bg-white border-slate-100 p-10"
     )}>
       {user ? (
         <div className="flex flex-col gap-8 text-center sm:text-left">
           <div className="flex flex-col sm:flex-row items-center gap-6">
-            <div className="w-16 h-16 bg-primary rounded-none flex items-center justify-center shadow-2xl shadow-primary/20 shrink-0">
+            <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center shadow-2xl shadow-primary/20 shrink-0">
               <ShieldCheck className="w-8 h-8 text-white" />
             </div>
             <div className="min-w-0 flex-1">
@@ -71,7 +71,7 @@ export function QuickSignIn() {
         <div className="space-y-8">
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-none"><LogIn className="w-5 h-5 text-primary" /></div>
+              <div className="p-2 bg-primary/10 rounded-xl"><LogIn className="w-5 h-5 text-primary" /></div>
               <h3 className="text-xl font-black uppercase tracking-tight text-slate-900">Quick Access</h3>
             </div>
             <p className="text-slate-500 text-xs font-medium leading-relaxed">
@@ -88,7 +88,7 @@ export function QuickSignIn() {
                   placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="h-12 rounded-none bg-slate-50 border-none ring-1 ring-slate-100 font-bold text-sm"
+                  className="h-12 rounded-xl bg-slate-50 border-none ring-1 ring-slate-100 font-bold text-sm"
                 />
               </div>
               <div className="space-y-1.5">
@@ -98,7 +98,7 @@ export function QuickSignIn() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="h-12 rounded-none bg-slate-50 border-none ring-1 ring-slate-100 font-bold text-sm"
+                  className="h-12 rounded-xl bg-slate-50 border-none ring-1 ring-slate-100 font-bold text-sm"
                 />
               </div>
             </div>
