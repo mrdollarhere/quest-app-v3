@@ -67,12 +67,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     pathname.startsWith('/admin/users') ? 'users' :
                     pathname.startsWith('/admin/responses') ? 'responses' :
                     pathname.startsWith('/admin/activity') ? 'activity' :
-                    pathname.startsWith('/admin/events') ? 'events' :
                     pathname.startsWith('/admin/settings') ? 'settings' : 'overview';
 
   const getHeaderTitle = () => {
     if (pathname === '/admin') return 'Dashboard';
-    if (pathname === '/admin/events') return 'Site Events';
+    if (pathname === '/admin/activity') return 'System Activity';
     const last = pathname.split('/').pop() || '';
     if (last === 'new') return 'New Question';
     return last.replace(/-/g, ' ');

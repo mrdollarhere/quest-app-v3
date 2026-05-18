@@ -43,7 +43,7 @@ import {
 import Image from 'next/image';
 import { trackEvent } from '@/lib/tracker';
 
-export type AdminTab = 'overview' | 'tests' | 'users' | 'responses' | 'activity' | 'settings' | 'events';
+export type AdminTab = 'overview' | 'tests' | 'users' | 'responses' | 'activity' | 'settings';
 
 interface AdminSidebarProps {
   activeTab: AdminTab;
@@ -63,8 +63,7 @@ export const AdminSidebar = React.memo(({ activeTab, user, logout }: AdminSideba
     { id: 'tests', label: t('testLibrary'), icon: ClipboardList, href: '/admin/tests' },
     { id: 'users', label: t('students'), icon: UsersIcon, href: '/admin/users' },
     { id: 'responses', label: t('results'), icon: MessageSquare, href: '/admin/responses' },
-    { id: 'events', label: t('platformActivity'), icon: Activity, href: '/admin/events' },
-    { id: 'activity', label: t('activity'), icon: History, href: '/admin/activity' },
+    { id: 'activity', label: 'System Activity', icon: Activity, href: '/admin/activity' },
     { id: 'settings', label: t('settings'), icon: SettingsIcon, href: '/admin/settings' }
   ];
 
