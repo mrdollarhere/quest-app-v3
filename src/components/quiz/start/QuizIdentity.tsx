@@ -1,4 +1,3 @@
-
 /**
  * src/components/quiz/start/QuizIdentity.tsx
  * 
@@ -81,10 +80,7 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
     onContinue();
   };
 
-  const lockReason = {
-    en: "Your student node has been quarantined due to repeated identity validation failures. Entry is strictly prohibited.",
-    vi: "Nút sinh viên của bạn đã bị cách ly do liên tục vi phạm quy trình xác thực định danh. Truy cập bị nghiêm cấm."
-  };
+  const lockReason = "Your student node has been quarantined due to repeated identity validation failures. Entry into the assessment registry is strictly prohibited.";
 
   return (
     <>

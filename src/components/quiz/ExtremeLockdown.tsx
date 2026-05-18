@@ -1,10 +1,9 @@
-
 /**
  * ExtremeLockdown.tsx
  * 
  * Route: Internal Component
  * Purpose: Forensic interaction barrier for quarantined student nodes.
- * Features: Fullscreen enforcement, global key/mouse blocking, and bilingual diagnostics.
+ * Features: Fullscreen enforcement, global key/mouse blocking, and English diagnostics.
  */
 
 "use client";
@@ -16,7 +15,7 @@ import { cn } from '@/lib/utils';
 interface ExtremeLockdownProps {
   isLocked: boolean;
   lockoutTime: number;
-  reason: { en: string; vi: string };
+  reason: string;
   onUnlock: () => void;
 }
 
@@ -105,7 +104,7 @@ export function ExtremeLockdown({ isLocked, lockoutTime, reason, onUnlock }: Ext
     <div 
       ref={containerRef}
       className="fixed inset-0 z-[99999] bg-slate-950/98 backdrop-blur-3xl flex flex-col items-center justify-center p-8 text-center select-none cursor-none animate-in fade-in duration-500"
-      style={{ pointerEvents: 'auto' }} // Allow interaction on the overlay itself if needed, but we block it globally
+      style={{ pointerEvents: 'auto' }} 
     >
       <div className="max-w-2xl w-full space-y-12">
         <div className="relative">
@@ -130,18 +129,11 @@ export function ExtremeLockdown({ isLocked, lockoutTime, reason, onUnlock }: Ext
             <h2 className="text-5xl md:text-6xl font-black text-white uppercase tracking-tighter leading-none">
               TERMINAL LOCKED
             </h2>
-            <p className="text-xl font-bold text-rose-400 uppercase tracking-widest">
-              NÚT SINH VIÊN BỊ CÁCH LY
-            </p>
           </div>
 
-          <div className="max-w-md mx-auto p-6 bg-white/5 border border-white/10 rounded-[2rem] space-y-4">
+          <div className="max-w-md mx-auto p-8 bg-white/5 border border-white/10 rounded-[2rem]">
              <p className="text-slate-400 font-medium leading-relaxed text-sm">
-               {reason.en}
-             </p>
-             <div className="h-px w-12 bg-white/10 mx-auto" />
-             <p className="text-slate-500 font-medium leading-relaxed text-sm italic">
-               {reason.vi}
+               {reason}
              </p>
           </div>
         </div>
@@ -150,7 +142,7 @@ export function ExtremeLockdown({ isLocked, lockoutTime, reason, onUnlock }: Ext
           <div className="absolute top-0 left-0 w-full h-1 bg-rose-500/30 overflow-hidden">
             <div 
               className="h-full bg-rose-500 transition-all duration-1000 ease-linear"
-              style={{ width: `${(lockoutTime / 2700) * 100}%` }} // Adjusted to 45m max
+              style={{ width: `${(lockoutTime / 2700) * 100}%` }} 
             />
           </div>
           
