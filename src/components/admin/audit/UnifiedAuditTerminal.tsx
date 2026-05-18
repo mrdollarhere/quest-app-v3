@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from 'react';
@@ -38,6 +37,12 @@ interface UnifiedAuditTerminalProps {
   onRefresh: () => void;
 }
 
+/**
+ * UNIFIED AUDIT TERMINAL
+ * 
+ * Orchestrates the high-capacity forensic audit table.
+ * Implements tactical filtering, date ranges, and CSV extraction.
+ */
 export function UnifiedAuditTerminal({ 
   data, 
   loading, 
@@ -51,8 +56,38 @@ export function UnifiedAuditTerminal({
   const { toast } = useToast();
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
 
+  // TACTICAL FILTERING PROTOCOL
+  const filteredByTab = data.filter(item => {
+    if (activeTab === 'access') {
+      const types = ['login', 'logout', 'daily_key_failure', 'auth_denied'];
+      return types.includes(item.event_type.toLowerCase());
+    }
+    if (activeTab === 'views') {
+      return item.event_type.toLowerCase() === 'page_view';
+    }
+    if (activeTab === 'nav') {
+      return item.event_type.toLowerCase().includes('navigation') || item.event_type.toLowerCase().includes('click');
+    }
+    return true;
+  });
+
+  const filteredByDate = filteredByTab.filter(item => {
+    if (dateRange === 'all') return true;
+    const d = new Date(item.timestamp);
+    const now = new Date();
+    if (dateRange === 'today' && d.toDateString() !== now.toDateString()) return false;
+    if (dateRange === 'week') {
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      return d >= sevenDaysAgo;
+    }
+    if (dateRange === 'month') {
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    }
+    return true;
+  });
+
   const { currentPage, setCurrentPage, paginatedData, totalItems, pageSize } = useRegistryFilter({
-    data: data,
+    data: filteredByDate,
     searchFields: (item) => [item.user_name, item.user_email, item.event_type, item.ip, item.context],
     pageSize: 20
   });

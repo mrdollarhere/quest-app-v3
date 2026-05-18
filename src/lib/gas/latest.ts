@@ -2,8 +2,8 @@ export const GAS_CODE = `/**
  * QUESTFLOW BACKEND v18.9.9 - HARDENED AUDIT PROTOCOL
  * 
  * ACTIONS SUPPORTED:
- * - GET: login, getTests, getUsers, getResponses, getQuestions, getActivity, getSettings, getVersion, getEvents, getPublicStats
- * - POST: submitResponse, saveTest, deleteTest, saveUser, deleteUser, saveQuestion, saveQuestions, saveUsers, logActivity, saveSetting, deleteResponse, logEvent, cleanDuplicates
+ * - GET: login, getTests, getUsers, getResponses, getQuestions, getActivity, getSettings, getVersion, getEvents
+ * - POST: submitResponse, saveTest, deleteTest, saveUser, deleteUser, saveQuestion, saveQuestions, saveUsers, logActivity, saveSetting, deleteResponse, logEvent
  */
 
 const GAS_VERSION = "18.9.9";
@@ -20,19 +20,15 @@ function doGet(e) {
     if (action === 'getEvents') {
       const sheet = ss.getSheetByName('Events');
       if (!sheet) return createResponse([]);
-      const limit = parseInt(e.parameter.limit || "500");
-      const type = e.parameter.event_type;
+      const limit = parseInt(e.parameter.limit || "1000");
       let data = getRowsAsObjects(sheet).reverse();
-      if (type && type !== 'all') {
-        data = data.filter(ev => ev.event_type === type);
-      }
       return createResponse(data.slice(0, limit));
     }
 
     if (action === 'getActivity') {
       const sheet = ss.getSheetByName('Activity');
       if (!sheet) return createResponse([]);
-      const limit = parseInt(e.parameter.limit || "500");
+      const limit = parseInt(e.parameter.limit || "1000");
       return createResponse(getRowsAsObjects(sheet).reverse().slice(0, limit));
     }
 
@@ -87,13 +83,7 @@ function doGet(e) {
         return createResponse(filtered.reverse());
       }
       
-      const lastRows = allData.slice(-2000).reverse();
-      const result = lastRows.map(row => {
-        const obj = {};
-        headers.forEach((h, i) => obj[h] = row[i]);
-        return obj;
-      });
-      return createResponse(result);
+      return createResponse(getRowsAsObjects(sheet).reverse().slice(0, 2000));
     }
 
     if (action === 'getSettings') {
@@ -139,19 +129,6 @@ function doPost(e) {
         });
       }
       
-      const lastRowIdx = sheet.getLastRow();
-      if (lastRowIdx > 1) {
-        const lastData = sheet.getRange(lastRowIdx, 1, 1, 6).getValues()[0];
-        const lastTime = new Date(lastData[0]).getTime();
-        const lastSess = String(lastData[1]);
-        const lastType = String(lastData[5]);
-        const now = new Date().getTime();
-        
-        if (lastSess === payload.session_id && lastType === payload.event_type && (now - lastTime < 2000)) {
-          return createResponse({ status: 'skipped_duplicate' });
-        }
-      }
-
       const rowData = headers.map(h => {
         let val = payload[h];
         if (h === 'details' && typeof val === 'object') val = JSON.stringify(val);
@@ -241,7 +218,6 @@ function doPost(e) {
       return createResponse({ status: 'success' });
     }
 
-    // Standard CRUD actions preserved...
     if (action === 'deleteTest') {
       const sheet = ss.getSheetByName('Tests');
       if (sheet) deleteRow(sheet, 'id', payload.id);

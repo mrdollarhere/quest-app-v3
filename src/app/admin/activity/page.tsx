@@ -19,6 +19,12 @@ import { trackEvent } from '@/lib/tracker';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
+/**
+ * SYSTEM ACTIVITY COMMAND CENTER
+ * 
+ * Orchestrates the unified forensic audit terminal.
+ * Normalizes data from two registry nodes: Events and Activity.
+ */
 export default function AdminActivityPage() {
   const { t } = useLanguage();
   const { toast } = useToast();
@@ -27,7 +33,7 @@ export default function AdminActivityPage() {
   const [activeTab, setActiveTab] = useState<'all' | 'access' | 'views' | 'nav'>('all');
   const [dateRange, setDateRange] = useState<'today' | 'week' | 'month' | 'all'>('all');
 
-  // REGISTRY HANDSHAKE: Fetch high-capacity slices (2000 records)
+  // REGISTRY HANDSHAKE: Fetch high-capacity slices from both telemetry sources
   const { data: events, isLoading: eventsLoading, mutate: mutateEvents } = useSWR('/api/proxy/admin/events?limit=2000');
   const { data: logins, isLoading: loginsLoading, mutate: mutateLogins } = useSWR('/api/proxy/admin/activity?limit=2000');
 
@@ -45,7 +51,7 @@ export default function AdminActivityPage() {
   };
 
   /**
-   * DATA NORMALIZATION PROTOCOL v2.0
+   * DATA NORMALIZATION PROTOCOL v2.5
    * Standardizes records from multiple registry nodes for the Unified Audit Hub.
    */
   const unifiedData = useMemo(() => {
@@ -84,54 +90,15 @@ export default function AdminActivityPage() {
     );
   }, [events, logins]);
 
-  const filteredData = useMemo(() => {
-    return unifiedData.filter(item => {
-      const searchStr = displaySearch.toLowerCase();
-      const matchesSearch = 
-        item.user_name.toLowerCase().includes(searchStr) ||
-        item.user_email.toLowerCase().includes(searchStr) ||
-        item.event_type.toLowerCase().includes(searchStr) ||
-        item.ip.toLowerCase().includes(searchStr) ||
-        item.context.toLowerCase().includes(searchStr);
-
-      if (!matchesSearch) return false;
-
-      if (activeTab === 'access') {
-        const types = ['login', 'logout', 'daily_key_failure', 'auth_denied'];
-        if (!types.includes(item.event_type.toLowerCase())) return false;
-      }
-      if (activeTab === 'views') {
-        if (item.event_type.toLowerCase() !== 'page_view') return false;
-      }
-      if (activeTab === 'nav') {
-        if (!item.event_type.toLowerCase().includes('navigation') && !item.event_type.toLowerCase().includes('click')) return false;
-      }
-
-      if (dateRange !== 'all') {
-        const d = new Date(item.timestamp);
-        const now = new Date();
-        if (dateRange === 'today' && d.toDateString() !== now.toDateString()) return false;
-        if (dateRange === 'week') {
-          const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          if (d < sevenDaysAgo) return false;
-        }
-        if (dateRange === 'month') {
-          if (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) return false;
-        }
-      }
-      return true;
-    });
-  }, [unifiedData, displaySearch, activeTab, dateRange]);
-
   const stats = useMemo(() => {
     const now = new Date().toDateString();
     return {
-      total: filteredData.length,
-      uniqueUsers: new Set(filteredData.map(d => d.user_email)).size,
-      loginsToday: filteredData.filter(d => d.event_type.toLowerCase() === 'login' && new Date(d.timestamp).toDateString() === now).length,
-      navEvents: filteredData.filter(d => d.event_type.toLowerCase().includes('page')).length
+      total: unifiedData.length,
+      uniqueUsers: new Set(unifiedData.map(d => d.user_email)).size,
+      loginsToday: unifiedData.filter(d => d.event_type.toLowerCase() === 'login' && new Date(d.timestamp).toDateString() === now).length,
+      navEvents: unifiedData.filter(d => d.event_type.toLowerCase().includes('page') || d.event_type.toLowerCase().includes('nav')).length
     };
-  }, [filteredData]);
+  }, [unifiedData]);
 
   if ((eventsLoading || loginsLoading) && unifiedData.length === 0) {
     return <div className="py-40"><AILoader messages={["Synchronizing Telemetry Nodes...", "Analyzing Forensic Timeline..."]} /></div>;
@@ -164,7 +131,7 @@ export default function AdminActivityPage() {
       </div>
 
       <UnifiedAuditTerminal 
-        data={filteredData}
+        data={unifiedData}
         loading={eventsLoading || loginsLoading}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
