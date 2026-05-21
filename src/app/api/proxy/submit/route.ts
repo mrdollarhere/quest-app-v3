@@ -16,7 +16,6 @@ function arraysMatch(a: string[], b: string[]) {
 /**
  * UTILITY: Registry Field Parser
  * Robustly parses fields that might be arrays or stringified JSON arrays.
- * Hardened: Ensures all string items are trimmed to prevent registry lookup failures.
  */
 function parseJsonField(field: unknown): any[] {
   if (!field) return [];
@@ -40,8 +39,7 @@ function parseJsonField(field: unknown): any[] {
 
 /**
  * CORE: Intelligence Grading Engine
- * Applies specific validation protocols based on the interaction type.
- * IMPLEMENTS: Case-Insensitive Normalization Protocol
+ * IMPLEMENTS: Deterministic Association Protocol (Association-based vs Index-based)
  */
 function gradeQuestion(question: Question, submitted: unknown): boolean {
   const type = String(question.question_type || '').toLowerCase().replace(/[\s_]/g, '');
@@ -68,20 +66,33 @@ function gradeQuestion(question: Question, submitted: unknown): boolean {
     case 'matrix_choice':
     case 'matrixchoice':
       if (typeof submitted !== 'object' || !submitted) return false;
-      // Registry lookup: Iterate through orderArr keys and verify against submitted values
-      return orderArr.every((key, i) => {
-        const userVal = String((submitted as any)[key] ?? '').trim().toLowerCase();
+      
+      const userResponses = submitted as Record<string, any>;
+      const userKeys = Object.keys(userResponses);
+      
+      // ASSOCIATION PROTOCOL: Match user keys to registry keys case-insensitively
+      return orderArr.every((masterKey, i) => {
+        const normalizedMasterKey = String(masterKey).trim().toLowerCase();
+        
+        // Find the key in submitted object that matches the master key
+        const actualKey = userKeys.find(k => k.trim().toLowerCase() === normalizedMasterKey);
+        if (!actualKey) return false; // Missing node
+
+        const userVal = String(userResponses[actualKey] ?? '').trim().toLowerCase();
         const correctVal = String(correctArr[i] ?? '').trim().toLowerCase();
         return userVal === correctVal;
       });
 
     case 'matching':
       if (typeof submitted !== 'object' || !submitted) return false;
-      // Matching protocol: Check every correct pair against the submitted mapping
+      const matchResponses = submitted as Record<string, any>;
+      const matchKeys = Object.keys(matchResponses);
+      
       return correctArr.every(pair => {
-        const [k, v] = String(pair).split('|').map(s => s.trim());
-        const userVal = String((submitted as any)[k] ?? '').trim().toLowerCase();
-        return userVal === String(v ?? '').trim().toLowerCase();
+        const [k, v] = String(pair).split('|').map(s => s.trim().toLowerCase());
+        const actualKey = matchKeys.find(mk => mk.trim().toLowerCase() === k);
+        if (!actualKey) return false;
+        return String(matchResponses[actualKey] ?? '').trim().toLowerCase() === v;
       });
 
     case 'ordering':
@@ -112,7 +123,7 @@ function gradeQuestion(question: Question, submitted: unknown): boolean {
       }
 
     case 'rating':
-      if (!correctArr || correctArr.length === 0) return true; // Survey mode
+      if (!correctArr || correctArr.length === 0) return true; 
       const diff = Math.abs(Number(submitted) - Number(correctArr[0]));
       return diff === 0;
 
@@ -123,7 +134,6 @@ function gradeQuestion(question: Question, submitted: unknown): boolean {
 
 /**
  * PROTOCOL: Streak Enforcement
- * Discards all responses that occur after the first incorrect answer in Race mode.
  */
 function truncateAtFirstWrong(responses: any[], masterQuestions: Question[]) {
   const result = [];
@@ -139,10 +149,6 @@ function truncateAtFirstWrong(responses: any[], masterQuestions: Question[]) {
   return result;
 }
 
-/**
- * POST /api/proxy/submit
- * Orchestrates server-side scoring and registry commitment.
- */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -152,19 +158,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing submission data' }, { status: 400 });
     }
 
-    // SECURITY PROTOCOL: Fetch correct answers directly from registry for verification
     const masterQuestions = await gasGet('getQuestions', { id: testId });
     
     if (!masterQuestions || !Array.isArray(masterQuestions)) {
       return NextResponse.json({ error: 'Module questions not found in registry' }, { status: 404 });
     }
 
-    // STREAK ENFORCEMENT: If in Race mode, truncate responses at the first failure
     const processedResponses = mode === 'race' 
       ? truncateAtFirstWrong(responses, masterQuestions)
       : responses;
 
-    // SCORING PROTOCOL: Calculate total and build review audit
     let calculatedScore = 0;
     const reviewData = masterQuestions.map((q: Question) => {
       const userResp = processedResponses.find(r => String(r.questionId) === String(q.id));
@@ -190,7 +193,6 @@ export async function POST(request: Request) {
     const totalQuestions = masterQuestions.length;
     const streakLength = mode === 'race' ? calculatedScore : undefined;
 
-    // Registry Commitment
     await gasPost('submitResponse', {
       userName,
       userEmail,
@@ -198,7 +200,7 @@ export async function POST(request: Request) {
       score: calculatedScore,
       total: totalQuestions,
       duration,
-      responses: JSON.stringify(reviewData), // Archive the full audit
+      responses: JSON.stringify(reviewData),
       mode,
       certificateId
     });

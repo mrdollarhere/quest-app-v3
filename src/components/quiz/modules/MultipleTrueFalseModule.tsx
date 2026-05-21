@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { Question } from '@/types/quiz';
-import { CheckCircle2, AlertCircle } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { parseRegistryArray, shuffleArray } from '@/lib/quiz-utils';
 
@@ -17,7 +17,8 @@ export const MultipleTrueFalseModule: React.FC<Props> = ({ question, value, onCh
   const originalStatements = useMemo(() => parseRegistryArray(question.order_group), [question.order_group]);
   const statements = useMemo(() => reviewMode ? originalStatements : shuffleArray(originalStatements), [originalStatements, reviewMode]);
   const correctArr = useMemo(() => parseRegistryArray(question.correct_answer), [question.correct_answer]);
-  const responses = (value as Record<string, string>) || {};
+  
+  const responses = useMemo(() => (value as Record<string, string>) || {}, [value]);
 
   const handleUpdate = (statement: string, val: string) => {
     if (reviewMode) return;
@@ -28,9 +29,14 @@ export const MultipleTrueFalseModule: React.FC<Props> = ({ question, value, onCh
     <div className="space-y-4">
       <div className="flex flex-col gap-3">
         {statements.map((s, i) => {
-          const userVal = responses[s];
+          // ASSOCIATION LOOKUP: Find the correct value based on original index in order_group
           const originalIdx = originalStatements.indexOf(s);
           const correctAnswer = correctArr[originalIdx];
+          
+          // User response lookup with case-insensitive normalization guard
+          const userKey = Object.keys(responses).find(k => k.trim().toLowerCase() === s.trim().toLowerCase());
+          const userVal = userKey ? responses[userKey] : undefined;
+          
           const isCorrect = reviewMode && userVal === correctAnswer;
           
           return (

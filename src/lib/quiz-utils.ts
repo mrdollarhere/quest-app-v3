@@ -15,7 +15,6 @@ export const shuffleArray = <T,>(array: T[]): T[] => {
 
 /**
  * Robustly parses a registry field that might be a JSON array or a comma-separated string.
- * Hardened: Ensures all string items are trimmed to prevent registry lookup failures.
  */
 export const parseRegistryArray = (input: any): string[] => {
   if (!input) return [];
@@ -54,8 +53,7 @@ export const getRegistryValue = (obj: any, keys: string[]): any => {
 
 /**
  * Calculates whether a user's response is correct for a given question.
- * Used for both server-side scoring and client-side review feedback.
- * Hardened: Implements case-insensitive comparison across all complex types.
+ * IMPLEMENTS: Deterministic Association Protocol (Association-based matching)
  */
 export const calculateScoreForQuestion = (q: Question, response: any): boolean => {
   if (!q) return false;
@@ -69,16 +67,6 @@ export const calculateScoreForQuestion = (q: Question, response: any): boolean =
     const userRating = parseInt(String(response));
     const targetRating = parseInt(String(correctArr[0]));
     if (isNaN(userRating) || isNaN(targetRating)) return false;
-
-    let hasTolerance = false;
-    try {
-      const meta = JSON.parse(q.metadata || "{}");
-      hasTolerance = !!meta.tolerance;
-    } catch (e) {}
-
-    if (hasTolerance) {
-      return Math.abs(userRating - targetRating) <= 1;
-    }
     return userRating === targetRating;
   }
 
@@ -107,7 +95,6 @@ export const calculateScoreForQuestion = (q: Question, response: any): boolean =
     try {
       const zones: HotspotZone[] = JSON.parse(q.metadata || "[]");
       const correctZoneIds = zones.filter(z => z.isCorrect).map(z => z.id).sort();
-      
       if (Array.isArray(response)) {
         const selectedIds = [...response].map(String).sort();
         return JSON.stringify(selectedIds) === JSON.stringify(correctZoneIds);
@@ -119,42 +106,28 @@ export const calculateScoreForQuestion = (q: Question, response: any): boolean =
   if (questionType === 'matching') {
     const userResp = (response || {}) as Record<string, string>;
     const userKeys = Object.keys(userResp);
-    
     if (userKeys.length !== correctArr.length) return false;
 
-    // Matching protocol: Check every correct pair against the submitted mapping case-insensitively
     return correctArr.every(pair => {
       const [k, v] = String(pair).split('|').map(s => s.trim().toLowerCase());
-      // Find key in user response that matches k case-insensitively
       const actualKey = userKeys.find(uk => uk.trim().toLowerCase() === k);
       if (!actualKey) return false;
       return String(userResp[actualKey] || "").trim().toLowerCase() === v;
     });
   }
 
-  if (['multipletruefalse', 'multitf'].includes(questionType)) {
-    const statements = parseRegistryArray(q.order_group);
+  // MULTIPLE T/F & MATRIX ASSOCIATION LOGIC
+  if (['multipletruefalse', 'multitf', 'matrixchoice', 'matrix'].includes(questionType)) {
+    const masterItems = parseRegistryArray(q.order_group);
     const userResp = (response || {}) as Record<string, string>;
     const userKeys = Object.keys(userResp);
 
-    return statements.every((s, i) => {
-      const k = s.trim().toLowerCase();
-      const actualKey = userKeys.find(uk => uk.trim().toLowerCase() === k);
-      const userVal = actualKey ? String(userResp[actualKey] || "").trim().toLowerCase() : "";
-      const correctVal = String(correctArr[i] || "").trim().toLowerCase();
-      return userVal === correctVal;
-    });
-  }
+    return masterItems.every((item, i) => {
+      const normalizedMasterKey = item.trim().toLowerCase();
+      const actualKey = userKeys.find(uk => uk.trim().toLowerCase() === normalizedMasterKey);
+      if (!actualKey) return false;
 
-  if (['matrixchoice', 'matrix'].includes(questionType)) {
-    const rows = parseRegistryArray(q.order_group);
-    const userResp = (response || {}) as Record<string, string>;
-    const userKeys = Object.keys(userResp);
-
-    return rows.every((row, i) => {
-      const k = row.trim().toLowerCase();
-      const actualKey = userKeys.find(uk => uk.trim().toLowerCase() === k);
-      const userVal = actualKey ? String(userResp[actualKey] || "").trim().toLowerCase() : "";
+      const userVal = String(userResp[actualKey] || "").trim().toLowerCase();
       const correctVal = String(correctArr[i] || "").trim().toLowerCase();
       return userVal === correctVal;
     });
