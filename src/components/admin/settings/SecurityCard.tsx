@@ -1,4 +1,3 @@
-
 /**
  * SecurityCard.tsx
  * 
@@ -56,7 +55,7 @@ export function SecurityCard({ formData, setFormData, t }: SecurityCardProps) {
                 id="email-domains"
                 value={formData.allowed_email_domains}
                 onChange={(e) => setFormData({ ...formData, allowed_email_domains: e.target.value })}
-                placeholder={t('allowedDomainsPlaceholder')}
+                placeholder="e.g. gmail.com, company.com"
                 className="h-12 pl-11 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold text-xs"
               />
             </div>
@@ -109,7 +108,7 @@ export function SecurityCard({ formData, setFormData, t }: SecurityCardProps) {
           <div className="flex items-center justify-between p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
             <div className="space-y-1">
               <Label htmlFor="guest-toggle" className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight block cursor-pointer">{t('guestAccessAllowed')}</Label>
-              <p className="text-xs text-slate-500 font-medium">{t('guestAccessDesc')}</p>
+              <p className="text-xs text-slate-500 font-medium">Allow students to join assessments without a registered account</p>
             </div>
             <Switch 
               id="guest-toggle"

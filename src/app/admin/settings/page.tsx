@@ -209,7 +209,7 @@ export default function AdminSettingsPage() {
                   <h2 className="text-xl font-black flex items-center gap-3">
                     <UserCheck className="w-5 h-5 text-primary" /> Live Access Control
                   </h2>
-                  <CardDescription>Restrict join access to specific student rosters</CardDescription>
+                  <CardDescription>Control who can join your live classroom sessions</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
                   <Switch 
@@ -225,25 +225,31 @@ export default function AdminSettingsPage() {
                   />
                 </div>
               </div>
+
+              {formData.join_mode === 'open' ? (
+                <div className="mt-6 p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 rounded-2xl flex items-center gap-4 text-emerald-700 dark:text-emerald-400 animate-in fade-in slide-in-from-top-1">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-tight">Open Mode Active</p>
+                    <p className="text-[11px] font-medium opacity-80">Any student with a valid real name can join live sessions</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-6 p-4 bg-primary/5 dark:bg-primary/10 border border-primary/10 dark:border-primary/20 rounded-2xl flex items-center gap-4 text-primary animate-in fade-in slide-in-from-top-1">
+                  <Lock className="w-4 h-4 shrink-0" />
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-tight">Whitelist Mode Active — {whitelist.length} approved</p>
+                    <p className="text-[11px] font-medium opacity-80">Only students on this list can join</p>
+                  </div>
+                </div>
+              )}
             </CardHeader>
             <CardContent className="p-8 space-y-8">
-              <div className="flex items-center gap-4">
-                {formData.join_mode === 'open' ? (
-                  <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 font-black uppercase tracking-widest text-[9px] px-3 py-1">
-                    🟢 OPEN MODE — All valid names accepted
-                  </Badge>
-                ) : (
-                  <Badge className="bg-primary/10 text-primary border-primary/20 font-black uppercase tracking-widest text-[9px] px-3 py-1">
-                    🔒 WHITELIST MODE — {whitelist.length} names approved
-                  </Badge>
-                )}
-              </div>
-
               {formData.join_mode === 'whitelist' && (
                 <div className="space-y-8 animate-in slide-in-from-top-4 duration-500">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-4">
-                      <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Manual Addition</Label>
+                      <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Add Student</Label>
                       <div className="flex gap-2">
                         <Input 
                           id="new-name"
@@ -271,7 +277,7 @@ export default function AdminSettingsPage() {
                     </div>
 
                     <div className="space-y-4">
-                      <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Bulk Roster Ingestion</Label>
+                      <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Bulk Import</Label>
                       <Textarea 
                         placeholder="Paste names, one per line..."
                         value={bulkInput}
@@ -291,7 +297,7 @@ export default function AdminSettingsPage() {
 
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Approved Identity Nodes ({whitelist.length})</Label>
+                      <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Approved Students ({whitelist.length})</Label>
                       {whitelist.length > 0 && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
@@ -317,7 +323,7 @@ export default function AdminSettingsPage() {
                         <Badge 
                           key={name} 
                           variant="secondary" 
-                          className="pl-3 pr-1 py-1 gap-1 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 shadow-sm text-xs font-bold"
+                          className="pl-3 pr-1 py-1 gap-1 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 shadow-sm text-xs font-bold rounded-none"
                         >
                           {name}
                           <button 
@@ -336,6 +342,13 @@ export default function AdminSettingsPage() {
                       )}
                     </div>
                   </div>
+                </div>
+              )}
+
+              {formData.join_mode === 'open' && (
+                <div className="py-20 text-center space-y-4 opacity-40">
+                  <UserCheck className="w-12 h-12 mx-auto text-slate-300" />
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Roster restriction is currently disabled</p>
                 </div>
               )}
             </CardContent>
@@ -363,7 +376,9 @@ export default function AdminSettingsPage() {
                     className="h-12 pl-11 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-mono text-xs"
                   />
                 </div>
-                <p className="text-[9px] text-slate-400 italic px-1">{t('googleSheetUrlHint')}</p>
+                <p className="text-[9px] text-slate-400 italic px-1">
+                  Paste your Google Sheet URL here to enable quick access from the sidebar
+                </p>
               </div>
             </CardContent>
           </Card>
