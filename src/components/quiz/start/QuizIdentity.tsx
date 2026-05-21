@@ -3,6 +3,7 @@
  * 
  * Purpose: Registration step for student nodes with advanced identity validation.
  * Features: Extreme Lockdown Protocol, progressive lockout, and bot honeypot.
+ * Updated: v19.0.0 - Added Whitelist Mode support for restricted entry.
  */
 
 "use client";
@@ -25,6 +26,7 @@ import {
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/context/language-context';
+import { useSettings } from '@/context/settings-context';
 import { validateStudentName } from '@/lib/name-validator';
 import { useNameLockout } from '@/hooks/use-name-lockout';
 import { ExtremeLockdown } from '../ExtremeLockdown';
@@ -39,6 +41,7 @@ interface QuizIdentityProps {
 
 export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCount, duration }: QuizIdentityProps) {
   const { language } = useLanguage();
+  const { settings } = useSettings();
   const { isLocked, lockoutTime, triggerViolation } = useNameLockout();
   const [error, setError] = useState<string | null>(null);
   const [honeypot, setHoneypot] = useState(''); 
@@ -67,17 +70,46 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
       return;
     }
 
-    const result = validateStudentName(guestName);
-    
-    if (!result.valid) {
-      const msg = language === 'vi' ? result.reason?.vi : result.reason?.en;
-      setError(msg || 'Invalid Identity');
-      triggerViolation();
-      return;
-    }
+    // REGISTRY SETTINGS PARSING
+    const joinMode = settings.join_mode || 'open';
+    const whitelist: string[] = (() => {
+      try { return JSON.parse(settings.name_whitelist || '[]'); }
+      catch { return []; }
+    })();
 
-    setError(null);
-    onContinue();
+    const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
+    const inputTarget = normalize(guestName);
+
+    // MODE-AWARE VALIDATION PROTOCOL
+    if (joinMode === 'whitelist' && whitelist.length > 0) {
+      const isApproved = whitelist.some((name: string) => normalize(name) === inputTarget);
+      
+      if (!isApproved) {
+        setError(language === 'vi' 
+          ? 'Tên của bạn không có trong danh sách được phê duyệt cho bài thi này.' 
+          : 'Your name is not on the approved list for this session. Please contact your teacher.'
+        );
+        // Authorization failure does not trigger the violation penalty
+        return;
+      }
+      
+      // Match Found: Skip spam validator as the identity is pre-approved by administration
+      setError(null);
+      onContinue();
+    } else {
+      // OPEN MODE: Dynamic Fidelity Assessment
+      const validation = validateStudentName(guestName);
+      
+      if (!validation.valid) {
+        const msg = language === 'vi' ? result.reason?.vi : result.reason?.en;
+        setError(msg || 'Invalid Identity');
+        triggerViolation();
+        return;
+      }
+
+      setError(null);
+      onContinue();
+    }
   };
 
   const lockReason = "Your student node has been quarantined due to repeated identity validation failures. Entry into the assessment registry is strictly prohibited.";
