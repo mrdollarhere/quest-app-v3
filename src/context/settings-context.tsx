@@ -11,7 +11,10 @@ interface SettingsContextType {
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
-  const [settings, setSettings] = useState<Record<string, string>>({});
+  const [settings, setSettings] = useState<Record<string, string>>({
+    join_mode: 'open',
+    name_whitelist: '[]'
+  });
   const [loading, setLoading] = useState(true);
 
   const fetchSettings = useCallback(async () => {
@@ -22,7 +25,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       const data = await res.json();
-      setSettings(data || {});
+      setSettings(prev => ({ ...prev, ...(data || {}) }));
     } catch (e) {
       console.warn("[Registry Proxy] Failed to fetch settings");
     } finally {

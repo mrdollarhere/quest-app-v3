@@ -12,6 +12,11 @@
 *   **Registry Access**: All GAS calls must go through `/api/proxy/` routes. `NEXT_PUBLIC_API_URL` has been removed. All GAS calls use `APPS_SCRIPT_URL` via `gas-proxy.ts` server-side only.
 *   **Scoring**: Assessment scores are always calculated server-side in `/api/proxy/submit`. Client-side scores are for visual feedback only and not trusted by the registry.
 *   **Auth**: Admin routes require an `auth-session` cookie with `role === admin`.
+*   **join_mode setting**: open or whitelist, stored in Settings sheet.
+*   **name_whitelist setting**: JSON string array of approved names, stored in Settings sheet.
+*   **In whitelist mode**: Name matching is case-insensitive and trim-safe.
+*   **validateStudentName**: Called in join-room route for open mode only.
+*   **Settings fetch failure**: In join-room, defaults to open mode silently to ensure session availability.
 
 ## 3. Code Organization Rules
 
