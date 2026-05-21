@@ -208,6 +208,8 @@ export async function POST(request: Request) {
     const totalQuestions = masterQuestions.length;
     const streakLength = mode === 'race' ? calculatedScore : undefined;
 
+    // REGISTRY SYNC: Pass the reviewData array directly. 
+    // The GAS side will handle stringification for storage.
     await gasPost('submitResponse', {
       userName,
       userEmail,
@@ -215,7 +217,7 @@ export async function POST(request: Request) {
       score: calculatedScore,
       total: totalQuestions,
       duration,
-      responses: JSON.stringify(reviewData),
+      responses: reviewData, // Fix: Use array directly to avoid double-stringification
       mode,
       certificateId
     });

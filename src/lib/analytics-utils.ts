@@ -55,7 +55,7 @@ export function calculateResponseStats(responses: any[], tests: any[], threshold
     else if (pct >= 50) gradeCounts.Pass++;
     else gradeCounts.Fail++;
 
-    const testId = String(r['Test ID'] || 'Unknown');
+    const testId = String(r['Test ID'] || 'Unknown').trim();
     if (!testStats[testId]) testStats[testId] = { count: 0, totalScore: 0 };
     testStats[testId].count++;
     testStats[testId].totalScore += pct;
@@ -68,7 +68,7 @@ export function calculateResponseStats(responses: any[], tests: any[], threshold
   ];
 
   const testPerformanceData = Object.entries(testStats).map(([id, data]) => {
-    const test = (tests || []).find(t => t.id === id);
+    const test = (tests || []).find(t => String(t.id).trim() === id);
     return {
       name: test?.title || id,
       avg: Math.round(data.totalScore / data.count),
@@ -90,7 +90,12 @@ export function calculateResponseStats(responses: any[], tests: any[], threshold
  */
 export function calculateQuestionStats(testId: string, questions: any[], allResponses: any[]): QuestionStat[] {
   if (!questions || !Array.isArray(questions)) return [];
-  const testResponses = (allResponses || []).filter(r => String(r['Test ID']) === String(testId));
+  
+  // TACTICAL FILTERING: Match responses to the specific module with trimmed keys
+  const targetId = String(testId).trim();
+  const testResponses = (allResponses || []).filter(r => 
+    String(r['Test ID'] || '').trim() === targetId
+  );
   
   return questions.map(q => {
     let attempts = 0;
@@ -99,20 +104,35 @@ export function calculateQuestionStats(testId: string, questions: any[], allResp
     testResponses.forEach(r => {
       try {
         const rawData = r['Raw Responses'];
-        const raw = typeof rawData === 'string' 
-          ? JSON.parse(rawData || '[]') 
-          : (rawData || []);
+        let raw = [];
         
-        const qResponse = Array.isArray(raw) ? raw.find((item: any) => String(item.questionId) === String(q.id)) : null;
+        if (typeof rawData === 'string') {
+          try {
+            const parsed = JSON.parse(rawData || '[]');
+            // Handle double-stringification if present
+            raw = typeof parsed === 'string' ? JSON.parse(parsed) : parsed;
+          } catch (e) {
+            raw = [];
+          }
+        } else {
+          raw = rawData || [];
+        }
         
-        if (qResponse) {
-          attempts++;
-          if (qResponse.isCorrect) {
-            correct++;
+        if (Array.isArray(raw)) {
+          const qIdStr = String(q.id).trim();
+          const qResponse = raw.find((item: any) => 
+            String(item.questionId || '').trim() === qIdStr
+          );
+          
+          if (qResponse) {
+            attempts++;
+            if (qResponse.isCorrect === true || String(qResponse.isCorrect).toUpperCase() === "TRUE") {
+              correct++;
+            }
           }
         }
       } catch (e) {
-        // Skip malformed response data
+        // Skip malformed response nodes
       }
     });
 
@@ -126,5 +146,5 @@ export function calculateQuestionStats(testId: string, questions: any[], allResp
       incorrect: attempts - correct,
       successRate
     };
-  }).sort((a, b) => a.successRate - b.successRate); // Hardest first by default
+  }).sort((a, b) => a.successRate - b.successRate); // Hardest nodes prioritized
 }
