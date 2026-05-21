@@ -3,12 +3,12 @@
  * 
  * Purpose: Registration step for student nodes with advanced identity validation.
  * Features: Extreme Lockdown Protocol, progressive lockout, and bot honeypot.
- * Updated: v19.0.0 - Added Whitelist Mode support for restricted entry.
+ * Updated: v19.1.0 - Added Bilingual (EN/VI) hints and real-time feedback.
  */
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,7 +21,10 @@ import {
   LogIn, 
   AlertCircle, 
   Zap,
-  ShieldCheck
+  ShieldCheck,
+  Lock,
+  CheckCircle2,
+  XCircle
 } from 'lucide-react';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -39,6 +42,37 @@ interface QuizIdentityProps {
   duration?: string;
 }
 
+const LABELS = {
+  en: {
+    restrictedTitle: "Restricted Session",
+    restrictedBody: "This session requires an approved name. Enter your name exactly as your teacher registered it.",
+    restrictedHint: "Name must match your teacher's roster exactly. Contact your teacher if you have trouble.",
+    openHint: "Enter your real full name",
+    openExample: "e.g. Nguyen Van An",
+    placeholder_whitelist: "Enter your registered name... / Nhập tên đã đăng ký...",
+    placeholder_open: "Your full name... / Họ và tên...",
+    incomplete: "Please enter your full name",
+    valid: "Looks good",
+    invalid: "Please enter a real name",
+    unauthorized: "Your name is not on the approved list. Please contact your teacher.",
+    spam: "Please enter a real full name."
+  },
+  vi: {
+    restrictedTitle: "Phiên Học Giới Hạn",
+    restrictedBody: "Phiên học này yêu cầu tên đã được phê duyệt. Nhập tên của bạn đúng như giáo viên đã đăng ký.",
+    restrictedHint: "Tên phải khớp chính xác với danh sách của giáo viên. Liên hệ giáo viên nếu bạn gặp khó khăn.",
+    openHint: "Nhập họ và tên thật của bạn",
+    openExample: "vd. Nguyễn Văn An",
+    placeholder_whitelist: "Nhập tên đã đăng ký...",
+    placeholder_open: "Họ và tên đầy đủ...",
+    incomplete: "Vui lòng nhập họ và tên đầy đủ",
+    valid: "Tên hợp lệ",
+    invalid: "Vui lòng nhập tên thật",
+    unauthorized: "Tên của bạn không có trong danh sách được phê duyệt. Vui lòng liên hệ giáo viên.",
+    spam: "Vui lòng nhập họ và tên thật."
+  }
+};
+
 export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCount, duration }: QuizIdentityProps) {
   const { language } = useLanguage();
   const { settings } = useSettings();
@@ -52,6 +86,25 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
   const searchParams = useSearchParams();
   const returnToUrl = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '');
 
+  const joinMode = settings.join_mode || 'open';
+  const whitelist: string[] = useMemo(() => {
+    try { return JSON.parse(settings.name_whitelist || '[]'); }
+    catch { return []; }
+  }, [settings.name_whitelist]);
+
+  const isWhitelistActive = joinMode === 'whitelist' && whitelist.length > 0;
+
+  // Real-time validation for Open Mode
+  const validationStatus = useMemo(() => {
+    if (isWhitelistActive || guestName.length < 4) return null;
+    
+    const words = guestName.trim().split(/\s+/).filter(w => w.length > 0);
+    if (words.length < 2) return 'incomplete';
+    
+    const result = validateStudentName(guestName);
+    return result.valid ? 'valid' : 'invalid';
+  }, [guestName, isWhitelistActive]);
+
   // Grace Period Protocol after unlocking
   useEffect(() => {
     if (!isLocked && lockoutTime === 0) {
@@ -64,49 +117,30 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
   const handleBegin = () => {
     if (isLocked || isGracePeriod) return;
 
-    // BOT DETECTION: Honeypot triggers immediate max quarantine
     if (honeypot.length > 0) {
       triggerViolation(true);
       return;
     }
 
-    // REGISTRY SETTINGS PARSING
-    const joinMode = settings.join_mode || 'open';
-    const whitelist: string[] = (() => {
-      try { return JSON.parse(settings.name_whitelist || '[]'); }
-      catch { return []; }
-    })();
-
     const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
     const inputTarget = normalize(guestName);
 
-    // MODE-AWARE VALIDATION PROTOCOL
-    if (joinMode === 'whitelist' && whitelist.length > 0) {
+    if (isWhitelistActive) {
       const isApproved = whitelist.some((name: string) => normalize(name) === inputTarget);
       
       if (!isApproved) {
-        setError(language === 'vi' 
-          ? 'Tên của bạn không có trong danh sách được phê duyệt cho bài thi này.' 
-          : 'Your name is not on the approved list for this session. Please contact your teacher.'
-        );
-        // Authorization failure does not trigger the violation penalty
+        setError(`${LABELS.en.unauthorized}\n${LABELS.vi.unauthorized}`);
         return;
       }
-      
-      // Match Found: Skip spam validator as the identity is pre-approved by administration
       setError(null);
       onContinue();
     } else {
-      // OPEN MODE: Dynamic Fidelity Assessment
-      const validation = validateStudentName(guestName);
-      
-      if (!validation.valid) {
-        const msg = language === 'vi' ? result.reason?.vi : result.reason?.en;
-        setError(msg || 'Invalid Identity');
+      const result = validateStudentName(guestName);
+      if (!result.valid) {
+        setError(`${LABELS.en.spam}\n${LABELS.vi.spam}`);
         triggerViolation();
         return;
       }
-
       setError(null);
       onContinue();
     }
@@ -133,28 +167,52 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
           <StatNode icon={BarChart3} value="v4.0" label="Logic" color="slate" />
         </div>
 
-        <div className="p-6 bg-slate-900 rounded-[2.5rem] flex items-start gap-5 shadow-2xl relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity"><ShieldCheck className="w-20 h-20 text-white" /></div>
-          <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shrink-0 shadow-lg">
-            <Zap className="w-6 h-6 text-white fill-white/20" />
+        {isWhitelistActive ? (
+          <div className="p-8 bg-slate-900 text-white rounded-none border-l-4 border-primary shadow-2xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity"><Lock className="w-20 h-20 text-white" /></div>
+            <div className="relative z-10 space-y-4">
+              <div className="flex items-center gap-3">
+                <ShieldCheck className="w-5 h-5 text-primary" />
+                <h4 className="text-sm font-black uppercase tracking-widest text-white">
+                  {LABELS.en.restrictedTitle} / {LABELS.vi.restrictedTitle}
+                </h4>
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs font-bold leading-relaxed text-slate-300">
+                  {LABELS.en.restrictedBody}
+                </p>
+                <p className="text-xs font-bold leading-relaxed text-slate-400">
+                  {LABELS.vi.restrictedBody}
+                </p>
+              </div>
+            </div>
           </div>
-          <div className="space-y-1.5 relative z-10">
-            <h4 className="text-[10px] font-black uppercase text-primary tracking-[0.3em]">Registry Protocol</h4>
-            <p className="text-sm font-bold text-white leading-relaxed">
-              {language === 'vi' 
-                ? 'Nhập đầy đủ Họ và Tên thật để bắt đầu. Hệ thống sẽ từ chối các định danh không hợp lệ.'
-                : 'Input your Full Legal Name to initialize. The registry will reject random mashing or low-fidelity nodes.'
-              }
-            </p>
+        ) : (
+          <div className="p-6 bg-slate-50 rounded-none flex items-start gap-5 border border-slate-100 group">
+            <div className="w-12 h-12 bg-primary rounded-none flex items-center justify-center shrink-0 shadow-lg">
+              <Zap className="w-6 h-6 text-white fill-white/20" />
+            </div>
+            <div className="space-y-2 relative z-10">
+              <h4 className="text-[10px] font-black uppercase text-primary tracking-[0.3em]">Registry Protocol</h4>
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-slate-600 leading-relaxed">
+                  {LABELS.en.openHint} / {LABELS.vi.openHint}
+                </p>
+                <p className="text-[10px] font-medium text-slate-400">
+                  ({LABELS.en.openExample} / {LABELS.vi.openExample})
+                </p>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <Label className="font-black text-[10px] uppercase text-slate-400 ml-1">Callsign Registry</Label>
             {error && (
-              <span className="text-[10px] font-bold uppercase flex items-center gap-1.5 animate-in slide-in-from-right-2 text-rose-500">
-                <AlertCircle className="w-3.5 h-3.5" /> {error}
+              <span className="text-[9px] font-bold uppercase flex items-center gap-1.5 animate-in slide-in-from-right-2 text-rose-500 text-right leading-tight">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span className="whitespace-pre-line">{error}</span>
               </span>
             )}
           </div>
@@ -172,7 +230,7 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
             />
 
             <Input 
-              placeholder={language === 'vi' ? "Ví dụ: Nguyễn Văn A" : "E.G. John Doe"}
+              placeholder={isWhitelistActive ? LABELS.en.placeholder_whitelist : LABELS.en.placeholder_open}
               value={guestName}
               disabled={isGracePeriod}
               onChange={(e) => {
@@ -180,20 +238,61 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
                 if (error) setError(null);
               }}
               className={cn(
-                "h-20 pl-14 rounded-2xl border-2 text-xl font-black transition-all",
+                "h-20 pl-14 rounded-none border-2 text-xl font-black transition-all",
                 error ? "border-rose-200 bg-rose-50/30 focus:ring-rose-500/20" : "border-slate-100 focus:ring-primary/20",
                 isGracePeriod && "opacity-50"
               )}
               onKeyDown={(e) => e.key === 'Enter' && handleBegin()}
             />
           </div>
+
+          {/* Real-time Feedback nodes */}
+          {!isWhitelistActive && validationStatus && guestName.length >= 4 && (
+            <div className="px-1 animate-in fade-in slide-in-from-top-1 duration-300">
+              {validationStatus === 'incomplete' && (
+                <div className="flex items-center gap-2 text-slate-400">
+                  <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                  <p className="text-[10px] font-bold uppercase tracking-tight">
+                    {LABELS.en.incomplete} / {LABELS.vi.incomplete}
+                  </p>
+                </div>
+              )}
+              {validationStatus === 'valid' && (
+                <div className="flex items-center gap-2 text-emerald-500">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <p className="text-[10px] font-black uppercase tracking-tight">
+                    {LABELS.en.valid} / {LABELS.vi.valid}
+                  </p>
+                </div>
+              )}
+              {validationStatus === 'invalid' && (
+                <div className="flex items-center gap-2 text-rose-500">
+                  <XCircle className="w-3.5 h-3.5" />
+                  <p className="text-[10px] font-black uppercase tracking-tight">
+                    {LABELS.en.invalid} / {LABELS.vi.invalid}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {isWhitelistActive && (
+            <div className="px-1 space-y-1">
+              <p className="text-[9px] font-bold text-slate-400 leading-tight">
+                {LABELS.en.restrictedHint}
+              </p>
+              <p className="text-[9px] font-bold text-slate-400 leading-tight">
+                {LABELS.vi.restrictedHint}
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="space-y-5">
           <Button 
             onClick={handleBegin}
             disabled={!guestName.trim() || isLocked || isGracePeriod}
-            className="w-full h-20 rounded-full text-2xl font-black uppercase tracking-tighter shadow-2xl transition-all border-none bg-primary text-white hover:scale-[1.02]"
+            className="w-full h-20 rounded-none text-2xl font-black uppercase tracking-tighter shadow-2xl transition-all border-none bg-primary text-white hover:scale-[1.01]"
           >
             {isGracePeriod ? 'INITIALIZING...' : (language === 'vi' ? 'Bắt Đầu Mission' : 'Initialize Mission')} <ArrowRight className="w-6 h-6 ml-3" />
           </Button>
@@ -208,7 +307,7 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
             variant="outline"
             disabled={isGracePeriod}
             onClick={() => router.push(`/login?returnTo=${encodeURIComponent(returnToUrl)}`)}
-            className="w-full h-16 rounded-full border-2 border-slate-200 font-black text-sm uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all"
+            className="w-full h-16 rounded-none border-2 border-slate-200 font-black text-sm uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all"
           >
             <LogIn className="w-4 h-4 mr-3" /> {language === 'vi' ? 'Xác thực định danh học sinh' : 'Verify via Identity Registry'}
           </Button>
@@ -225,7 +324,7 @@ function StatNode({ icon: Icon, value, label, color }: any) {
     slate: "bg-slate-50 border-slate-100 text-slate-600"
   };
   return (
-    <div className={cn("rounded-2xl p-5 flex flex-col items-center justify-center gap-2 border shadow-sm", colors[color])}>
+    <div className={cn("rounded-none p-5 flex flex-col items-center justify-center gap-2 border shadow-sm", colors[color])}>
       <Icon className="w-4 h-4 opacity-70" />
       <p className="text-xl font-black tabular-nums">{value}</p>
       <p className="text-[8px] font-black uppercase tracking-widest opacity-60">{label}</p>
