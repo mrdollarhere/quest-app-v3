@@ -52,6 +52,26 @@ export const getRegistryValue = (obj: any, keys: string[]): any => {
 };
 
 /**
+ * LINGUISTIC EQUIVALENCE PROTOCOL
+ * Compares two values for semantic equality, equating localized boolean strings.
+ */
+export const compareValues = (v1: any, v2: any): boolean => {
+  const s1 = String(v1 ?? "").trim().toLowerCase();
+  const s2 = String(v2 ?? "").trim().toLowerCase();
+  
+  if (s1 === s2) return true;
+  
+  // Semantic Boolean Mapping
+  const isTrue = (s: string) => s === 'true' || s === 'đúng' || s === 'dung' || s === 'yes' || s === 'y';
+  const isFalse = (s: string) => s === 'false' || s === 'sai' || s === 'no' || s === 'n';
+  
+  if (isTrue(s1) && isTrue(s2)) return true;
+  if (isFalse(s1) && isFalse(s2)) return true;
+  
+  return false;
+};
+
+/**
  * Calculates whether a user's response is correct for a given question.
  * IMPLEMENTS: Deterministic Association Protocol (Association-based matching)
  */
@@ -74,21 +94,22 @@ export const calculateScoreForQuestion = (q: Question, response: any): boolean =
   if (response === undefined || response === null) return false;
   
   if (['singlechoice', 'oneanswer', 'truefalse', 'shorttext', 'dropdown'].includes(questionType)) {
-    const userVal = String(response || "").trim().toLowerCase();
-    const targetVal = String(correctArr[0] || "").trim().toLowerCase();
-    return userVal === targetVal;
+    return compareValues(response, correctArr[0]);
   } 
   
   if (['multiplechoice', 'manyanswers'].includes(questionType)) {
-    const resArr = (Array.isArray(response) ? response : []).map(r => String(r).trim().toLowerCase()).sort();
-    const sortedCorrect = [...correctArr].map(c => String(c).trim().toLowerCase()).sort();
-    return JSON.stringify(resArr) === JSON.stringify(sortedCorrect);
+    const sub = (Array.isArray(response) ? response : []).map(r => String(r).trim().toLowerCase()).sort();
+    const target = [...correctArr].map(c => String(c).trim().toLowerCase()).sort();
+    
+    if (sub.length !== target.length) return false;
+    return sub.every((val, i) => compareValues(val, target[i]));
   } 
   
   if (questionType === 'ordering') {
     const responseArr = (Array.isArray(response) ? response : []).map(r => String(r).trim().toLowerCase());
     const targetArr = [...correctArr].map(c => String(c).trim().toLowerCase());
-    return JSON.stringify(responseArr) === JSON.stringify(targetArr);
+    if (responseArr.length !== targetArr.length) return false;
+    return responseArr.every((val, i) => compareValues(val, targetArr[i]));
   } 
   
   if (questionType === 'hotspot') {
@@ -112,7 +133,7 @@ export const calculateScoreForQuestion = (q: Question, response: any): boolean =
       const [k, v] = String(pair).split('|').map(s => s.trim().toLowerCase());
       const actualKey = userKeys.find(uk => uk.trim().toLowerCase() === k);
       if (!actualKey) return false;
-      return String(userResp[actualKey] || "").trim().toLowerCase() === v;
+      return compareValues(userResp[actualKey], v);
     });
   }
 
@@ -126,10 +147,7 @@ export const calculateScoreForQuestion = (q: Question, response: any): boolean =
       const normalizedMasterKey = item.trim().toLowerCase();
       const actualKey = userKeys.find(uk => uk.trim().toLowerCase() === normalizedMasterKey);
       if (!actualKey) return false;
-
-      const userVal = String(userResp[actualKey] || "").trim().toLowerCase();
-      const correctVal = String(correctArr[i] || "").trim().toLowerCase();
-      return userVal === correctVal;
+      return compareValues(userResp[actualKey], correctArr[i]);
     });
   }
   

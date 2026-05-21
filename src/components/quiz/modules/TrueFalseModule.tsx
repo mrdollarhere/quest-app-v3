@@ -6,7 +6,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { CheckCircle2, XCircle, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { parseRegistryArray } from '@/lib/quiz-utils';
+import { parseRegistryArray, compareValues } from '@/lib/quiz-utils';
 
 interface Props {
   question: Question;
@@ -28,8 +28,9 @@ export const TrueFalseModule: React.FC<Props> = ({ question, value, onChange, re
         className="flex flex-col gap-[10px]"
       >
         {['True', 'False'].map((o) => {
-          const isSelected = String(value || "").trim().toLowerCase() === String(o).trim().toLowerCase();
-          const isCorrect = String(o).trim().toLowerCase() === String(correctAnswer).trim().toLowerCase();
+          // SEMANTIC COMPARISON: Equate True/False with Đúng/Sai
+          const isSelected = compareValues(value, o);
+          const isCorrect = compareValues(o, correctAnswer);
           const isWrong = isSelected && !isCorrect;
           const inputId = `tf-${question.id}-${o}`;
           

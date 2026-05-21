@@ -3,14 +3,34 @@ import { gasGet, gasPost } from '@/lib/server/gas-proxy';
 import { Question } from '@/types/quiz';
 
 /**
+ * LINGUISTIC EQUIVALENCE PROTOCOL
+ * Compares two values for semantic equality, equating localized boolean strings.
+ */
+function compareValues(v1: any, v2: any): boolean {
+  const s1 = String(v1 ?? "").trim().toLowerCase();
+  const s2 = String(v2 ?? "").trim().toLowerCase();
+  
+  if (s1 === s2) return true;
+  
+  // Semantic Boolean Mapping
+  const isTrue = (s: string) => s === 'true' || s === 'đúng' || s === 'dung' || s === 'yes' || s === 'y';
+  const isFalse = (s: string) => s === 'false' || s === 'sai' || s === 'no' || s === 'n';
+  
+  if (isTrue(s1) && isTrue(s2)) return true;
+  if (isFalse(s1) && isFalse(s2)) return true;
+  
+  return false;
+}
+
+/**
  * UTILITY: Standardized Array Match Protocol
- * Performs order-independent case-insensitive match of two string arrays.
+ * Performs order-independent case-insensitive match of two string arrays with semantic normalization.
  */
 function arraysMatch(a: string[], b: string[]) {
   if (a.length !== b.length) return false;
   const normalizedA = a.map(v => String(v ?? '').trim().toLowerCase()).sort();
   const normalizedB = b.map(v => String(v ?? '').trim().toLowerCase()).sort();
-  return normalizedA.every((v, i) => v === normalizedB[i]);
+  return normalizedA.every((v, i) => compareValues(v, normalizedB[i]));
 }
 
 /**
@@ -53,7 +73,7 @@ function gradeQuestion(question: Question, submitted: unknown): boolean {
     case 'true_false':
     case 'truefalse':
     case 'dropdown':
-      return String(submitted ?? '').trim().toLowerCase() === String(correctArr[0] ?? '').trim().toLowerCase();
+      return compareValues(submitted, correctArr[0]);
 
     case 'multiple_choice':
     case 'multiplechoice':
@@ -78,9 +98,7 @@ function gradeQuestion(question: Question, submitted: unknown): boolean {
         const actualKey = userKeys.find(k => k.trim().toLowerCase() === normalizedMasterKey);
         if (!actualKey) return false; // Missing node
 
-        const userVal = String(userResponses[actualKey] ?? '').trim().toLowerCase();
-        const correctVal = String(correctArr[i] ?? '').trim().toLowerCase();
-        return userVal === correctVal;
+        return compareValues(userResponses[actualKey], correctArr[i]);
       });
 
     case 'matching':
@@ -92,20 +110,17 @@ function gradeQuestion(question: Question, submitted: unknown): boolean {
         const [k, v] = String(pair).split('|').map(s => s.trim().toLowerCase());
         const actualKey = matchKeys.find(mk => mk.trim().toLowerCase() === k);
         if (!actualKey) return false;
-        return String(matchResponses[actualKey] ?? '').trim().toLowerCase() === v;
+        return compareValues(matchResponses[actualKey], v);
       });
 
     case 'ordering':
       const subArr = Array.isArray(submitted) ? submitted.map(String) : [];
       if (subArr.length !== correctArr.length) return false;
-      return correctArr.every(
-        (v, i) => String(v).trim().toLowerCase() === String(subArr[i]).trim().toLowerCase()
-      );
+      return correctArr.every((v, i) => compareValues(subArr[i], v));
 
     case 'short_text':
     case 'shorttext':
-      return String(submitted ?? '').trim().toLowerCase() 
-        === String(correctArr[0] ?? '').trim().toLowerCase();
+      return compareValues(submitted, correctArr[0]);
 
     case 'hotspot':
       try {

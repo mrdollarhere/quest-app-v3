@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import { Question } from '@/types/quiz';
 import { CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { parseRegistryArray, shuffleArray } from '@/lib/quiz-utils';
+import { parseRegistryArray, shuffleArray, compareValues } from '@/lib/quiz-utils';
 
 interface Props {
   question: Question;
@@ -37,7 +37,8 @@ export const MultipleTrueFalseModule: React.FC<Props> = ({ question, value, onCh
           const userKey = Object.keys(responses).find(k => k.trim().toLowerCase() === s.trim().toLowerCase());
           const userVal = userKey ? responses[userKey] : undefined;
           
-          const isCorrect = reviewMode && userVal === correctAnswer;
+          // SEMANTIC COMPARISON: Equate True/False with Đúng/Sai
+          const isCorrect = reviewMode && compareValues(userVal, correctAnswer);
           
           return (
             <div key={i} className="flex flex-col gap-2">
@@ -46,7 +47,7 @@ export const MultipleTrueFalseModule: React.FC<Props> = ({ question, value, onCh
                   "flex flex-row items-center justify-between gap-4 p-5 transition-all border shadow-sm rounded-2xl",
                   !reviewMode ? (
                     !userVal ? "bg-white border-slate-100" :
-                    userVal === 'True' ? "bg-[#F0FDF4] border-[#22C55E]" :
+                    compareValues(userVal, 'True') ? "bg-[#F0FDF4] border-[#22C55E]" :
                     "bg-[#FEF2F2] border-[#EF4444]"
                   ) : (
                     isCorrect ? "bg-emerald-50 border-emerald-500" : 
@@ -64,8 +65,8 @@ export const MultipleTrueFalseModule: React.FC<Props> = ({ question, value, onCh
 
                 <div className="flex items-center gap-[6px] w-[146px] justify-end shrink-0">
                   {['True', 'False'].map((opt) => {
-                    const isSelected = userVal === opt;
-                    const isCorrectOption = reviewMode && opt === correctAnswer;
+                    const isSelected = compareValues(userVal, opt);
+                    const isCorrectOption = reviewMode && compareValues(opt, correctAnswer);
                     return (
                       <button
                         key={opt}
