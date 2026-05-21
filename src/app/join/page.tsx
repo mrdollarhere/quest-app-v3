@@ -20,6 +20,7 @@ import { useAuth } from '@/context/auth-context';
 import { SiteFooter } from '@/components/SiteFooter';
 import { validateStudentName } from '@/lib/name-validator';
 import { cn } from '@/lib/utils';
+import { BugReportButton } from '@/components/shared/BugReportButton';
 
 const LABELS = {
   en: {
@@ -257,6 +258,7 @@ function JoinContent() {
       </div>
       
       <SiteFooter className="w-full" />
+      <BugReportButton />
     </div>
   );
 }

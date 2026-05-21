@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
 import { BackToTop } from '@/components/BackToTop';
 import { SiteFooter } from '@/components/SiteFooter';
+import { BugReportButton } from '@/components/shared/BugReportButton';
 
 export function QuizResults({ title, testId, score, totalQuestions, questions, responses, serverReviewData, userName, onRestart, startTime, endTime, testMetadata, certificateId, duration }: any) {
   const { settings } = useSettings();
@@ -133,6 +134,7 @@ export function QuizResults({ title, testId, score, totalQuestions, questions, r
       
       <SiteFooter className="w-full" />
       <BackToTop />
+      <BugReportButton testId={testId} />
     </div>
   );
 }

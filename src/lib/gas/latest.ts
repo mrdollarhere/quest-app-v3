@@ -1,13 +1,14 @@
 export const GAS_CODE = `/**
- * QUESTFLOW BACKEND v19.0.0 - UNIFIED REGISTRY PROTOCOL
+ * QUESTFLOW BACKEND v19.1.0 - UNIFIED REGISTRY PROTOCOL
  * 
  * ACTIONS SUPPORTED:
- * - GET: login, getTests, getUsers, getResponses, getQuestions, getSettings, getVersion, getActivity
- * - POST: submitResponse, saveTest, deleteTest, saveUser, deleteUser, saveQuestion, saveQuestions, saveUsers, saveSetting, deleteResponse, logEvent, logActivity
+ * - GET: login, getTests, getUsers, getResponses, getQuestions, getSettings, getVersion, getActivity, getBugReports
+ * - POST: submitResponse, saveTest, deleteTest, saveUser, deleteUser, saveQuestion, saveQuestions, saveUsers, saveSetting, deleteResponse, logEvent, logActivity, saveBugReport, updateBugStatus
  */
 
-const GAS_VERSION = "19.0.0";
+const GAS_VERSION = "19.1.0";
 const ACTIVITY_SHEET_NAME = "System_Activity";
+const BUG_REPORTS_SHEET = "BugReports";
 
 function doGet(e) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -16,6 +17,12 @@ function doGet(e) {
   try {
     if (action === 'getVersion') {
       return createResponse({ version: GAS_VERSION });
+    }
+
+    if (action === 'getBugReports') {
+      const sheet = ss.getSheetByName(BUG_REPORTS_SHEET);
+      if (!sheet) return createResponse([]);
+      return createResponse(getRowsAsObjects(sheet).reverse());
     }
 
     if (action === 'getActivity') {
@@ -108,7 +115,48 @@ function doPost(e) {
     const payload = JSON.parse(e.postData.contents);
     const action = payload.action;
 
-    // UNIFIED LOGGING PROTOCOL - AUTONOMOUS SCHEMA HANDLING
+    if (action === 'saveBugReport') {
+      let sheet = ss.getSheetByName(BUG_REPORTS_SHEET) || ss.insertSheet(BUG_REPORTS_SHEET);
+      const headers = ['id', 'timestamp', 'user_name', 'user_email', 'category', 'description', 'page_url', 'test_id', 'browser', 'device', 'status', 'admin_note'];
+      
+      if (sheet.getLastRow() === 0) {
+        sheet.appendRow(headers);
+      }
+      
+      const rowData = headers.map(h => {
+        if (h === 'id') return payload.id || '';
+        if (h === 'timestamp') return new Date();
+        if (h === 'status') return 'new';
+        if (h === 'admin_note') return '';
+        return payload[h] || '';
+      });
+      
+      sheet.appendRow(rowData);
+      return createResponse({ status: 'success' });
+    }
+
+    if (action === 'updateBugStatus') {
+      const sheet = ss.getSheetByName(BUG_REPORTS_SHEET);
+      if (!sheet) return createResponse({ error: 'BugReports sheet not found' }, 404);
+      
+      const data = sheet.getDataRange().getValues();
+      const headers = data[0];
+      const idIdx = headers.indexOf('id');
+      const statusIdx = headers.indexOf('status');
+      const noteIdx = headers.indexOf('admin_note');
+      
+      for (let i = 1; i < data.length; i++) {
+        if (String(data[i][idIdx]) === String(payload.id)) {
+          sheet.getRange(i + 1, statusIdx + 1).setValue(payload.status);
+          if (payload.note !== undefined) {
+            sheet.getRange(i + 1, noteIdx + 1).setValue(payload.note);
+          }
+          return createResponse({ status: 'success' });
+        }
+      }
+      return createResponse({ error: 'Report not found' }, 404);
+    }
+
     if (action === 'logEvent' || action === 'logActivity') {
       let sheet = ss.getSheetByName(ACTIVITY_SHEET_NAME) || ss.insertSheet(ACTIVITY_SHEET_NAME);
       const headers = ['timestamp', 'user_name', 'user_email', 'user_role', 'event_type', 'context', 'details', 'ip_address', 'device', 'browser', 'status', 'session_id'];
@@ -124,10 +172,8 @@ function doPost(e) {
         });
       }
       
-      // Standardized Data Mapping
       const rowData = headers.map(h => {
         let val = payload[h];
-        // Handle legacy field names from logActivity and logEvent
         if (h === 'timestamp' && !val) val = new Date();
         if (h === 'user_name' && !val) val = payload.name;
         if (h === 'user_email' && !val) val = payload.email;

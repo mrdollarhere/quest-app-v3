@@ -1,4 +1,3 @@
-
 /**
  * page.tsx (Quiz)
  * 
@@ -22,6 +21,7 @@ import { trackEvent } from '@/lib/tracker';
 import { AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QuizLoadingManager } from '@/components/quiz/lifecycle/QuizLoadingManager';
+import { BugReportButton } from '@/components/shared/BugReportButton';
 
 function QuizContent() {
   const searchParams = useSearchParams();
@@ -151,10 +151,18 @@ function QuizContent() {
     );
   }
 
-  if (!isStarted) return <QuizStart title={globalData?.tests.find(t => String(t.id) === String(testId))?.title || 'Assessment'} questionsCount={questionsData?.length || 0} user={user} guestName={guestName} setGuestName={setGuestName} protocolSalt={globalData?.salt} isProtectionEnabled={globalData?.protection} guestAccessAllowed={globalData?.guest} onStart={handleStart} testId={testId || undefined} />;
-  if (quiz.isSubmitted) return <QuizResults title={globalData?.tests.find(t => String(t.id) === String(testId))?.title || 'Assessment'} score={quiz.score} totalQuestions={quiz.questions.length} questions={quiz.questions} responses={quiz.responses} serverReviewData={serverReviewData} userName={user?.displayName || guestName || 'Guest User'} onRestart={() => { setIsStarted(false); setQuiz(prev => ({...prev, isSubmitted: false, responses: []})); }} certificateId={generatedCertificateId || undefined} duration={finalDuration} />;
-
-  return <QuizActive quiz={quiz} quizTitle={globalData?.tests.find(t => String(t.id) === String(testId))?.title || 'Assessment'} timeLeft={timeLeft} isWrongInRace={isWrongInRace} onResponseChange={(val) => { const q = quiz.questions[quiz.currentQuestionIndex]; const updated = [...quiz.responses]; const idx = updated.findIndex(r => r.questionId === q.id); if (idx > -1) updated[idx].answer = val; else updated.push({ questionId: q.id, answer: val }); setQuiz({ ...quiz, responses: updated }); }} onConfirmResponse={() => { const q = quiz.questions[quiz.currentQuestionIndex]; const updated = [...quiz.responses]; const idx = updated.findIndex(r => r.questionId === q.id); if (idx > -1) { updated[idx].isConfirmed = true; setQuiz({ ...quiz, responses: updated }); } }} onNext={() => { if (quiz.currentQuestionIndex < quiz.questions.length - 1) { const nextIdx = quiz.currentQuestionIndex + 1; setQuiz({ ...quiz, currentQuestionIndex: nextIdx, highestStepReached: Math.max(quiz.highestStepReached, nextIdx) }); } }} onPrev={() => setQuiz({ ...quiz, currentQuestionIndex: Math.max(0, quiz.currentQuestionIndex - 1) })} onSubmit={submit} onJump={(i) => setQuiz({ ...quiz, currentQuestionIndex: i })} onToggleFlag={(id) => { setQuiz(prev => ({ ...prev, flaggedQuestionIds: prev.flaggedQuestionIds?.includes(id) ? prev.flaggedQuestionIds.filter(f => f !== id) : [...(prev.flaggedQuestionIds || []), id] })); }} />;
+  return (
+    <>
+      {!isStarted ? (
+        <QuizStart title={globalData?.tests.find(t => String(t.id) === String(testId))?.title || 'Assessment'} questionsCount={questionsData?.length || 0} user={user} guestName={guestName} setGuestName={setGuestName} protocolSalt={globalData?.salt} isProtectionEnabled={globalData?.protection} guestAccessAllowed={globalData?.guest} onStart={handleStart} testId={testId || undefined} />
+      ) : quiz.isSubmitted ? (
+        <QuizResults title={globalData?.tests.find(t => String(t.id) === String(testId))?.title || 'Assessment'} score={quiz.score} totalQuestions={quiz.questions.length} questions={quiz.questions} responses={quiz.responses} serverReviewData={serverReviewData} userName={user?.displayName || guestName || 'Guest User'} onRestart={() => { setIsStarted(false); setQuiz(prev => ({...prev, isSubmitted: false, responses: []})); }} certificateId={generatedCertificateId || undefined} duration={finalDuration} />
+      ) : (
+        <QuizActive quiz={quiz} quizTitle={globalData?.tests.find(t => String(t.id) === String(testId))?.title || 'Assessment'} timeLeft={timeLeft} isWrongInRace={isWrongInRace} onResponseChange={(val) => { const q = quiz.questions[quiz.currentQuestionIndex]; const updated = [...quiz.responses]; const idx = updated.findIndex(r => r.questionId === q.id); if (idx > -1) updated[idx].answer = val; else updated.push({ questionId: q.id, answer: val }); setQuiz({ ...quiz, responses: updated }); }} onConfirmResponse={() => { const q = quiz.questions[quiz.currentQuestionIndex]; const updated = [...quiz.responses]; const idx = updated.findIndex(r => r.questionId === q.id); if (idx > -1) { updated[idx].isConfirmed = true; setQuiz({ ...quiz, responses: updated }); } }} onNext={() => { if (quiz.currentQuestionIndex < quiz.questions.length - 1) { const nextIdx = quiz.currentQuestionIndex + 1; setQuiz({ ...quiz, currentQuestionIndex: nextIdx, highestStepReached: Math.max(quiz.highestStepReached, nextIdx) }); } }} onPrev={() => setQuiz({ ...quiz, currentQuestionIndex: Math.max(0, quiz.currentQuestionIndex - 1) })} onSubmit={submit} onJump={(i) => setQuiz({ ...quiz, currentQuestionIndex: i })} onToggleFlag={(id) => { setQuiz(prev => ({ ...prev, flaggedQuestionIds: prev.flaggedQuestionIds?.includes(id) ? prev.flaggedQuestionIds.filter(f => f !== id) : [...(prev.flaggedQuestionIds || []), id] })); }} />
+      )}
+      <BugReportButton testId={testId || undefined} />
+    </>
+  );
 }
 
 export default function QuizPage() {

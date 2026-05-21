@@ -13,7 +13,8 @@ import {
   Settings as SettingsIcon,
   Activity,
   FileSpreadsheet,
-  ExternalLink
+  ExternalLink,
+  Bug
 } from "lucide-react";
 import { 
   Sidebar, 
@@ -42,8 +43,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Image from 'next/image';
 import { trackEvent } from '@/lib/tracker';
+import useSWR from 'swr';
 
-export type AdminTab = 'overview' | 'tests' | 'users' | 'responses' | 'activity' | 'settings';
+export type AdminTab = 'overview' | 'tests' | 'users' | 'responses' | 'bug-reports' | 'activity' | 'settings';
 
 interface AdminSidebarProps {
   activeTab: AdminTab;
@@ -55,6 +57,10 @@ export const AdminSidebar = React.memo(({ activeTab, user, logout }: AdminSideba
   const { language, setLanguage, t } = useLanguage();
   const { settings } = useSettings();
 
+  // Registry Protocol: Fetch report count for live badging
+  const { data: reports } = useSWR('/api/proxy/admin/bug-reports', { refreshInterval: 300000 });
+  const newReportsCount = Array.isArray(reports) ? reports.filter(r => r.status === 'new').length : 0;
+
   const brandName = String(settings.platform_name || "DNTRNG");
   const sheetUrl = settings.google_sheet_url;
 
@@ -63,6 +69,7 @@ export const AdminSidebar = React.memo(({ activeTab, user, logout }: AdminSideba
     { id: 'tests', label: t('testLibrary'), icon: ClipboardList, href: '/admin/tests' },
     { id: 'users', label: t('students'), icon: UsersIcon, href: '/admin/users' },
     { id: 'responses', label: t('results'), icon: MessageSquare, href: '/admin/responses' },
+    { id: 'bug-reports', label: "Bug Reports", icon: Bug, href: '/admin/bug-reports', badge: newReportsCount },
     { id: 'activity', label: 'System Activity', icon: Activity, href: '/admin/activity' },
     { id: 'settings', label: t('settings'), icon: SettingsIcon, href: '/admin/settings' }
   ];
@@ -100,7 +107,15 @@ export const AdminSidebar = React.memo(({ activeTab, user, logout }: AdminSideba
                           : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
                       )}
                     >
-                      <item.icon className="w-5 h-5 mr-4" aria-hidden="true" /> {item.label}
+                      <item.icon className="w-5 h-5 mr-4" aria-hidden="true" /> 
+                      <div className="flex-1 flex items-center justify-between">
+                        <span>{item.label}</span>
+                        {item.badge !== undefined && item.badge > 0 && (
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-black text-white shadow-lg shadow-rose-500/20">
+                            {item.badge}
+                          </span>
+                        )}
+                      </div>
                     </SidebarMenuButton>
                   </Link>
                 </SidebarMenuItem>

@@ -15,6 +15,7 @@ import { useRouter } from 'next/navigation';
 import { trackEvent } from '@/lib/tracker';
 import { BackToTop } from '@/components/BackToTop';
 import { SiteFooter } from '@/components/SiteFooter';
+import { BugReportButton } from '@/components/shared/BugReportButton';
 
 export default function TestsLibrary() {
   const { t } = useLanguage();
@@ -170,6 +171,7 @@ export default function TestsLibrary() {
       
       <SiteFooter />
       <BackToTop />
+      <BugReportButton />
     </div>
   );
 }
