@@ -2,9 +2,9 @@
 
 import React, { useState, useMemo } from 'react';
 import { Question } from '@/types/quiz';
-import { Info, X, CheckCircle2, AlertCircle, ArrowRight, Check, X as XIcon } from "lucide-react";
+import { Info, X, CheckCircle2, AlertCircle, Check, X as XIcon, Lightbulb, CircleOff } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { parseRegistryArray, shuffleArray } from '@/lib/quiz-utils';
+import { parseRegistryArray, shuffleArray, compareValues } from '@/lib/quiz-utils';
 
 interface Props {
   question: Question;
@@ -73,34 +73,30 @@ export const MatchingModule: React.FC<Props> = ({ question, value, onChange, rev
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className={cn(reviewMode ? "lg:col-span-12" : "lg:col-span-7", "space-y-4")}>
-          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-2 px-1">Registry Alignment</h3>
+          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-2 px-1">Registry Alignment / Ghép cặp định danh</h3>
           <div className={cn("grid gap-4", reviewMode ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1")}>
             {matchingPairs.map((pair, i) => {
               const userVal = responses[pair.left];
-              const isCorrect = reviewMode && String(userVal || "").trim().toLowerCase() === String(pair.right).trim().toLowerCase();
+              const isCorrect = reviewMode && compareValues(userVal, pair.right);
+              const isSkipped = reviewMode && !userVal;
 
               return (
                 <div key={i} className="flex flex-col">
                   <div className={cn(
-                    "p-6 rounded-[2rem] border-2 transition-all flex flex-col sm:flex-row items-center gap-8 min-h-[140px]",
+                    "p-6 rounded-[2rem] border-2 transition-all flex flex-col sm:flex-row items-center gap-8 min-h-[140px] relative",
                     !reviewMode ? "bg-white border-slate-100 shadow-sm" : (
                       isCorrect ? "bg-emerald-50 border-emerald-500 shadow-sm" : 
-                      (userVal ? "bg-rose-50 border-rose-500 shadow-sm" : "bg-slate-50 border-slate-200 opacity-60")
+                      (isSkipped ? "bg-amber-50/30 border-amber-400 border-dashed" : "bg-rose-50 border-rose-500 shadow-sm")
                     )
                   )}>
                     <div className="flex-1 min-w-0 w-full text-center sm:text-left select-none">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-2">Key Node</span>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-2">Key Node / Khóa</span>
                       <p className={cn("option-text font-bold text-lg leading-tight", reviewMode && isCorrect ? "text-emerald-900" : "text-slate-700")}>
                         {pair.left}
                       </p>
                     </div>
 
                     <div className="flex items-center gap-4 shrink-0 w-full sm:w-auto justify-center">
-                      {reviewMode && (
-                        <div className={cn("p-2 rounded-full shadow-lg shrink-0", isCorrect ? "bg-emerald-500" : "bg-rose-500")}>
-                          {isCorrect ? <Check className="w-4 h-4 text-white stroke-[3px]" /> : <XIcon className="w-4 h-4 text-white stroke-[3px]" />}
-                        </div>
-                      )}
                       <div 
                         onDragOver={(e) => {
                           if (reviewMode) return;
@@ -119,7 +115,7 @@ export const MatchingModule: React.FC<Props> = ({ question, value, onChange, rev
                         }}
                         className={cn(
                           "min-w-[180px] w-full sm:w-[220px] min-h-[100px] rounded-[1.5rem] border-2 border-dashed flex items-center justify-center transition-all p-4 relative shrink-0 select-none",
-                          userVal ? (reviewMode ? "border-transparent bg-white/50" : "border-primary bg-white shadow-lg") : "border-slate-300 bg-slate-50/50"
+                          userVal ? (reviewMode ? "border-transparent bg-white/50" : "border-primary bg-white shadow-lg") : (isSkipped ? "border-amber-400 bg-white/50" : "border-slate-300 bg-slate-50/50")
                         )}
                       >
                         {userVal ? (
@@ -140,21 +136,33 @@ export const MatchingModule: React.FC<Props> = ({ question, value, onChange, rev
                             )}
                           </div>
                         ) : (
-                          <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest text-center px-2 pointer-events-none">
-                            {reviewMode ? "NO SUBMISSION" : "Drop Data Node"}
-                          </span>
+                          <div className="flex flex-col items-center gap-2 pointer-events-none opacity-40">
+                             {reviewMode ? <CircleOff className="w-6 h-6 text-amber-500" /> : null}
+                             <span className={cn("text-[9px] font-black uppercase tracking-widest text-center px-2", reviewMode ? "text-amber-600" : "text-slate-300")}>
+                              {reviewMode ? "Not matched / Chưa ghép" : "Drop Data Node"}
+                            </span>
+                          </div>
                         )}
                       </div>
                     </div>
+
+                    {reviewMode && !isSkipped && (
+                      <div className={cn("absolute -top-3 -right-3 p-2 rounded-full shadow-lg z-10", isCorrect ? "bg-emerald-500" : "bg-rose-500")}>
+                        {isCorrect ? <Check className="w-4 h-4 text-white stroke-[4px]" /> : <XIcon className="w-4 h-4 text-white stroke-[4px]" />}
+                      </div>
+                    )}
                   </div>
                   
                   {reviewMode && !isCorrect && (
-                    <div className="mx-8 p-4 bg-emerald-50/40 rounded-b-[2rem] border-x border-b border-emerald-200 border-dashed flex items-center justify-between animate-in slide-in-from-top-1 -mt-4 pt-8">
-                      <div className="flex items-center gap-3 select-none">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                        <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Correct Alignment:</span>
+                    <div className="mx-8 p-6 bg-emerald-50 rounded-b-[2.5rem] border-x border-b border-emerald-500 border-dashed flex flex-col sm:flex-row items-center justify-between animate-in slide-in-from-top-1 -mt-5 pt-10">
+                      <div className="flex items-center gap-3 select-none mb-4 sm:mb-0">
+                        <Lightbulb className="w-5 h-5 text-emerald-600" />
+                        <div>
+                          <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Correct Alignment / Đáp án đúng:</p>
+                          <p className="text-xs font-bold text-slate-500">{pair.left}</p>
+                        </div>
                       </div>
-                      <div className="max-w-[220px] select-none">
+                      <div className="max-w-[220px] select-none scale-90">
                         <MatchingAnswerContent value={pair.right} />
                       </div>
                     </div>

@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import { Question } from '@/types/quiz';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2, XCircle, Check, X } from "lucide-react";
+import { CheckCircle2, XCircle, Check, X, Lightbulb } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { parseRegistryArray, shuffleArray } from '@/lib/quiz-utils';
 
@@ -38,6 +38,7 @@ export const SingleChoiceModule: React.FC<Props> = ({ question, value, onChange,
           const isSelected = String(value || "").trim().toLowerCase() === String(option).trim().toLowerCase();
           const isCorrect = String(option).trim().toLowerCase() === String(correctAnswer).trim().toLowerCase();
           const isWrong = isSelected && !isCorrect;
+          const isMissed = !isSelected && isCorrect && reviewMode;
           const inputId = `q-${question.id}-${idx}`;
           
           return (
@@ -49,12 +50,13 @@ export const SingleChoiceModule: React.FC<Props> = ({ question, value, onChange,
                 !reviewMode && "cursor-pointer",
                 isSelected && !reviewMode && "bg-[#EFF6FF] border-[#2563EB] shadow-sm",
                 !isSelected && !reviewMode && "bg-white border-slate-100 hover:bg-[#EFF6FF] hover:border-[#2563EB]",
-                reviewMode && isCorrect && "bg-emerald-50 border-emerald-500 shadow-sm",
+                reviewMode && isSelected && isCorrect && "bg-emerald-50 border-emerald-500 shadow-sm",
                 reviewMode && isWrong && "bg-rose-50 border-rose-500 shadow-sm",
+                reviewMode && isMissed && "bg-white border-emerald-500 border-dashed",
                 reviewMode && !isCorrect && !isSelected && "bg-white border-slate-50 opacity-40"
               )}
             >
-              <div className="relative">
+              <div className="relative shrink-0">
                 <RadioGroupItem 
                   value={option} 
                   id={inputId} 
@@ -67,12 +69,12 @@ export const SingleChoiceModule: React.FC<Props> = ({ question, value, onChange,
                 />
                 {reviewMode && isCorrect && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <Check className="w-3 h-3 text-white stroke-[3px]" />
+                    <Check className="w-3 h-3 text-white stroke-[4px]" />
                   </div>
                 )}
                 {reviewMode && isWrong && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <X className="w-3 h-3 text-white stroke-[3px]" />
+                    <X className="w-3 h-3 text-white stroke-[4px]" />
                   </div>
                 )}
               </div>
@@ -88,8 +90,13 @@ export const SingleChoiceModule: React.FC<Props> = ({ question, value, onChange,
                 onClick={(e) => !reviewMode && e.preventDefault()}
               >
                 {option}
+                {isMissed && (
+                  <span className="ml-3 inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[8px] font-black uppercase tracking-widest rounded-md border border-emerald-100">
+                    <Lightbulb className="w-2.5 h-2.5" /> Correct answer / Đáp án đúng
+                  </span>
+                )}
               </Label>
-              {reviewMode && isCorrect && (
+              {reviewMode && isCorrect && isSelected && (
                 <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
               )}
               {reviewMode && isWrong && (
@@ -99,15 +106,6 @@ export const SingleChoiceModule: React.FC<Props> = ({ question, value, onChange,
           );
         })}
       </RadioGroup>
-      
-      {reviewMode && (
-        <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center gap-3 animate-in slide-in-from-top-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-          <p className="text-sm font-black text-emerald-700 uppercase tracking-tight">
-            Correct Registry: <span className="font-bold lowercase tracking-normal">{correctAnswer}</span>
-          </p>
-        </div>
-      )}
     </div>
   );
 };

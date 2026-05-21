@@ -2,9 +2,9 @@
 
 import React, { useMemo } from 'react';
 import { Question } from '@/types/quiz';
-import { Check, CheckCircle2, X } from "lucide-react";
+import { Check, CheckCircle2, X, HelpCircle, Lightbulb } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { parseRegistryArray, shuffleArray } from '@/lib/quiz-utils';
+import { parseRegistryArray, shuffleArray, compareValues } from '@/lib/quiz-utils';
 
 interface Props {
   question: Question;
@@ -52,35 +52,54 @@ export const MatrixChoiceModule: React.FC<Props> = ({ question, value, onChange,
                 const userVal = responses[row];
                 const originalIdx = originalRows.indexOf(row);
                 const correctAnswer = correctArr[originalIdx];
-                const isCorrectRow = reviewMode && String(userVal || "").trim().toLowerCase() === String(correctAnswer || "").trim().toLowerCase();
+                const isSkippedRow = reviewMode && !userVal;
+                const isCorrectRow = reviewMode && compareValues(userVal, correctAnswer);
 
                 return (
-                  <div key={i} style={gridStyle} className={cn("group transition-all duration-200", i % 2 === 0 ? "bg-white" : "bg-slate-50/30", reviewMode && !isCorrectRow && userVal ? "bg-rose-50/50" : reviewMode && isCorrectRow ? "bg-emerald-50/50" : "")}>
-                    <div className={cn("sticky left-0 z-10 pl-6 pr-4 py-5 flex items-center border-r border-slate-200 shadow-sm", i % 2 === 0 ? "bg-white" : "bg-slate-50")}>
-                      <p className={cn(
-                        "option-text text-sm leading-tight",
-                        reviewMode && isCorrectRow ? "text-emerald-700 font-bold" : 
-                        reviewMode && !isCorrectRow && userVal ? "text-rose-700 font-bold" : "text-slate-700"
-                      )}>{row}</p>
+                  <div key={i} style={gridStyle} className={cn(
+                    "group transition-all duration-200", 
+                    i % 2 === 0 ? "bg-white" : "bg-slate-50/30", 
+                    reviewMode && isCorrectRow ? "bg-emerald-50/30" : 
+                    reviewMode && isSkippedRow ? "bg-amber-50/30" :
+                    reviewMode && userVal ? "bg-rose-50/30" : ""
+                  )}>
+                    <div className={cn(
+                      "sticky left-0 z-10 pl-6 pr-4 py-5 flex items-center border-r border-slate-200 shadow-sm transition-colors", 
+                      i % 2 === 0 ? "bg-white" : "bg-slate-50",
+                      isSkippedRow && "bg-amber-50"
+                    )}>
+                      <div className="flex flex-col gap-1">
+                        <p className={cn(
+                          "option-text text-sm leading-tight",
+                          reviewMode && isCorrectRow ? "text-emerald-700 font-bold" : 
+                          reviewMode && !isCorrectRow && userVal ? "text-rose-700 font-bold" : 
+                          isSkippedRow ? "text-amber-700 font-bold" : "text-slate-700"
+                        )}>{row}</p>
+                        {isSkippedRow && <span className="text-[8px] font-black uppercase text-amber-500 tracking-tighter">Skipped / Bỏ qua</span>}
+                      </div>
                     </div>
 
                     {columns.map((col, j) => {
-                      const isSelected = String(userVal || "").trim().toLowerCase() === String(col).trim().toLowerCase();
-                      const isCorrectChoice = reviewMode && String(col).trim().toLowerCase() === String(correctAnswer || "").trim().toLowerCase();
-                      const isWrongChoice = reviewMode && isSelected && !isCorrectChoice;
+                      const isSelected = compareValues(userVal, col);
+                      const isTarget = compareValues(col, correctAnswer);
+                      const isCorrectChoice = reviewMode && isSelected && isTarget;
+                      const isWrongChoice = reviewMode && isSelected && !isTarget;
+                      const isMissedChoice = reviewMode && !isSelected && isTarget;
 
                       return (
                         <div key={j} className="flex items-center justify-center border-r border-slate-200/50 last:border-r-0 p-4" onClick={() => handleUpdate(row, col)}>
                           <div className={cn(
-                            "w-[24px] h-[24px] rounded-full border-2 transition-all flex items-center justify-center cursor-pointer shadow-sm",
-                            isSelected ? "bg-primary border-primary" : "border-slate-200 bg-white",
-                            reviewMode && isCorrectChoice && "bg-emerald-500 border-emerald-500 shadow-lg",
-                            reviewMode && isWrongChoice && "bg-rose-500 border-rose-500 shadow-lg",
+                            "w-[28px] h-[28px] rounded-full border-2 transition-all flex items-center justify-center cursor-pointer shadow-sm",
+                            isSelected && !reviewMode ? "bg-primary border-primary" : "border-slate-200 bg-white",
+                            isCorrectChoice && "bg-emerald-500 border-emerald-500 shadow-lg scale-110",
+                            isWrongChoice && "bg-rose-500 border-rose-500 shadow-lg",
+                            isMissedChoice && "border-emerald-500 border-dashed border-2 scale-110",
                             reviewMode && "cursor-default"
                           )}>
-                            {isSelected && !isCorrectChoice && reviewMode && <X className="w-3.5 h-3.5 text-white stroke-[3px]" />}
-                            {(isSelected && (!reviewMode || isCorrectChoice)) && <Check className="w-3.5 h-3.5 text-white stroke-[3px]" />}
-                            {reviewMode && !isSelected && isCorrectChoice && <Check className="w-3 h-3 text-white/50" />}
+                            {isCorrectChoice && <Check className="w-4 h-4 text-white stroke-[4px]" />}
+                            {isWrongChoice && <X className="w-4 h-4 text-white stroke-[4px]" />}
+                            {isMissedChoice && <Check className="w-3.5 h-3.5 text-emerald-500 stroke-[3px]" />}
+                            {(isSelected && !reviewMode) && <Check className="w-3.5 h-3.5 text-white stroke-[3px]" />}
                           </div>
                         </div>
                       );
@@ -97,7 +116,7 @@ export const MatrixChoiceModule: React.FC<Props> = ({ question, value, onChange,
         <div className="p-6 bg-emerald-50 rounded-[2rem] border border-emerald-100 space-y-3 animate-in slide-in-from-top-2">
           <div className="flex items-center gap-2 mb-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            <h5 className="text-[10px] font-black uppercase text-emerald-700 tracking-widest">Correct Registry Matrix</h5>
+            <h5 className="text-[10px] font-black uppercase text-emerald-700 tracking-widest">Correct Registry Matrix / Ma trận đáp án</h5>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
             {originalRows.map((row, i) => (

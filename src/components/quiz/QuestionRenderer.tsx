@@ -4,9 +4,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { Question } from '@/types/quiz';
-import { ImageIcon, Maximize2 } from "lucide-react";
+import { ImageIcon, Maximize2, CircleOff, AlertCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 // Lazy Load interaction modules for performance
 const SingleChoiceModule = dynamic(() => import('./modules/SingleChoiceModule').then(m => m.SingleChoiceModule), { 
@@ -66,21 +67,17 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
 
     if (rawUrl && String(rawUrl).trim() !== "") {
       const trimmed = String(rawUrl).trim();
-      
-      // Protocol: Validate URL integrity before passing to next/image
       try {
         if (trimmed.startsWith('http')) {
-          new URL(trimmed); // Validate absolute URL syntax
+          new URL(trimmed);
           validatedSrc = trimmed;
         } else if (trimmed.startsWith('/') || trimmed.startsWith('data:')) {
           validatedSrc = trimmed;
         }
       } catch (e) {
-        console.warn(`[Asset Registry] Invalid visual source detected for node ${question.id}`);
         validatedSrc = null;
       }
     }
-
     setImgSrc(validatedSrc);
     setHasImageError(false);
   }, [question.id, question.image_url]);
@@ -90,6 +87,14 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
     setHasImageError(true);
   };
 
+  const isValueEmpty = useMemo(() => {
+    if (value === null || value === undefined) return true;
+    if (typeof value === 'string') return value.trim() === "";
+    if (Array.isArray(value)) return value.length === 0;
+    if (typeof value === 'object') return Object.keys(value).length === 0;
+    return false;
+  }, [value]);
+
   const renderModule = () => {
     const props = { question, value, onChange, reviewMode };
     const qType = String(question.question_type || '').toLowerCase().replace(/[\s_]/g, '');
@@ -97,7 +102,6 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
     if (qType === 'multiple_choice' || qType === 'multiplechoice' || qType === 'manyanswers' || qType === 'many_answers') {
       return <MultipleChoiceModule {...props} />;
     }
-    
     if (qType === 'single_choice' || qType === 'singlechoice' || qType === 'oneanswer' || qType === 'one_answer') {
       return <SingleChoiceModule {...props} />;
     }
@@ -122,14 +126,21 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
 
   return (
     <div className="w-full">
+      {reviewMode && isValueEmpty && (
+        <div className="mb-6 p-4 bg-amber-50 border-l-[4px] border-amber-400 rounded-r-2xl flex items-center gap-4 text-amber-700 animate-in slide-in-from-top-2">
+          <CircleOff className="w-5 h-5 shrink-0" />
+          <div className="space-y-0.5">
+            <p className="text-[11px] font-black uppercase tracking-widest leading-none">No answer submitted</p>
+            <p className="text-[10px] font-bold opacity-60 leading-none">Không có câu trả lời</p>
+          </div>
+        </div>
+      )}
+
       <div className="p-6 bg-[#EFF6FF] border-l-[4px] border-[#2563EB] rounded-r-2xl mb-10" role="group" aria-labelledby={`q-text-${question.id}`}>
         <h2 id={`q-text-${question.id}`} className="question-text text-lg md:text-xl font-bold leading-[1.65] text-slate-900 w-full">
           {question.question_text}
           {question.required && (
-            <span className="text-destructive ml-2" aria-hidden="true">
-              *
-              <span className="sr-only"> (required)</span>
-            </span>
+            <span className="text-destructive ml-2" aria-hidden="true">*</span>
           )}
         </h2>
       </div>
@@ -170,12 +181,7 @@ export const QuestionRenderer: React.FC<Props> = ({ question, value, onChange, r
             <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 border-none bg-transparent shadow-none flex items-center justify-center">
               <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
                 <div className="relative w-full h-[90vh]">
-                  <Image 
-                    src={imgSrc} 
-                    alt="Zoomed Asset View" 
-                    fill
-                    className="object-contain rounded-none shadow-2xl animate-in zoom-in-95 duration-300"
-                  />
+                  <Image src={imgSrc} alt="Zoomed Asset View" fill className="object-contain rounded-none shadow-2xl animate-in zoom-in-95 duration-300" />
                 </div>
                 <DialogTitle className="sr-only">Image Perspective View</DialogTitle>
               </div>

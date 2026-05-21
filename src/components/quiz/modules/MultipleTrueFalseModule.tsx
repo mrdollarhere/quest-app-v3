@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { Question } from '@/types/quiz';
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Check, X, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { parseRegistryArray, shuffleArray, compareValues } from '@/lib/quiz-utils';
 
@@ -29,16 +29,14 @@ export const MultipleTrueFalseModule: React.FC<Props> = ({ question, value, onCh
     <div className="space-y-4">
       <div className="flex flex-col gap-3">
         {statements.map((s, i) => {
-          // ASSOCIATION LOOKUP: Find the correct value based on original index in order_group
           const originalIdx = originalStatements.indexOf(s);
           const correctAnswer = correctArr[originalIdx];
           
-          // User response lookup with case-insensitive normalization guard
           const userKey = Object.keys(responses).find(k => k.trim().toLowerCase() === s.trim().toLowerCase());
           const userVal = userKey ? responses[userKey] : undefined;
           
-          // SEMANTIC COMPARISON: Equate True/False with Đúng/Sai
           const isCorrect = reviewMode && compareValues(userVal, correctAnswer);
+          const isSkipped = reviewMode && userVal === undefined;
           
           return (
             <div key={i} className="flex flex-col gap-2">
@@ -51,50 +49,66 @@ export const MultipleTrueFalseModule: React.FC<Props> = ({ question, value, onCh
                     "bg-[#FEF2F2] border-[#EF4444]"
                   ) : (
                     isCorrect ? "bg-emerald-50 border-emerald-500" : 
-                    (userVal ? "bg-rose-50 border-rose-500" : "bg-slate-50 border-slate-200")
+                    (isSkipped ? "bg-amber-50 border-amber-400" : "bg-rose-50 border-rose-500")
                   )
                 )}
               >
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <p className={cn(
-                    "option-text font-normal text-base leading-tight",
+                    "option-text font-normal text-base leading-tight truncate",
                     reviewMode && isCorrect ? "text-emerald-900 font-bold" : 
-                    reviewMode && !isCorrect && userVal ? "text-rose-900 font-bold" : "text-slate-700"
+                    reviewMode && !isCorrect && !isSkipped ? "text-rose-900 font-bold" : "text-slate-700"
                   )}>{s}</p>
                 </div>
 
-                <div className="flex items-center gap-[6px] w-[146px] justify-end shrink-0">
-                  {['True', 'False'].map((opt) => {
-                    const isSelected = compareValues(userVal, opt);
-                    const isCorrectOption = reviewMode && compareValues(opt, correctAnswer);
-                    return (
-                      <button
-                        key={opt}
-                        type="button"
-                        onClick={() => handleUpdate(s, opt)}
-                        disabled={reviewMode}
-                        className={cn(
-                          "w-[70px] h-[36px] rounded-[10px] font-black text-[12px] uppercase tracking-tight transition-all border",
-                          !isSelected && !isCorrectOption && "bg-white border-slate-200 text-slate-400 hover:bg-slate-50",
-                          isSelected && opt === 'True' && "bg-[#22C55E] border-[#22C55E] text-white",
-                          isSelected && opt === 'False' && "bg-[#EF4444] border-[#EF4444] text-white",
-                          reviewMode && isCorrectOption && !isSelected && "border-[#22C55E] text-[#22C55E] border-dashed border-2",
-                          reviewMode && "cursor-default"
-                        )}
-                      >
-                        {opt}
-                      </button>
-                    );
-                  })}
+                <div className="flex items-center gap-[8px] shrink-0">
+                  {isSkipped && <HelpCircle className="w-5 h-5 text-amber-500 animate-pulse" />}
+                  
+                  <div className="flex items-center gap-[6px] w-[156px] justify-end">
+                    {['True', 'False'].map((opt) => {
+                      const isSelected = compareValues(userVal, opt);
+                      const isOptionCorrect = compareValues(opt, correctAnswer);
+                      const isSelectedCorrectly = isSelected && isOptionCorrect && reviewMode;
+                      const isSelectedIncorrectly = isSelected && !isOptionCorrect && reviewMode;
+                      const isMissedCorrectly = !isSelected && isOptionCorrect && reviewMode;
+
+                      return (
+                        <div key={opt} className="relative flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleUpdate(s, opt)}
+                            disabled={reviewMode}
+                            className={cn(
+                              "w-[70px] h-[36px] rounded-[10px] font-black text-[12px] uppercase tracking-tight transition-all border flex items-center justify-center gap-1",
+                              !isSelected && (!reviewMode || !isOptionCorrect) && "bg-white border-slate-200 text-slate-400 hover:bg-slate-50",
+                              isSelected && !reviewMode && (opt === 'True' ? "bg-[#22C55E] border-[#22C55E] text-white" : "bg-[#EF4444] border-[#EF4444] text-white"),
+                              isSelectedCorrectly && "bg-emerald-500 border-emerald-500 text-white",
+                              isSelectedIncorrectly && "bg-rose-500 border-rose-500 text-white",
+                              isMissedCorrectly && "bg-white border-emerald-500 border-dashed border-2 text-emerald-600",
+                              reviewMode && "cursor-default"
+                            )}
+                          >
+                            {opt}
+                            {isSelectedCorrectly && <Check className="w-3 h-3 text-white" />}
+                            {isSelectedIncorrectly && <X className="w-3 h-3 text-white" />}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
               
-              {reviewMode && (
+              {reviewMode && !isCorrect && (
                 <div className={cn(
-                  "mx-4 px-4 py-1.5 rounded-b-xl text-[10px] font-black uppercase tracking-widest -mt-4 pt-4 border-x border-b",
-                  isCorrect ? "bg-emerald-100/50 border-emerald-200 text-emerald-700" : "bg-rose-100/50 border-rose-200 text-rose-700"
+                  "mx-4 px-4 py-1.5 rounded-b-xl text-[9px] font-black uppercase tracking-widest -mt-4 pt-4 border-x border-b border-dashed flex items-center justify-between",
+                  isSkipped ? "bg-amber-100/30 border-amber-200 text-amber-600" : "bg-emerald-100/30 border-emerald-200 text-emerald-600"
                 )}>
-                  Correct Registry: <span className="font-black underline">{correctAnswer}</span>
+                  <span>{isSkipped ? "NOT ANSWERED / CHƯA TRẢ LỜI" : "YOUR ANSWER / CÂU TRẢ LỜI CỦA BẠN"}</span>
+                  <div className="flex items-center gap-4">
+                    {!isSkipped && <span className="text-rose-500">{userVal}</span>}
+                    <span className="text-emerald-600">Correct: {correctAnswer}</span>
+                  </div>
                 </div>
               )}
             </div>

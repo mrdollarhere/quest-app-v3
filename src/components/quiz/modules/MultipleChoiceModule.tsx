@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import { Question } from '@/types/quiz';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2, XCircle, Check, X } from "lucide-react";
+import { CheckCircle2, XCircle, Check, X, Lightbulb } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { parseRegistryArray, shuffleArray } from '@/lib/quiz-utils';
 
@@ -44,7 +44,7 @@ export const MultipleChoiceModule: React.FC<Props> = ({ question, value, onChang
           const isCorrect = isOptionInArray(option, correctArr);
           const isSelectedCorrectly = isSelected && isCorrect;
           const isSelectedIncorrectly = isSelected && !isCorrect;
-          const isMissingAnswer = !isSelected && isCorrect;
+          const isMissingAnswer = !isSelected && isCorrect && reviewMode;
           
           const inputId = `q-${question.id}-${idx}`;
           
@@ -59,11 +59,11 @@ export const MultipleChoiceModule: React.FC<Props> = ({ question, value, onChang
                 !isSelected && !reviewMode && "bg-white border-slate-100 hover:bg-[#EFF6FF] hover:border-[#2563EB]",
                 reviewMode && isSelectedCorrectly && "bg-emerald-50 border-emerald-500 shadow-sm",
                 reviewMode && isSelectedIncorrectly && "bg-rose-50 border-rose-500 shadow-sm",
-                reviewMode && isMissingAnswer && "bg-emerald-50/20 border-emerald-300 border-dashed",
+                reviewMode && isMissingAnswer && "bg-white border-emerald-500 border-dashed",
                 reviewMode && !isCorrect && !isSelected && "bg-white border-slate-50 opacity-40"
               )}
             >
-              <div className="relative">
+              <div className="relative shrink-0">
                 <Checkbox 
                   id={inputId} 
                   checked={isSelected} 
@@ -99,26 +99,22 @@ export const MultipleChoiceModule: React.FC<Props> = ({ question, value, onChang
                 onClick={(e) => !reviewMode && e.preventDefault()}
               >
                 {option}
+                {isMissingAnswer && (
+                  <span className="ml-3 inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[8px] font-black uppercase tracking-widest rounded-md border border-emerald-100">
+                    <Lightbulb className="w-2.5 h-2.5" /> Correct answer / Đáp án đúng
+                  </span>
+                )}
               </Label>
-              {reviewMode && isCorrect && (
-                <CheckCircle2 className={cn("w-5 h-5", isSelected ? "text-emerald-600" : "text-emerald-400 opacity-50")} />
+              {reviewMode && isCorrect && isSelected && (
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
               )}
               {reviewMode && isSelectedIncorrectly && (
-                <XCircle className="w-5 h-5 text-rose-500" />
+                <XCircle className="w-5 h-5 text-rose-500 shrink-0" />
               )}
             </div>
           );
         })}
       </div>
-      
-      {reviewMode && (
-        <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center gap-3 animate-in slide-in-from-top-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-          <p className="text-sm font-black text-emerald-700 uppercase tracking-tight">
-            CORRECT NODES: <span className="font-bold lowercase tracking-normal">{correctArr.join(", ")}</span>
-          </p>
-        </div>
-      )}
     </div>
   );
 };

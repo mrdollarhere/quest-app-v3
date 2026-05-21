@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { History, CheckCircle2, X, AlertCircle, ChevronDown, Activity } from "lucide-react";
+import { History, CheckCircle2, X, AlertCircle, ChevronDown, Info, Lightbulb, CircleOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { QuestionRenderer } from './QuestionRenderer';
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface StepAnalyticsProps {
   questions: any[];
@@ -20,6 +22,49 @@ interface StepAnalyticsProps {
 }
 
 type FilterMode = 'all' | 'incorrect';
+
+function Legend() {
+  const [isOpen, setIsOpen] = useState(true);
+  
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="mb-10 bg-white border border-slate-100 rounded-[2rem] overflow-hidden shadow-sm">
+      <CollapsibleTrigger asChild>
+        <button className="w-full flex items-center justify-between p-6 hover:bg-slate-50 transition-colors text-left group">
+          <div className="flex items-center gap-3">
+            <Info className="w-4 h-4 text-slate-400 group-hover:text-primary transition-colors" />
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Review Protocol Legend / Chú thích</span>
+          </div>
+          <ChevronDown className={cn("w-4 h-4 text-slate-300 transition-transform duration-300", isOpen && "rotate-180")} />
+        </button>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="p-8 pt-0 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 border-t border-slate-50 mt-2">
+          <LegendItem icon={<CheckCircle2 className="w-4 h-4 text-emerald-500" />} label="Your correct answer" subLabel="Câu trả lời đúng của bạn" color="text-emerald-600" />
+          <LegendItem icon={<X className="w-4 h-4 text-rose-500" />} label="Your wrong answer" subLabel="Câu trả lời sai của bạn" color="text-rose-600" />
+          <LegendItem icon={<Lightbulb className="w-4 h-4 text-emerald-500" />} label="Correct answer (missed)" subLabel="Đáp án đúng (bị bỏ lỡ)" color="text-emerald-600" dashed />
+          <LegendItem icon={<CircleOff className="w-4 h-4 text-amber-500" />} label="Not answered" subLabel="Chưa trả lời" color="text-amber-600" />
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
+function LegendItem({ icon, label, subLabel, color, dashed = false }: any) {
+  return (
+    <div className="flex items-start gap-4">
+      <div className={cn(
+        "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border-2",
+        dashed ? "border-dashed border-emerald-500 bg-white" : "border-slate-100 bg-slate-50"
+      )}>
+        {icon}
+      </div>
+      <div className="space-y-0.5">
+        <p className={cn("text-[10px] font-black uppercase tracking-tight leading-none", color)}>{label}</p>
+        <p className="text-[9px] font-medium text-slate-400 italic">{subLabel}</p>
+      </div>
+    </div>
+  );
+}
 
 export function StepAnalytics({ questions, serverReviewData = [], textSize }: StepAnalyticsProps) {
   const [isCollapsed, setIsCollapsed] = useState(true);
@@ -102,50 +147,78 @@ export function StepAnalytics({ questions, serverReviewData = [], textSize }: St
       </div>
 
       <div className={cn("transition-all duration-500 ease-in-out overflow-hidden", isCollapsed ? "max-h-0 opacity-0" : "max-h-[99999px] opacity-100 mt-10")}>
+        <Legend />
+        
         {filteredItems.length > 0 ? (
           <Accordion type="single" collapsible className="space-y-4">
-            {filteredItems.map((item, idx) => (
-              <AccordionItem 
-                key={item.questionId} 
-                value={`item-${idx}`}
-                className={cn("border-none rounded-[2rem] overflow-hidden bg-white border border-slate-100 transition-all hover:bg-slate-50/50 shadow-sm", item.isCorrect ? "border-l-[6px] border-l-emerald-500" : "border-l-[6px] border-l-rose-500")}
-              >
-                <AccordionTrigger className="px-10 py-8 hover:no-underline group">
-                  <div className="flex items-center gap-10 text-left w-full">
-                    <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border-2", item.isCorrect ? "bg-emerald-500 border-emerald-400 text-white" : "bg-rose-500 border-rose-400 text-white shadow-lg shadow-rose-500/10")}>
-                      {item.isCorrect ? <CheckCircle2 className="w-6 h-6" /> : <X className="w-6 h-6" />}
-                    </div>
-                    <div className="flex flex-col min-w-0 flex-1">
-                      <div className="flex items-center gap-4 mb-2">
-                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Question {idx + 1}</span>
-                        <div className={cn("px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest", item.isCorrect ? "bg-emerald-500 text-white" : "bg-rose-500 text-white")}>{item.isCorrect ? "Correct" : "Incorrect"}</div>
+            {filteredItems.map((item, idx) => {
+              const hasAnswer = item.submittedAnswer !== null && (
+                typeof item.submittedAnswer === 'string' ? item.submittedAnswer.trim() !== "" :
+                Array.isArray(item.submittedAnswer) ? item.submittedAnswer.length > 0 :
+                typeof item.submittedAnswer === 'object' ? Object.keys(item.submittedAnswer).length > 0 :
+                item.submittedAnswer !== undefined
+              );
+
+              return (
+                <AccordionItem 
+                  key={item.questionId} 
+                  value={`item-${idx}`}
+                  className={cn(
+                    "border-none rounded-[2rem] overflow-hidden bg-white border border-slate-100 transition-all hover:bg-slate-50/50 shadow-sm", 
+                    !hasAnswer ? "border-l-[6px] border-l-amber-400" : (item.isCorrect ? "border-l-[6px] border-l-emerald-500" : "border-l-[6px] border-l-rose-500")
+                  )}
+                >
+                  <AccordionTrigger className="px-10 py-8 hover:no-underline group">
+                    <div className="flex items-center gap-10 text-left w-full">
+                      <div className={cn(
+                        "w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border-2",
+                        !hasAnswer ? "bg-amber-500 border-amber-400 text-white shadow-lg shadow-amber-500/10" : (item.isCorrect ? "bg-emerald-500 border-emerald-400 text-white" : "bg-rose-500 border-rose-400 text-white shadow-lg shadow-rose-500/10")
+                      )}>
+                        {!hasAnswer ? <CircleOff className="w-6 h-6" /> : (item.isCorrect ? <CheckCircle2 className="w-6 h-6" /> : <X className="w-6 h-6" />)}
                       </div>
-                      <h4 className="font-semibold text-slate-900 text-xl tracking-tight line-clamp-1 group-hover:text-primary transition-colors">{item.questionText}</h4>
+                      <div className="flex flex-col min-w-0 flex-1">
+                        <div className="flex items-center gap-4 mb-2">
+                          <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Question {idx + 1}</span>
+                          <div className={cn(
+                            "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest", 
+                            !hasAnswer ? "bg-amber-500 text-white" : (item.isCorrect ? "bg-emerald-500 text-white" : "bg-rose-500 text-white")
+                          )}>
+                            {!hasAnswer ? "Skipped / Bỏ qua" : (item.isCorrect ? "Correct" : "Incorrect")}
+                          </div>
+                        </div>
+                        <h4 className="font-semibold text-slate-900 text-xl tracking-tight line-clamp-1 group-hover:text-primary transition-colors">{item.questionText}</h4>
+                      </div>
                     </div>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="px-10 pb-10 pt-0">
-                  <div className="h-px w-full bg-slate-100 mb-8" />
-                  <div className="max-w-4xl mx-auto rounded-[2rem] bg-slate-50 p-8 border border-slate-100 shadow-inner" data-textsize={textSize}>
-                    <QuestionRenderer 
-                      question={{
-                        id: item.questionId,
-                        question_text: item.questionText,
-                        question_type: item.questionType,
-                        image_url: item.image_url, 
-                        options: item.options,
-                        correct_answer: JSON.stringify(item.correctAnswer),
-                        order_group: JSON.stringify(item.orderGroup),
-                        metadata: item.metadata
-                      } as any} 
-                      value={item.submittedAnswer} 
-                      onChange={() => {}} 
-                      reviewMode={true} 
-                    />
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            ))}
+                  </AccordionTrigger>
+                  <AccordionContent className="px-10 pb-10 pt-0">
+                    <div className="h-px w-full bg-slate-100 mb-8" />
+                    <div className="max-w-4xl mx-auto rounded-[2rem] bg-slate-50 p-8 border border-slate-100 shadow-inner" data-textsize={textSize}>
+                      {!hasAnswer && (
+                        <div className="mb-8 p-4 bg-amber-50 border-2 border-amber-100 rounded-2xl flex items-center gap-4 text-amber-700 animate-in slide-in-from-top-2">
+                          <AlertCircle className="w-5 h-5" />
+                          <p className="text-xs font-black uppercase tracking-tight">No answer submitted / Không có câu trả lời</p>
+                        </div>
+                      )}
+                      <QuestionRenderer 
+                        question={{
+                          id: item.questionId,
+                          question_text: item.questionText,
+                          question_type: item.questionType,
+                          image_url: item.image_url, 
+                          options: item.options,
+                          correct_answer: JSON.stringify(item.correctAnswer),
+                          order_group: JSON.stringify(item.orderGroup),
+                          metadata: item.metadata
+                        } as any} 
+                        value={item.submittedAnswer} 
+                        onChange={() => {}} 
+                        reviewMode={true} 
+                      />
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
           </Accordion>
         ) : (
           <div className="py-20 text-center bg-white rounded-[3rem] border-4 border-dashed border-slate-100">

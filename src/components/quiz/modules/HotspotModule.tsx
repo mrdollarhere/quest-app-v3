@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Question, HotspotZone } from '@/types/quiz';
-import { CheckCircle2, AlertCircle } from "lucide-react";
+import { CheckCircle2, AlertCircle, Lightbulb, CircleOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -30,6 +30,7 @@ export const HotspotModule: React.FC<Props> = ({ question, value, onChange, revi
 
   const correctZones = useMemo(() => zones.filter(z => z.isCorrect), [zones]);
   const selectedZoneIds = useMemo(() => Array.isArray(value) ? value : [], [value]);
+  const isSkipped = reviewMode && selectedZoneIds.length === 0;
 
   const handleClick = (e: React.MouseEvent) => {
     if (reviewMode || !containerRef.current) return;
@@ -46,6 +47,13 @@ export const HotspotModule: React.FC<Props> = ({ question, value, onChange, revi
 
   return (
     <div className="space-y-6">
+      {isSkipped && (
+        <div className="p-4 bg-amber-50 border-2 border-amber-100 rounded-2xl flex items-center gap-4 text-amber-700 animate-in slide-in-from-top-2 mb-4">
+          <CircleOff className="w-5 h-5" />
+          <p className="text-xs font-black uppercase tracking-tight">No interaction recorded / Không có tương tác</p>
+        </div>
+      )}
+
       <div className="relative w-full shadow-2xl rounded-none overflow-hidden bg-slate-900 border-4 border-white" style={{ paddingBottom: `${aspectRatio * 100}%`, height: 0 }}>
         <div ref={containerRef} className={cn("absolute inset-0 transition-opacity", reviewMode ? "cursor-default" : "cursor-crosshair")} onClick={handleClick}>
           {imgSrc && <img src={imgSrc} alt="Spatial" onLoad={(e) => setAspectRatio(e.currentTarget.naturalHeight / e.currentTarget.naturalWidth)} className="absolute inset-0 w-full h-full object-contain select-none opacity-90" draggable={false} />}
@@ -57,12 +65,32 @@ export const HotspotModule: React.FC<Props> = ({ question, value, onChange, revi
               
               let borderColor = "border-primary";
               let bgColor = "bg-primary/40";
+              let labelStyle = "bg-slate-900";
               let showLabel = false;
+              let icon = null;
 
               if (reviewMode) {
-                if (isSelected && isCorrect) { borderColor = "border-emerald-500 border-[4px]"; bgColor = "bg-emerald-500/20"; showLabel = true; }
-                else if (isSelected && !isCorrect) { borderColor = "border-rose-500 border-[4px]"; bgColor = "bg-rose-500/30"; showLabel = true; }
-                else if (!isSelected && isCorrect) { borderColor = "border-emerald-500 border-dashed border-[3px]"; bgColor = "bg-transparent"; showLabel = true; }
+                if (isSelected && isCorrect) { 
+                  borderColor = "border-emerald-500 border-[4px]"; 
+                  bgColor = "bg-emerald-500/20"; 
+                  labelStyle = "bg-emerald-600";
+                  showLabel = true;
+                  icon = "✓";
+                }
+                else if (isSelected && !isCorrect) { 
+                  borderColor = "border-rose-500 border-[4px]"; 
+                  bgColor = "bg-rose-500/30"; 
+                  labelStyle = "bg-rose-600";
+                  showLabel = true;
+                  icon = "✗";
+                }
+                else if (!isSelected && isCorrect) { 
+                  borderColor = "border-emerald-500 border-dashed border-[3px]"; 
+                  bgColor = "bg-transparent"; 
+                  labelStyle = "bg-emerald-600";
+                  showLabel = true;
+                  icon = <Lightbulb className="w-2.5 h-2.5 inline mr-1" />;
+                }
                 else return null;
               }
 
@@ -70,10 +98,10 @@ export const HotspotModule: React.FC<Props> = ({ question, value, onChange, revi
                 <div key={z.id} className={cn("absolute transition-all rounded-none", borderColor, bgColor)} style={{ left: `${z.x}%`, top: `${z.y}%`, width: `${z.width}%`, height: `${z.height}%` }}>
                   {showLabel && (
                     <div className={cn(
-                      "absolute -top-6 left-0 px-2 py-0.5 rounded-sm text-[8px] font-black uppercase whitespace-nowrap shadow-xl",
-                      isCorrect ? "bg-emerald-600 text-white" : "bg-rose-600 text-white"
+                      "absolute -top-6 left-0 px-2 py-0.5 rounded-sm text-[8px] font-black uppercase whitespace-nowrap shadow-xl flex items-center gap-1.5 text-white",
+                      labelStyle
                     )}>
-                      {z.label} {isSelected && !isCorrect ? "(WRONG)" : ""}
+                      {icon} {z.label} {!isCorrect && isSelected ? "(WRONG)" : isCorrect && !isSelected ? "CORRECT TARGET" : ""}
                     </div>
                   )}
                 </div>
@@ -82,12 +110,16 @@ export const HotspotModule: React.FC<Props> = ({ question, value, onChange, revi
           </div>
         </div>
       </div>
+      
       {reviewMode && (
-        <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center gap-3 animate-in slide-in-from-top-2">
-          <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-          <p className="text-sm font-black text-emerald-700 uppercase tracking-tight">
-            Correct Registry Targets: <span className="font-bold lowercase tracking-normal">{correctZones.map(z => z.label).join(", ")}</span>
-          </p>
+        <div className="p-6 bg-emerald-50 rounded-[2rem] border border-emerald-100 flex items-start gap-4 animate-in slide-in-from-top-2">
+          <div className="p-2 bg-emerald-100 rounded-xl"><Lightbulb className="w-5 h-5 text-emerald-600" /></div>
+          <div>
+            <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest mb-1">Correct Registry Targets / Mục tiêu đúng</p>
+            <p className="text-sm font-bold text-emerald-900 leading-tight">
+              {correctZones.map(z => z.label).join(", ")}
+            </p>
+          </div>
         </div>
       )}
     </div>

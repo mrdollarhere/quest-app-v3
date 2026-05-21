@@ -3,9 +3,9 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Question } from '@/types/quiz';
 import { Button } from "@/components/ui/button";
-import { GripVertical, Info, RotateCcw, Check, X, CheckCircle2 } from "lucide-react";
+import { GripVertical, Info, RotateCcw, Check, X, CheckCircle2, Lightbulb, CircleOff } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { parseRegistryArray, shuffleArray } from '@/lib/quiz-utils';
+import { parseRegistryArray, shuffleArray, compareValues } from '@/lib/quiz-utils';
 
 interface Props {
   question: Question;
@@ -24,7 +24,7 @@ export const OrderingModule: React.FC<Props> = ({ question, value, onChange, rev
 
   useEffect(() => {
     if (parsedOptions.length > 0 && !hasInitialized.current) {
-      if (!value) {
+      if (!value && !reviewMode) {
         let shuffled = shuffleArray(parsedOptions);
         if (JSON.stringify(shuffled) === JSON.stringify(correctOrder)) {
           if (shuffled.length > 1) [shuffled[0], shuffled[1]] = [shuffled[1], shuffled[0]];
@@ -32,16 +32,24 @@ export const OrderingModule: React.FC<Props> = ({ question, value, onChange, rev
         setInitialShuffle(shuffled);
         onChange(shuffled);
       } else {
-        setInitialShuffle(value);
+        setInitialShuffle(value || []);
       }
       hasInitialized.current = true;
     }
-  }, [parsedOptions, value, correctOrder, onChange]);
+  }, [parsedOptions, value, correctOrder, onChange, reviewMode]);
 
   const currentOrder = (value as string[]) || [];
+  const isSkipped = reviewMode && currentOrder.length === 0;
 
   return (
     <div className="space-y-6">
+      {isSkipped && (
+        <div className="p-4 bg-amber-50 border-2 border-amber-100 rounded-2xl flex items-center gap-4 text-amber-700 animate-in slide-in-from-top-2">
+          <CircleOff className="w-5 h-5" />
+          <p className="text-xs font-black uppercase tracking-tight">Sequence skipped / Chuỗi chưa được sắp xếp</p>
+        </div>
+      )}
+
       {!reviewMode && (
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2 p-3 bg-primary/5 rounded-xl border border-primary/10 text-[10px] font-black uppercase text-primary">
@@ -53,7 +61,7 @@ export const OrderingModule: React.FC<Props> = ({ question, value, onChange, rev
 
       <div className="space-y-3">
         {currentOrder.map((item, idx) => {
-          const isCorrectPos = reviewMode && String(item).trim() === String(correctOrder[idx] || "").trim();
+          const isCorrectPos = reviewMode && compareValues(item, correctOrder[idx]);
           return (
             <div 
               key={`${item}-${idx}`} 
@@ -64,7 +72,7 @@ export const OrderingModule: React.FC<Props> = ({ question, value, onChange, rev
               className={cn(
                 "flex items-center gap-4 p-5 rounded-2xl border-2 transition-all select-none", 
                 !reviewMode ? "bg-white border-slate-100 shadow-sm" : (
-                  isCorrectPos ? "bg-emerald-50 border-emerald-500 shadow-sm" : "bg-rose-50 border-rose-500 shadow-sm"
+                  isCorrectPos ? "bg-emerald-50 border-emerald-500 border-l-[6px] shadow-sm" : "bg-rose-50 border-rose-500 border-l-[6px] shadow-sm"
                 )
               )}
             >
@@ -86,7 +94,7 @@ export const OrderingModule: React.FC<Props> = ({ question, value, onChange, rev
               {reviewMode ? (
                 <div className="flex items-center gap-4">
                   {!isCorrectPos && (
-                    <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest hidden sm:inline">
+                    <span className="text-[8px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-100 uppercase tracking-widest hidden sm:inline">
                       Target #{idx + 1}: {correctOrder[idx]}
                     </span>
                   )}
@@ -101,11 +109,18 @@ export const OrderingModule: React.FC<Props> = ({ question, value, onChange, rev
       </div>
       
       {reviewMode && (
-        <div className="p-5 bg-emerald-50 rounded-[2rem] border border-emerald-100 flex items-center gap-4 animate-in slide-in-from-top-2">
-          <div className="p-3 bg-emerald-500 rounded-xl text-white shadow-lg"><CheckCircle2 className="w-5 h-5" /></div>
-          <div>
-            <p className="text-[10px] font-black uppercase text-emerald-700 tracking-[0.2em] mb-1">Correct Registry Sequence</p>
-            <p className="text-sm font-bold text-emerald-900 tracking-tight">{correctOrder.join(" → ")}</p>
+        <div className="p-6 bg-emerald-50 rounded-[2.5rem] border-2 border-emerald-500 border-dashed flex flex-col gap-4 animate-in slide-in-from-top-2">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-emerald-100 rounded-xl"><Lightbulb className="w-5 h-5 text-emerald-600" /></div>
+            <p className="text-[10px] font-black uppercase text-emerald-700 tracking-[0.2em]">Correct Registry Sequence / Thứ tự đúng</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {correctOrder.map((step, sidx) => (
+              <React.Fragment key={sidx}>
+                <div className="px-3 py-1.5 bg-white border border-emerald-100 rounded-lg text-xs font-black text-emerald-700 shadow-sm">{step}</div>
+                {sidx < correctOrder.length - 1 && <span className="text-emerald-300 font-bold">→</span>}
+              </React.Fragment>
+            ))}
           </div>
         </div>
       )}
