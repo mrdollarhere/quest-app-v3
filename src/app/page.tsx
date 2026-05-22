@@ -19,6 +19,7 @@ import { JsonLd } from '@/components/SEO';
 import { trackEvent } from '@/lib/tracker';
 import { SiteFooter } from '@/components/SiteFooter';
 import { useAuth } from '@/context/auth-context';
+import { ChatBot } from '@/components/shared/ChatBot';
 
 // Extracted Sub-components
 import { HeroSection } from '@/components/landing/HeroSection';
@@ -106,6 +107,7 @@ export default function LandingPage() {
       </main>
 
       <SiteFooter />
+      <ChatBot />
     </div>
   );
 }
