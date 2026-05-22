@@ -12,104 +12,127 @@ interface CertificateData {
 }
 
 /**
- * High-Precision Certificate Generation Protocol
- * Optimized for professional layout, spatial balance, and brand alignment.
+ * High-Precision Certificate Generation Protocol (v19.5)
+ * 
+ * Re-engineered to use the Canvas Rendering Protocol.
+ * This ensures full Unicode support for Vietnamese diacritics by 
+ * leveraging the browser's native text engine before PDF extraction.
  */
 export async function generateCertificatePDF(data: CertificateData) {
-  // Protocol: Using 'pt' (points) for high-precision typographic layout
+  // 1. Initialize High-Res Canvas Terminal
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    console.error('[Certificate Engine] Failed to initialize 2D context.');
+    return;
+  }
+
+  // Quality Protocol: Render at 3x scale for professional print density
+  const scale = 3;
+  const w = 842 * scale; // A4 Landscape points * scale
+  const h = 595 * scale; // A4 Landscape points * scale
+  canvas.width = w;
+  canvas.height = h;
+
+  // 2. Base Layer: Registry Background
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, w, h);
+
+  // Color Registry
+  const colorNavy = '#1a2340';
+  const colorBlue = '#3B5BDB';
+  const colorGray = '#94a3b8';
+
+  // 3. Border Protocol (Spatial Margins)
+  ctx.strokeStyle = colorNavy;
+  ctx.lineWidth = 2 * scale;
+  ctx.strokeRect(20 * scale, 20 * scale, w - 40 * scale, h - 40 * scale);
+
+  ctx.strokeStyle = colorBlue;
+  ctx.lineWidth = 1 * scale;
+  ctx.strokeRect(30 * scale, 30 * scale, w - 60 * scale, h - 60 * scale);
+
+  // 4. Header: Platform Identity
+  ctx.fillStyle = colorNavy;
+  ctx.textAlign = 'center';
+  ctx.font = `bold ${24 * scale}px "Inter", sans-serif`;
+  ctx.fillText(data.platformName.toUpperCase(), w / 2, 80 * scale);
+  
+  // Decorative separator
+  ctx.beginPath();
+  ctx.moveTo(w / 2 - 40 * scale, 100 * scale);
+  ctx.lineTo(w / 2 + 40 * scale, 100 * scale);
+  ctx.strokeStyle = colorNavy;
+  ctx.lineWidth = 0.5 * scale;
+  ctx.stroke();
+
+  // 5. Typographic Hierarchy: Body
+  ctx.fillStyle = colorGray;
+  ctx.font = `normal ${13 * scale}px "Inter", sans-serif`;
+  ctx.fillText('CERTIFICATE OF COMPLETION', w / 2, 150 * scale);
+
+  ctx.fillStyle = colorNavy;
+  ctx.font = `normal ${14 * scale}px "Inter", sans-serif`;
+  ctx.fillText('THIS IS TO CERTIFY THAT', w / 2, 210 * scale);
+
+  // 6. Identity Node: Student Name (Unicode Safe)
+  ctx.fillStyle = colorBlue;
+  ctx.font = `bold ${32 * scale}px "Inter", sans-serif`;
+  ctx.fillText(data.studentName.toUpperCase(), w / 2, 270 * scale);
+
+  // 7. Achievement Context
+  ctx.fillStyle = colorNavy;
+  ctx.font = `normal ${13 * scale}px "Inter", sans-serif`;
+  ctx.fillText('HAS SUCCESSFULLY COMPLETED THE ASSESSMENT MODULE', w / 2, 320 * scale);
+
+  ctx.font = `bold ${16 * scale}px "Inter", sans-serif`;
+  ctx.fillText(data.testName.toUpperCase(), w / 2, 360 * scale);
+
+  // 8. Performance Metrics Row
+  const percentage = Math.round((data.score / (data.total || 1)) * 100);
+  ctx.fillStyle = colorGray;
+  ctx.font = `normal ${11 * scale}px "Inter", sans-serif`;
+  
+  ctx.textAlign = 'left';
+  ctx.fillText(`DATE COMPLETED: ${format(data.date, 'MMMM dd, yyyy').toUpperCase()}`, 60 * scale, 410 * scale);
+  
+  ctx.textAlign = 'right';
+  ctx.fillText(`ACHIEVED PRECISION: ${percentage}% (${data.score}/${data.total})`, w - 60 * scale, 410 * scale);
+
+  // 9. Registry Metadata: Verification ID
+  ctx.textAlign = 'center';
+  ctx.font = `normal ${8 * scale}px "Inter", sans-serif`;
+  ctx.fillText(`VERIFICATION ID: ${data.certificateId}`, w / 2, 530 * scale);
+
+  // 10. Branding Protocol: Seal Handshake
+  await new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      // Background circle for visual stability
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(w / 2, 470 * scale, 42 * scale, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.drawImage(img, w / 2 - 40 * scale, 430 * scale, 80 * scale, 80 * scale);
+      resolve(null);
+    };
+    img.onerror = () => resolve(null);
+    img.src = '/brand/certificate-seal.png';
+  });
+
+  // 11. PDF Extraction Sequence
   const doc = new jsPDF({
     orientation: 'landscape',
     unit: 'pt',
     format: 'a4'
   });
 
-  const pageWidth = doc.internal.pageSize.getWidth();   // ~842 pt
-  const pageHeight = doc.internal.pageSize.getHeight(); // ~595 pt
-
-  // Color Registry
-  const colorNavy = [26, 35, 64];    // #1a2340
-  const colorBlue = [59, 91, 219];   // #3B5BDB
-  const colorGray = [148, 163, 184];  // #94a3b8
-
-  // Base Layer
-  doc.setFillColor(255, 255, 255);
-  doc.rect(0, 0, pageWidth, pageHeight, 'F');
-
-  // 8. Border Protocol
-  // Outer border: navy 2px (20px margin)
-  doc.setDrawColor(colorNavy[0], colorNavy[1], colorNavy[2]);
-  doc.setLineWidth(2);
-  doc.rect(20, 20, pageWidth - 40, pageHeight - 40, 'S');
-
-  // Inner border: blue 1px (30px margin)
-  doc.setDrawColor(colorBlue[0], colorBlue[1], colorBlue[2]);
-  doc.setLineWidth(1);
-  doc.rect(30, 30, pageWidth - 60, pageHeight - 60, 'S');
-
-  // 1. Top Section (y: 40-120): Identity Mark
-  doc.setTextColor(colorNavy[0], colorNavy[1], colorNavy[2]);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(24);
-  doc.text(data.platformName.toUpperCase(), pageWidth / 2, 80, { align: 'center' });
+  // Add the rendered canvas as a high-quality PNG node
+  const imgData = canvas.toDataURL('image/png', 1.0);
+  doc.addImage(imgData, 'PNG', 0, 0, 842, 595, undefined, 'FAST');
   
-  // Horizontal line (y: 100)
-  doc.setDrawColor(colorNavy[0], colorNavy[1], colorNavy[2]);
-  doc.setLineWidth(0.5);
-  doc.line(pageWidth / 2 - 40, 100, pageWidth / 2 + 40, 100);
-
-  // 2. Certificate Title (y: 130-180)
-  doc.setTextColor(colorGray[0], colorGray[1], colorGray[2]);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(13);
-  // Wide letter spacing implemented via charSpace
-  doc.text('CERTIFICATE OF COMPLETION', pageWidth / 2, 150, { align: 'center', charSpace: 2 });
-
-  // 3. Body Text (y: 200-320)
-  doc.setTextColor(colorNavy[0], colorNavy[1], colorNavy[2]);
-  doc.setFontSize(14);
-  doc.text('THIS IS TO CERTIFY THAT', pageWidth / 2, 210, { align: 'center' });
-
-  doc.setTextColor(colorBlue[0], colorBlue[1], colorBlue[2]);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(32);
-  doc.text(data.studentName.toUpperCase(), pageWidth / 2, 270, { align: 'center' });
-
-  doc.setTextColor(colorNavy[0], colorNavy[1], colorNavy[2]);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(13);
-  doc.text('HAS SUCCESSFULLY COMPLETED THE ASSESSMENT MODULE', pageWidth / 2, 320, { align: 'center' });
-
-  // 4. Test Info (y: 340-380)
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
-  doc.text(data.testName.toUpperCase(), pageWidth / 2, 360, { align: 'center' });
-
-  // 5. Bottom Info Row (y: 400)
-  const percentage = Math.round((data.score / data.total) * 100);
-  doc.setTextColor(colorGray[0], colorGray[1], colorGray[2]);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(11);
-  // Same horizontal line, left and right alignment
-  doc.text(`DATE COMPLETED: ${format(data.date, 'MMMM dd, yyyy').toUpperCase()}`, 60, 410);
-  doc.text(`ACHIEVED PRECISION: ${percentage}% (${data.score}/${data.total})`, pageWidth - 60, 410, { align: 'right' });
-
-  // 6. Seal (y: 430-510)
-  // Background: White circle to prevent transparency artifacts
-  doc.setFillColor(255, 255, 255);
-  doc.circle(pageWidth / 2, 470, 42, 'F');
-
-  try {
-    // Seal image centered below the info row
-    doc.addImage('/brand/certificate-seal.png', 'PNG', pageWidth / 2 - 40, 430, 80, 80);
-  } catch (e) {
-    // Forensic fallback if asset missing from registry
-  }
-
-  // 7. Verification ID (y: 520)
-  doc.setFontSize(8);
-  doc.setTextColor(colorGray[0], colorGray[1], colorGray[2]);
-  doc.text(`VERIFICATION ID: ${data.certificateId}`, pageWidth / 2, 530, { align: 'center' });
-
-  // Extraction Protocol
+  // Terminate and Save
   doc.save(`Certificate_${data.studentName.replace(/\s+/g, '_')}_${data.testName.replace(/\s+/g, '_')}.pdf`);
 }
