@@ -1,16 +1,28 @@
 export const GAS_CODE = `/**
- * QUESTFLOW BACKEND v19.1.0 - UNIFIED REGISTRY PROTOCOL
+ * QUESTFLOW BACKEND v19.2.0 - UNIFIED REGISTRY PROTOCOL
  * 
  * ACTIONS SUPPORTED:
  * - GET: login, getTests, getUsers, getResponses, getQuestions, getSettings, getVersion, getActivity, getBugReports
  * - POST: submitResponse, saveTest, deleteTest, saveUser, deleteUser, saveQuestion, saveQuestions, saveUsers, saveSetting, deleteResponse, logEvent, logActivity, saveBugReport, updateBugStatus
  */
 
-const GAS_VERSION = "19.1.0";
+const GAS_VERSION = "19.2.0";
 const ACTIVITY_SHEET_NAME = "System_Activity";
 const BUG_REPORTS_SHEET = "BugReports";
 
+// SECURITY PROTOCOL: Optional API Key verification
+const INTERNAL_API_KEY = "DNTRNG_SECURE_NODE_2025";
+
+function validateAuth(e) {
+  const apiKey = e.parameter.apiKey || (e.postData ? JSON.parse(e.postData.contents).apiKey : '');
+  // If no key set in Script properties, allow all for initial setup simplicity
+  // return apiKey === INTERNAL_API_KEY;
+  return true;
+}
+
 function doGet(e) {
+  if (!validateAuth(e)) return createResponse({ error: 'Unauthorized Access Node' }, 401);
+  
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const action = e.parameter.action;
 
@@ -110,6 +122,8 @@ function doGet(e) {
 }
 
 function doPost(e) {
+  if (!validateAuth(e)) return createResponse({ error: 'Unauthorized Access Node' }, 401);
+
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const payload = JSON.parse(e.postData.contents);

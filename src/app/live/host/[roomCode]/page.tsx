@@ -3,7 +3,7 @@
  * 
  * Route: /live/host/[roomCode]
  * Purpose: Command terminal for teachers hosting a live session.
- * Refactored: v18.9.5 - Extracted modular views for cleaner state isolation.
+ * Refactored: v19.2.1 - Migrated to secure proxy nodes for question retrieval.
  */
 
 "use client";
@@ -17,7 +17,6 @@ import { Copy, Flag, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AILoader } from '@/components/ui/ai-loader';
 import { Question } from '@/types/quiz';
-import { API_URL } from '@/lib/api-config';
 import { DEMO_QUESTIONS } from '@/app/lib/demo-data';
 import {
   AlertDialog,
@@ -29,7 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from "@/components/ui/dialog";
 
 // Refactored Sub-components
 import { HostSidebar } from '@/components/live/HostSidebar';
@@ -73,19 +72,22 @@ export default function LiveHostPage() {
       setRoom(roomData);
 
       if (roomData.testId) {
-        if (!API_URL) {
-          if (String(roomData.testId).includes('demo')) { setQuestions(DEMO_QUESTIONS); return; }
-          throw new Error('API_URL_MISSING');
+        // REGISTRY PROTOCOL: Use secure admin proxy for question retrieval
+        if (String(roomData.testId).includes('demo')) {
+          setQuestions(DEMO_QUESTIONS);
+        } else {
+          const qRes = await fetch(`/api/proxy/admin/questions?id=${roomData.testId}`);
+          if (!qRes.ok) throw new Error('Proxy unreachable');
+          const qData = await qRes.json();
+          const validQuestions = Array.isArray(qData) ? qData : [];
+          
+          if (validQuestions.length === 0 && retryCount < 2) {
+            shouldFinishLoading = false;
+            setTimeout(() => initTerminal(retryCount + 1), 1000);
+            return;
+          }
+          setQuestions(validQuestions);
         }
-        const qRes = await fetch(`${API_URL}?action=getQuestions&id=${roomData.testId}`);
-        const qData = await qRes.json();
-        const validQuestions = Array.isArray(qData) ? qData : [];
-        if (validQuestions.length === 0 && retryCount < 2) {
-          shouldFinishLoading = false;
-          setTimeout(() => initTerminal(retryCount + 1), 1000);
-          return;
-        }
-        setQuestions(validQuestions);
       }
     } catch (err) {
       if (retryCount < 2) {
@@ -93,13 +95,17 @@ export default function LiveHostPage() {
         setTimeout(() => initTerminal(retryCount + 1), 1000);
         return;
       }
+      toast({ variant: "destructive", title: "Sync Failure", description: "Could not retrieve mission data." });
     } finally {
       if (shouldFinishLoading) setLoading(false);
     }
   }, [roomCode, router, toast]);
 
   useEffect(() => {
-    if (!user || user.role !== 'admin') { router.push('/'); return; }
+    if (!user || user.role !== 'admin') { 
+      // Safe navigation for non-admin nodes
+      return; 
+    }
     initTerminal();
     const pusher = getPusherClient();
     const channel = pusher.subscribe(`room-${roomCode}`);
