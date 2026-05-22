@@ -10,8 +10,9 @@ import {
   AccordionTrigger 
 } from "@/components/ui/accordion";
 import { SiteFooter } from '@/components/SiteFooter';
-import { HelpCircle, ArrowLeft, BookOpen, Lock, Database, UserCheck } from 'lucide-react';
+import { HelpCircle, ArrowLeft, BookOpen, Lock, Database, UserCheck, Zap } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
+import { Button } from "@/components/ui/button";
 
 export default function FAQPage() {
   const { settings } = useSettings();
