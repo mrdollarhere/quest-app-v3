@@ -10,18 +10,32 @@ const GAS_VERSION = "19.2.0";
 const ACTIVITY_SHEET_NAME = "System_Activity";
 const BUG_REPORTS_SHEET = "BugReports";
 
-// SECURITY PROTOCOL: Optional API Key verification
+// SECURITY PROTOCOL: This must match APPS_SCRIPT_API_KEY in your .env file
 const INTERNAL_API_KEY = "DNTRNG_SECURE_NODE_2025";
 
 function validateAuth(e) {
-  const apiKey = e.parameter.apiKey || (e.postData ? JSON.parse(e.postData.contents).apiKey : '');
-  // If no key set in Script properties, allow all for initial setup simplicity
-  // return apiKey === INTERNAL_API_KEY;
-  return true;
+  let apiKey = '';
+  
+  // Extract key from GET params
+  if (e.parameter && e.parameter.apiKey) {
+    apiKey = e.parameter.apiKey;
+  } 
+  // Extract key from POST body
+  else if (e.postData && e.postData.contents) {
+    try {
+      const payload = JSON.parse(e.postData.contents);
+      apiKey = payload.apiKey || '';
+    } catch (err) {
+      apiKey = '';
+    }
+  }
+
+  // REGISTRY GUARD: If a key is required, ensure it matches exactly
+  return apiKey === INTERNAL_API_KEY;
 }
 
 function doGet(e) {
-  if (!validateAuth(e)) return createResponse({ error: 'Unauthorized Access Node' }, 401);
+  if (!validateAuth(e)) return createResponse({ error: 'Unauthorized Access Node: API Key Mismatch' }, 401);
   
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const action = e.parameter.action;
@@ -122,7 +136,7 @@ function doGet(e) {
 }
 
 function doPost(e) {
-  if (!validateAuth(e)) return createResponse({ error: 'Unauthorized Access Node' }, 401);
+  if (!validateAuth(e)) return createResponse({ error: 'Unauthorized Access Node: API Key Mismatch' }, 401);
 
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();

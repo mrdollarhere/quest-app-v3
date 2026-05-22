@@ -26,8 +26,6 @@ export async function gasGet(
       url.searchParams.set(k, v);
     });
 
-    console.log('[GAS CALL]', action, url.origin);
-
     const res = await fetch(url.toString(), { 
       cache: 'no-store',
       headers: { 'Accept': 'application/json' }
@@ -60,8 +58,6 @@ export async function gasPost(
   }
 
   try {
-    console.log('[GAS POST]', action, urlString.slice(0, 60));
-
     const res = await fetch(urlString, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
