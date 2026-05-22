@@ -1,22 +1,24 @@
 export const GAS_CODE = `/**
- * QUESTFLOW BACKEND v19.2.1 - RESILIENT REGISTRY PROTOCOL
+ * QUESTFLOW BACKEND v19.2.2 - RESILIENT REGISTRY PROTOCOL
  * 
  * ACTIONS SUPPORTED:
  * - GET: login, getTests, getUsers, getResponses, getQuestions, getSettings, getVersion, getActivity, getBugReports
  * - POST: submitResponse, saveTest, deleteTest, saveUser, deleteUser, saveQuestion, saveQuestions, saveUsers, saveSetting, deleteResponse, logEvent, logActivity, saveBugReport, updateBugStatus
  */
 
-const GAS_VERSION = "19.2.1";
+const GAS_VERSION = "19.2.2";
 const ACTIVITY_SHEET_NAME = "System_Activity";
 const BUG_REPORTS_SHEET = "BugReports";
 
 // SECURITY PROTOCOL: This must match APPS_SCRIPT_API_KEY in your .env file
-const INTERNAL_API_KEY = "DNTRNG_SECURE_NODE_2025";
+const INTERNAL_API_KEY = "dntrng_apikey_123";
 
 /**
  * IDENTITY HANDSHAKE VALIDATOR
+ * Guards against malformed or missing event objects.
  */
 function validateAuth(e) {
+  if (!e) return false;
   let apiKey = '';
   
   if (e.parameter && e.parameter.apiKey) {
@@ -43,7 +45,6 @@ function ensureSheetHeaders(ss, name, requiredHeaders) {
   if (!sheet) {
     sheet = ss.insertSheet(name);
     sheet.appendRow(requiredHeaders);
-    // Formatting: Bold headers
     sheet.getRange(1, 1, 1, requiredHeaders.length).setFontWeight("bold").setBackground("#f8fafc");
     sheet.setFrozenRows(1);
     return sheet;
@@ -72,11 +73,13 @@ function ensureSheetHeaders(ss, name, requiredHeaders) {
 function sanitize(val) {
   if (val === null || val === undefined) return "";
   if (typeof val === 'string') return val.trim();
+  if (typeof val === 'object') return JSON.stringify(val);
   return val;
 }
 
 function doGet(e) {
-  if (!validateAuth(e)) return createResponse({ error: 'Unauthorized Access Node: API Key Mismatch' }, 401);
+  if (!e || !e.parameter) return createResponse({ error: 'Malformed Request: Missing parameters' }, 400);
+  if (!validateAuth(e)) return createResponse({ error: 'Unauthorized: API Key Mismatch' }, 401);
   
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const action = e.parameter.action;
@@ -170,14 +173,15 @@ function doGet(e) {
       return createResponse(getRowsAsObjects(sheet));
     }
 
-    return createResponse({ error: 'Unknown action' }, 400);
+    return createResponse({ error: 'Unknown action: ' + action }, 400);
   } catch (err) {
     return createResponse({ error: err.toString() }, 500);
   }
 }
 
 function doPost(e) {
-  if (!validateAuth(e)) return createResponse({ error: 'Unauthorized Access Node: API Key Mismatch' }, 401);
+  if (!e || !e.postData || !e.postData.contents) return createResponse({ error: 'Malformed Request: Missing payload' }, 400);
+  if (!validateAuth(e)) return createResponse({ error: 'Unauthorized: API Key Mismatch' }, 401);
 
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -231,15 +235,14 @@ function doPost(e) {
       const rowData = currentHeaders.map(h => {
         let val = payload[h];
         if (h === 'timestamp' && !val) val = new Date();
-        if (h === 'user_name' && !val) val = payload.name;
-        if (h === 'user_email' && !val) val = payload.email;
-        if (h === 'event_type' && !val) val = payload.event;
+        if (h === 'user_name' && !val) val = payload.name || payload.user_name;
+        if (h === 'user_email' && !val) val = payload.email || payload.user_email;
+        if (h === 'event_type' && !val) val = payload.event || payload.event_type;
         if (h === 'ip_address' && !val) val = payload.ip || payload.ip_address;
-        if (h === 'user_role' && !val) val = payload.Role || 'user';
+        if (h === 'user_role' && !val) val = payload.Role || payload.user_role || 'user';
         if (h === 'context' && !val) val = payload.page || 'System';
         if (h === 'status' && !val) val = 'VERIFIED';
         
-        if (h === 'details' && typeof val === 'object') val = JSON.stringify(val);
         return sanitize(val);
       });
       
@@ -280,7 +283,6 @@ function doPost(e) {
       const headers = ['id', 'title', 'description', 'category', 'difficulty', 'duration', 'image_url', 'certificate_enabled', 'passing_threshold'];
       const sheet = ensureSheetHeaders(ss, 'Tests', headers);
       const data = payload.data;
-
       upsertRow(sheet, 'id', data.id, data);
       
       if (!ss.getSheetByName(data.id)) {
@@ -319,7 +321,7 @@ function doPost(e) {
       return createResponse({ status: 'success' });
     }
 
-    return createResponse({ error: 'Unknown action' }, 400);
+    return createResponse({ error: 'Unknown action: ' + action }, 400);
   } catch (err) {
     return createResponse({ error: err.toString() }, 500);
   }

@@ -37,7 +37,7 @@ export async function gasGet(
       return JSON.parse(text);
     } catch (e) {
       console.error('[GAS PARSE ERROR] Expected JSON but received:', text.slice(0, 300));
-      throw new Error('Registry returned invalid data format.');
+      throw new Error('Registry returned invalid data format. Check Apps Script deployment.');
     }
   } catch (err: any) {
     console.error('[GAS PROXY FAILURE]', err.message);
@@ -64,7 +64,7 @@ export async function gasPost(
       body: JSON.stringify({ 
         action,
         apiKey: apiKey || '',
-        ...payload 
+        ...(typeof payload === 'object' ? payload : {}) 
       })
     });
 
@@ -74,7 +74,7 @@ export async function gasPost(
       return JSON.parse(text);
     } catch (e) {
       console.error('[GAS PARSE ERROR] Expected JSON but received:', text.slice(0, 300));
-      throw new Error('Registry update returned invalid data format.');
+      throw new Error('Registry update returned invalid data format. Check Apps Script deployment.');
     }
   } catch (err: any) {
     console.error('[GAS PROXY FAILURE]', err.message);
