@@ -3,7 +3,7 @@
  * 
  * Route: /
  * Purpose: Primary landing gateway redesigned for high-fidelity brand immersion.
- * Refactored: v19.2.0 - Integrated QuickSignIn into the Hero layout.
+ * Refactored: v19.3.0 - Added Quick Access Grid for authenticated student nodes.
  */
 
 "use client";
@@ -11,6 +11,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import useSWR from 'swr';
 import { UserNav } from '@/components/UserNav';
 import { useLanguage } from '@/context/language-context';
 import { useSettings } from '@/context/settings-context';
@@ -24,6 +25,7 @@ import { HeroSection } from '@/components/landing/HeroSection';
 import { FeatureGrid } from '@/components/landing/FeatureGrid';
 import { TacticalSection } from '@/components/landing/TacticalSection';
 import { GlobalFeedback } from '@/components/landing/GlobalFeedback';
+import { QuickAccessGrid } from '@/components/landing/QuickAccessGrid';
 
 export default function LandingPage() {
   const { t } = useLanguage();
@@ -33,6 +35,9 @@ export default function LandingPage() {
   const lastTracked = useRef<string | null>(null);
 
   const brandName = String(settings.platform_name || "DNTRNG");
+
+  // REGISTRY UPLINK: Fetch tests for quick access if user is logged in
+  const { data: tests } = useSWR(user ? '/api/proxy/tests' : null);
 
   useEffect(() => {
     const key = 'page_view_home' + window.location.pathname + Math.floor(Date.now() / 2000);
@@ -90,6 +95,11 @@ export default function LandingPage() {
 
       <main className="flex-1">
         <HeroSection t={t} />
+        
+        {user && tests && tests.length > 0 && (
+          <QuickAccessGrid tests={tests} />
+        )}
+
         <FeatureGrid t={t} />
         <GlobalFeedback />
         <TacticalSection />
