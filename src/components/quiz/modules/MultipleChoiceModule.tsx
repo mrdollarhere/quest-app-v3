@@ -55,8 +55,8 @@ export const MultipleChoiceModule: React.FC<Props> = ({ question, value, onChang
               className={cn(
                 "flex items-center space-x-4 px-[18px] py-[16px] rounded-[16px] border-2 transition-all group",
                 !reviewMode && "cursor-pointer",
-                isSelected && !reviewMode && "bg-[#EFF6FF] border-[#2563EB] shadow-sm",
-                !isSelected && !reviewMode && "bg-white border-slate-100 hover:bg-[#EFF6FF] hover:border-[#2563EB]",
+                isSelected && !reviewMode && "bg-blue-50 border-blue-600 shadow-sm",
+                !isSelected && !reviewMode && "bg-white border-slate-100 hover:bg-blue-50 hover:border-blue-600",
                 reviewMode && isSelectedCorrectly && "bg-emerald-50 border-emerald-500 shadow-sm",
                 reviewMode && isSelectedIncorrectly && "bg-rose-50 border-rose-500 shadow-sm",
                 reviewMode && isMissingAnswer && "bg-white border-emerald-500 border-dashed",
@@ -71,7 +71,7 @@ export const MultipleChoiceModule: React.FC<Props> = ({ question, value, onChang
                   disabled={reviewMode}
                   className={cn(
                     "h-5 w-5 rounded border-2 transition-transform",
-                    isSelected && !reviewMode ? "bg-[#2563EB] border-[#2563EB] text-white" : "border-slate-300",
+                    isSelected && !reviewMode ? "bg-blue-600 border-blue-600 text-white" : "border-slate-300",
                     reviewMode && isCorrect ? "bg-emerald-500 border-emerald-500 text-white" : "",
                     reviewMode && isSelectedIncorrectly ? "bg-rose-500 border-rose-500 text-white" : ""
                   )}
@@ -91,8 +91,9 @@ export const MultipleChoiceModule: React.FC<Props> = ({ question, value, onChang
               <Label 
                 htmlFor={inputId} 
                 className={cn(
-                  "option-text flex-1 font-normal text-base select-none leading-tight",
+                  "option-text flex-1 font-normal text-base select-none leading-snug break-words whitespace-normal",
                   !reviewMode && "cursor-pointer text-slate-700",
+                  isSelected && !reviewMode && "text-blue-900 font-bold",
                   reviewMode && isCorrect && "text-emerald-700 font-bold",
                   reviewMode && isSelectedIncorrectly && "text-rose-700 font-bold"
                 )}

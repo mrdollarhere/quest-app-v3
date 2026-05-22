@@ -42,26 +42,26 @@ export const MultipleTrueFalseModule: React.FC<Props> = ({ question, value, onCh
             <div key={i} className="flex flex-col gap-2">
               <div 
                 className={cn(
-                  "flex flex-row items-center justify-between gap-4 p-5 transition-all border shadow-sm rounded-2xl",
+                  "flex flex-row items-start justify-between gap-4 p-5 transition-all border shadow-sm rounded-2xl",
                   !reviewMode ? (
                     !userVal ? "bg-white border-slate-100" :
-                    compareValues(userVal, 'True') ? "bg-[#F0FDF4] border-[#22C55E]" :
-                    "bg-[#FEF2F2] border-[#EF4444]"
+                    compareValues(userVal, 'True') ? "bg-green-50 border-green-500" :
+                    "bg-red-50 border-red-500"
                   ) : (
                     isCorrect ? "bg-emerald-50 border-emerald-500" : 
                     (isSkipped ? "bg-amber-50 border-amber-400" : "bg-rose-50 border-rose-500")
                   )
                 )}
               >
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 py-1.5">
                   <p className={cn(
-                    "option-text font-normal text-base leading-tight truncate",
+                    "option-text font-normal text-base leading-snug break-words whitespace-normal",
                     reviewMode && isCorrect ? "text-emerald-900 font-bold" : 
                     reviewMode && !isCorrect && !isSkipped ? "text-rose-900 font-bold" : "text-slate-700"
                   )}>{s}</p>
                 </div>
 
-                <div className="flex items-center gap-[8px] shrink-0">
+                <div className="flex items-center gap-[8px] shrink-0 pt-0.5">
                   {isSkipped && <HelpCircle className="w-5 h-5 text-amber-500 animate-pulse" />}
                   
                   <div className="flex items-center gap-[6px] w-[156px] justify-end">
@@ -81,9 +81,9 @@ export const MultipleTrueFalseModule: React.FC<Props> = ({ question, value, onCh
                             className={cn(
                               "w-[70px] h-[36px] rounded-[10px] font-black text-[12px] uppercase tracking-tight transition-all border flex items-center justify-center gap-1",
                               !isSelected && (!reviewMode || !isOptionCorrect) && "bg-white border-slate-200 text-slate-400 hover:bg-slate-50",
-                              isSelected && !reviewMode && (opt === 'True' ? "bg-[#22C55E] border-[#22C55E] text-white" : "bg-[#EF4444] border-[#EF4444] text-white"),
-                              isSelectedCorrectly && "bg-emerald-500 border-emerald-500 text-white",
-                              isSelectedIncorrectly && "bg-rose-500 border-rose-500 text-white",
+                              isSelected && !reviewMode && (opt === 'True' ? "bg-green-600 border-green-600 text-white" : "bg-red-600 border-red-600 text-white"),
+                              isSelectedCorrectly && "bg-emerald-600 border-emerald-600 text-white",
+                              isSelectedIncorrectly && "bg-rose-600 border-rose-600 text-white",
                               isMissedCorrectly && "bg-white border-emerald-500 border-dashed border-2 text-emerald-600",
                               reviewMode && "cursor-default"
                             )}

@@ -42,7 +42,7 @@ export const MatrixChoiceModule: React.FC<Props> = ({ question, value, onChange,
               <div className="sticky left-0 bg-slate-50 z-20 pl-6 pr-4 py-6 flex items-center border-r border-slate-200"></div>
               {columns.map((col, i) => (
                 <div key={i} className="text-center px-4 py-6 border-r border-slate-200/50 last:border-r-0 flex items-center justify-center">
-                  <span className="option-text text-[11px] font-black uppercase text-slate-600 tracking-wider text-center">{col}</span>
+                  <span className="option-text text-[11px] font-black uppercase text-slate-600 tracking-wider text-center break-words whitespace-normal">{col}</span>
                 </div>
               ))}
             </div>
@@ -68,9 +68,9 @@ export const MatrixChoiceModule: React.FC<Props> = ({ question, value, onChange,
                       i % 2 === 0 ? "bg-white" : "bg-slate-50",
                       isSkippedRow && "bg-amber-50"
                     )}>
-                      <div className="flex flex-col gap-1">
+                      <div className="flex flex-col gap-1 w-full">
                         <p className={cn(
-                          "option-text text-sm leading-tight",
+                          "option-text text-sm leading-snug break-words whitespace-normal",
                           reviewMode && isCorrectRow ? "text-emerald-700 font-bold" : 
                           reviewMode && !isCorrectRow && userVal ? "text-rose-700 font-bold" : 
                           isSkippedRow ? "text-amber-700 font-bold" : "text-slate-700"
@@ -90,7 +90,7 @@ export const MatrixChoiceModule: React.FC<Props> = ({ question, value, onChange,
                         <div key={j} className="flex items-center justify-center border-r border-slate-200/50 last:border-r-0 p-4" onClick={() => handleUpdate(row, col)}>
                           <div className={cn(
                             "w-[28px] h-[28px] rounded-full border-2 transition-all flex items-center justify-center cursor-pointer shadow-sm",
-                            isSelected && !reviewMode ? "bg-primary border-primary" : "border-slate-200 bg-white",
+                            isSelected && !reviewMode ? "bg-blue-600 border-blue-600" : "border-slate-200 bg-white",
                             isCorrectChoice && "bg-emerald-500 border-emerald-500 shadow-lg scale-110",
                             isWrongChoice && "bg-rose-500 border-rose-500 shadow-lg",
                             isMissedChoice && "border-emerald-500 border-dashed border-2 scale-110",
@@ -121,8 +121,8 @@ export const MatrixChoiceModule: React.FC<Props> = ({ question, value, onChange,
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
             {originalRows.map((row, i) => (
               <div key={i} className="flex justify-between text-xs py-1 border-b border-emerald-100/50">
-                <span className="text-emerald-600/70 font-medium truncate max-w-[150px]">{row}</span>
-                <span className="font-black text-emerald-700">{correctArr[i]}</span>
+                <span className="text-emerald-600/70 font-medium break-words whitespace-normal max-w-[150px]">{row}</span>
+                <span className="font-black text-emerald-700 ml-2 shrink-0">{correctArr[i]}</span>
               </div>
             ))}
           </div>

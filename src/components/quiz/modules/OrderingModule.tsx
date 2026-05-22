@@ -85,7 +85,7 @@ export const OrderingModule: React.FC<Props> = ({ question, value, onChange, rev
                 {idx + 1}
               </div>
               <div className={cn(
-                "option-text flex-1 font-bold",
+                "option-text flex-1 font-bold break-words whitespace-normal leading-snug",
                 reviewMode && isCorrectPos ? "text-emerald-900" : 
                 reviewMode && !isCorrectPos ? "text-rose-900" : "text-slate-700"
               )}>

@@ -24,7 +24,7 @@ const MatchingAnswerContent = ({ value }: { value: string }) => {
   if (!isImage) {
     return (
       <span 
-        className="option-text font-bold text-xs text-center leading-relaxed break-words px-2 py-1 select-none pointer-events-none"
+        className="option-text font-bold text-xs text-center leading-relaxed break-words px-2 py-1 select-none pointer-events-none whitespace-normal"
         draggable={false}
       >
         {value}
@@ -91,7 +91,7 @@ export const MatchingModule: React.FC<Props> = ({ question, value, onChange, rev
                   )}>
                     <div className="flex-1 min-w-0 w-full text-center sm:text-left select-none">
                       <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-2">Key Node / Khóa</span>
-                      <p className={cn("option-text font-bold text-lg leading-tight", reviewMode && isCorrect ? "text-emerald-900" : "text-slate-700")}>
+                      <p className={cn("option-text font-bold text-lg leading-tight break-words whitespace-normal", reviewMode && isCorrect ? "text-emerald-900" : "text-slate-700")}>
                         {pair.left}
                       </p>
                     </div>
@@ -101,21 +101,21 @@ export const MatchingModule: React.FC<Props> = ({ question, value, onChange, rev
                         onDragOver={(e) => {
                           if (reviewMode) return;
                           e.preventDefault();
-                          e.currentTarget.classList.add('border-primary', 'bg-primary/5');
+                          e.currentTarget.classList.add('border-blue-600', 'bg-blue-50');
                         }}
                         onDragLeave={(e) => {
-                          e.currentTarget.classList.remove('border-primary', 'bg-primary/5');
+                          e.currentTarget.classList.remove('border-blue-600', 'bg-blue-50');
                         }}
                         onDrop={(e) => {
                           if (reviewMode) return;
                           e.preventDefault();
-                          e.currentTarget.classList.remove('border-primary', 'bg-primary/5');
+                          e.currentTarget.classList.remove('border-blue-600', 'bg-blue-50');
                           const data = e.dataTransfer.getData("text/plain");
                           if (data) onChange({ ...responses, [pair.left]: data });
                         }}
                         className={cn(
                           "min-w-[180px] w-full sm:w-[220px] min-h-[100px] rounded-[1.5rem] border-2 border-dashed flex items-center justify-center transition-all p-4 relative shrink-0 select-none",
-                          userVal ? (reviewMode ? "border-transparent bg-white/50" : "border-primary bg-white shadow-lg") : (isSkipped ? "border-amber-400 bg-white/50" : "border-slate-300 bg-slate-50/50")
+                          userVal ? (reviewMode ? "border-transparent bg-white/50" : "border-blue-600 bg-blue-50 shadow-md") : (isSkipped ? "border-amber-400 bg-white/50" : "border-slate-300 bg-slate-50/50")
                         )}
                       >
                         {userVal ? (
@@ -136,10 +136,10 @@ export const MatchingModule: React.FC<Props> = ({ question, value, onChange, rev
                             )}
                           </div>
                         ) : (
-                          <div className="flex flex-col items-center gap-2 pointer-events-none opacity-40">
+                          <div className="flex flex-col items-center gap-2 pointer-events-none opacity-100">
                              {reviewMode ? <CircleOff className="w-6 h-6 text-amber-500" /> : null}
-                             <span className={cn("text-[9px] font-black uppercase tracking-widest text-center px-2", reviewMode ? "text-amber-600" : "text-slate-300")}>
-                              {reviewMode ? "Not matched / Chưa ghép" : "Drop Data Node"}
+                             <span className={cn("text-[10px] font-black uppercase tracking-widest text-center px-2", reviewMode ? "text-amber-600" : "text-slate-400")}>
+                              {reviewMode ? "Not matched / Chưa ghép" : "DROP DATA NODE"}
                             </span>
                           </div>
                         )}
@@ -175,7 +175,7 @@ export const MatchingModule: React.FC<Props> = ({ question, value, onChange, rev
 
         {!reviewMode && (
           <div className="lg:col-span-5">
-            <div className="sticky top-28 p-10 bg-slate-100/50 rounded-[3rem] border-2 border-dashed border-slate-200 min-h-[450px] select-none">
+            <div className="sticky top-28 p-10 bg-slate-100/50 rounded-[3rem] border-2 border-dashed border-slate-300 min-h-[450px] select-none">
               <div className="text-center mb-10 pointer-events-none">
                 <h3 className="text-[11px] font-black uppercase text-slate-400 tracking-[0.4em] mb-2">Unallocated Intelligence</h3>
                 <p className="text-[10px] font-medium text-slate-400">Drag items from this pool to the registry targets</p>
@@ -191,7 +191,7 @@ export const MatchingModule: React.FC<Props> = ({ question, value, onChange, rev
                     }} 
                     onDragEnd={() => setDraggingItem(null)} 
                     className={cn(
-                      "p-4 bg-white border-2 border-white rounded-[1.5rem] shadow-sm cursor-grab active:cursor-grabbing hover:border-primary hover:shadow-2xl transition-all duration-300 select-none",
+                      "p-4 bg-white border-2 border-white rounded-[1.5rem] shadow-sm cursor-grab active:cursor-grabbing hover:border-blue-600 hover:shadow-2xl transition-all duration-300 select-none",
                       draggingItem === ans && "opacity-20 grayscale scale-95"
                     )}
                   >

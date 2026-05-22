@@ -40,8 +40,8 @@ export const TrueFalseModule: React.FC<Props> = ({ question, value, onChange, re
               className={cn(
                 "flex items-center space-x-4 px-[18px] py-[16px] rounded-[16px] border-2 transition-all group",
                 !reviewMode && "cursor-pointer",
-                isSelected && !reviewMode && "bg-[#EFF6FF] border-[#2563EB] shadow-sm",
-                !isSelected && !reviewMode && "bg-white border-slate-100 hover:bg-[#EFF6FF] hover:border-[#2563EB]",
+                isSelected && !reviewMode && "bg-blue-50 border-blue-600 shadow-sm",
+                !isSelected && !reviewMode && "bg-white border-slate-100 hover:bg-blue-50 hover:border-blue-600",
                 reviewMode && isSelected && isCorrect && "bg-emerald-50 border-emerald-500 shadow-sm",
                 reviewMode && isSelected && !isCorrect && "bg-rose-50 border-rose-500 shadow-sm",
                 reviewMode && !isSelected && isCorrect && "bg-white border-emerald-500 border-dashed",
@@ -55,7 +55,7 @@ export const TrueFalseModule: React.FC<Props> = ({ question, value, onChange, re
                   id={inputId} 
                   className={cn(
                     "h-5 w-5 border-2 rounded-full pointer-events-none transition-transform",
-                    isSelected && !reviewMode ? "bg-[#2563EB] border-[#2563EB] text-white" : "border-slate-300",
+                    isSelected && !reviewMode ? "bg-blue-600 border-blue-600 text-white" : "border-slate-300",
                     reviewMode && isCorrect ? "bg-emerald-500 border-emerald-500 text-white" : "",
                     reviewMode && isWrong ? "bg-rose-500 border-rose-500 text-white" : ""
                   )}
@@ -74,8 +74,9 @@ export const TrueFalseModule: React.FC<Props> = ({ question, value, onChange, re
               <Label 
                 htmlFor={inputId} 
                 className={cn(
-                  "option-text flex-1 font-normal text-base select-none leading-tight",
+                  "option-text flex-1 font-normal text-base select-none leading-snug break-words whitespace-normal",
                   !reviewMode && "cursor-pointer text-slate-700",
+                  isSelected && !reviewMode && "text-blue-900 font-bold",
                   reviewMode && isCorrect && "text-emerald-700 font-bold",
                   reviewMode && isWrong && "text-rose-700 font-bold",
                   reviewMode && !isCorrect && !isSelected && "text-slate-400"
