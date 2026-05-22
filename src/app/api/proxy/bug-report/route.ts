@@ -4,6 +4,7 @@ import { gasPost } from '@/lib/server/gas-proxy';
 /**
  * POST /api/proxy/bug-report
  * Public route: Allows any student to submit technical discrepancies.
+ * Protocol v19.2.1: Hardened payload integrity.
  */
 export async function POST(request: Request) {
   try {
@@ -23,6 +24,7 @@ export async function POST(request: Request) {
       id: reportId
     };
 
+    // Registry Handshake: Call saveBugReport with explicit action
     await gasPost('saveBugReport', enrichedPayload);
     
     return NextResponse.json({ success: true, id: reportId });

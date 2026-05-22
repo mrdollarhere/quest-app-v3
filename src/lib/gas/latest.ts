@@ -1,26 +1,27 @@
 export const GAS_CODE = `/**
- * QUESTFLOW BACKEND v19.2.0 - UNIFIED REGISTRY PROTOCOL
+ * QUESTFLOW BACKEND v19.2.1 - RESILIENT REGISTRY PROTOCOL
  * 
  * ACTIONS SUPPORTED:
  * - GET: login, getTests, getUsers, getResponses, getQuestions, getSettings, getVersion, getActivity, getBugReports
  * - POST: submitResponse, saveTest, deleteTest, saveUser, deleteUser, saveQuestion, saveQuestions, saveUsers, saveSetting, deleteResponse, logEvent, logActivity, saveBugReport, updateBugStatus
  */
 
-const GAS_VERSION = "19.2.0";
+const GAS_VERSION = "19.2.1";
 const ACTIVITY_SHEET_NAME = "System_Activity";
 const BUG_REPORTS_SHEET = "BugReports";
 
 // SECURITY PROTOCOL: This must match APPS_SCRIPT_API_KEY in your .env file
 const INTERNAL_API_KEY = "DNTRNG_SECURE_NODE_2025";
 
+/**
+ * IDENTITY HANDSHAKE VALIDATOR
+ */
 function validateAuth(e) {
   let apiKey = '';
   
-  // Extract key from GET params
   if (e.parameter && e.parameter.apiKey) {
     apiKey = e.parameter.apiKey;
   } 
-  // Extract key from POST body
   else if (e.postData && e.postData.contents) {
     try {
       const payload = JSON.parse(e.postData.contents);
@@ -30,8 +31,48 @@ function validateAuth(e) {
     }
   }
 
-  // REGISTRY GUARD: If a key is required, ensure it matches exactly
   return apiKey === INTERNAL_API_KEY;
+}
+
+/**
+ * SCHEMA RESILIENCE HELPER
+ * Ensures a sheet exists and contains the required headers.
+ */
+function ensureSheetHeaders(ss, name, requiredHeaders) {
+  let sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    sheet.appendRow(requiredHeaders);
+    // Formatting: Bold headers
+    sheet.getRange(1, 1, 1, requiredHeaders.length).setFontWeight("bold").setBackground("#f8fafc");
+    sheet.setFrozenRows(1);
+    return sheet;
+  }
+  
+  const currentHeaders = sheet.getRange(1, 1, 1, Math.max(1, sheet.getLastColumn())).getValues()[0];
+  let headerAdded = false;
+  
+  requiredHeaders.forEach(h => {
+    if (currentHeaders.indexOf(h) === -1) {
+      sheet.getRange(1, sheet.getLastColumn() + 1).setValue(h);
+      headerAdded = true;
+    }
+  });
+  
+  if (headerAdded) {
+    sheet.getRange(1, 1, 1, sheet.getLastColumn()).setFontWeight("bold").setBackground("#f8fafc");
+  }
+  
+  return sheet;
+}
+
+/**
+ * DATA SANITIZATION HELPER
+ */
+function sanitize(val) {
+  if (val === null || val === undefined) return "";
+  if (typeof val === 'string') return val.trim();
+  return val;
 }
 
 function doGet(e) {
@@ -144,19 +185,16 @@ function doPost(e) {
     const action = payload.action;
 
     if (action === 'saveBugReport') {
-      let sheet = ss.getSheetByName(BUG_REPORTS_SHEET) || ss.insertSheet(BUG_REPORTS_SHEET);
       const headers = ['id', 'timestamp', 'user_name', 'user_email', 'category', 'description', 'page_url', 'test_id', 'browser', 'device', 'status', 'admin_note'];
+      const sheet = ensureSheetHeaders(ss, BUG_REPORTS_SHEET, headers);
       
-      if (sheet.getLastRow() === 0) {
-        sheet.appendRow(headers);
-      }
-      
-      const rowData = headers.map(h => {
-        if (h === 'id') return payload.id || '';
+      const currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      const rowData = currentHeaders.map(h => {
+        if (h === 'id') return sanitize(payload.id);
         if (h === 'timestamp') return new Date();
         if (h === 'status') return 'new';
         if (h === 'admin_note') return '';
-        return payload[h] || '';
+        return sanitize(payload[h]);
       });
       
       sheet.appendRow(rowData);
@@ -175,9 +213,9 @@ function doPost(e) {
       
       for (let i = 1; i < data.length; i++) {
         if (String(data[i][idIdx]) === String(payload.id)) {
-          sheet.getRange(i + 1, statusIdx + 1).setValue(payload.status);
+          sheet.getRange(i + 1, statusIdx + 1).setValue(sanitize(payload.status));
           if (payload.note !== undefined) {
-            sheet.getRange(i + 1, noteIdx + 1).setValue(payload.note);
+            sheet.getRange(i + 1, noteIdx + 1).setValue(sanitize(payload.note));
           }
           return createResponse({ status: 'success' });
         }
@@ -186,21 +224,11 @@ function doPost(e) {
     }
 
     if (action === 'logEvent' || action === 'logActivity') {
-      let sheet = ss.getSheetByName(ACTIVITY_SHEET_NAME) || ss.insertSheet(ACTIVITY_SHEET_NAME);
       const headers = ['timestamp', 'user_name', 'user_email', 'user_role', 'event_type', 'context', 'details', 'ip_address', 'device', 'browser', 'status', 'session_id'];
+      const sheet = ensureSheetHeaders(ss, ACTIVITY_SHEET_NAME, headers);
       
-      if (sheet.getLastRow() === 0) {
-        sheet.appendRow(headers);
-      } else {
-        const currentHeaders = sheet.getRange(1, 1, 1, Math.max(1, sheet.getLastColumn())).getValues()[0];
-        headers.forEach(h => {
-          if (currentHeaders.indexOf(h) === -1) {
-            sheet.getRange(1, sheet.getLastColumn() + 1).setValue(h);
-          }
-        });
-      }
-      
-      const rowData = headers.map(h => {
+      const currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      const rowData = currentHeaders.map(h => {
         let val = payload[h];
         if (h === 'timestamp' && !val) val = new Date();
         if (h === 'user_name' && !val) val = payload.name;
@@ -212,7 +240,7 @@ function doPost(e) {
         if (h === 'status' && !val) val = 'VERIFIED';
         
         if (h === 'details' && typeof val === 'object') val = JSON.stringify(val);
-        return (val !== undefined && val !== null) ? val : "";
+        return sanitize(val);
       });
       
       sheet.appendRow(rowData);
@@ -220,53 +248,45 @@ function doPost(e) {
     }
 
     if (action === 'saveSetting') {
-      let sheet = ss.getSheetByName('Settings') || ss.insertSheet('Settings');
-      if (sheet.getLastRow() === 0) sheet.appendRow(['key', 'value']);
+      const headers = ['key', 'value'];
+      const sheet = ensureSheetHeaders(ss, 'Settings', headers);
       upsertRow(sheet, 'key', payload.key, { key: payload.key, value: payload.value });
       return createResponse({ status: 'success' });
     }
 
     if (action === 'submitResponse') {
-      let sheet = ss.getSheetByName('Responses') || ss.insertSheet('Responses');
       const headers = ['Timestamp', 'User Name', 'User Email', 'Test ID', 'Score', 'Total', 'Duration (ms)', 'Raw Responses', 'Certificate ID'];
-      if (sheet.getLastRow() === 0) sheet.appendRow(headers);
+      const sheet = ensureSheetHeaders(ss, 'Responses', headers);
       
-      const rowData = [
-        new Date(), 
-        payload.userName || 'Guest User',
-        payload.userEmail || 'Anonymous', 
-        payload.testId || 'Unknown', 
-        payload.score || 0, 
-        payload.total || 0, 
-        payload.duration || 0, 
-        JSON.stringify(payload.responses || []),
-        payload.certificateId || ''
-      ];
+      const currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      const rowData = currentHeaders.map(h => {
+        if (h === 'Timestamp') return new Date();
+        if (h === 'User Name') return sanitize(payload.userName || 'Guest User');
+        if (h === 'User Email') return sanitize(payload.userEmail || 'Anonymous');
+        if (h === 'Test ID') return sanitize(payload.testId);
+        if (h === 'Score') return payload.score || 0;
+        if (h === 'Total') return payload.total || 0;
+        if (h === 'Duration (ms)') return payload.duration || 0;
+        if (h === 'Raw Responses') return JSON.stringify(payload.responses || []);
+        if (h === 'Certificate ID') return sanitize(payload.certificateId);
+        return "";
+      });
+      
       sheet.appendRow(rowData);
       return createResponse({ status: 'success' });
     }
 
     if (action === 'saveTest') {
-      const sheet = ss.getSheetByName('Tests') || ss.insertSheet('Tests');
-      const data = payload.data;
       const headers = ['id', 'title', 'description', 'category', 'difficulty', 'duration', 'image_url', 'certificate_enabled', 'passing_threshold'];
-      
-      if (sheet.getLastRow() === 0) {
-        sheet.appendRow(headers);
-      } else {
-        const currentHeaders = sheet.getRange(1, 1, 1, Math.max(1, sheet.getLastColumn())).getValues()[0];
-        headers.forEach(h => {
-          if (currentHeaders.indexOf(h) === -1) {
-            sheet.getRange(1, sheet.getLastColumn() + 1).setValue(h);
-          }
-        });
-      }
+      const sheet = ensureSheetHeaders(ss, 'Tests', headers);
+      const data = payload.data;
 
       upsertRow(sheet, 'id', data.id, data);
       
       if (!ss.getSheetByName(data.id)) {
         const qSheet = ss.insertSheet(data.id);
         qSheet.appendRow(['id', 'question_text', 'question_type', 'options', 'correct_answer', 'order_group', 'image_url', 'metadata', 'required']);
+        qSheet.getRange(1, 1, 1, 9).setFontWeight("bold").setBackground("#f8fafc");
       }
       return createResponse({ status: 'success' });
     }
@@ -280,8 +300,8 @@ function doPost(e) {
     }
 
     if (action === 'saveUser') {
-      const sheet = ss.getSheetByName('Users') || ss.insertSheet('Users');
-      if (sheet.getLastRow() === 0) sheet.appendRow(['id', 'name', 'email', 'role', 'password', 'image_url']);
+      const headers = ['id', 'name', 'email', 'role', 'password', 'image_url'];
+      const sheet = ensureSheetHeaders(ss, 'Users', headers);
       upsertRow(sheet, 'email', payload.data.email, payload.data);
       return createResponse({ status: 'success' });
     }
@@ -293,10 +313,8 @@ function doPost(e) {
     }
 
     if (action === 'saveQuestion') {
-      const sheet = ss.getSheetByName(payload.testId) || ss.insertSheet(payload.testId);
-      if (sheet.getLastRow() === 0) {
-        sheet.appendRow(['id', 'question_text', 'question_type', 'options', 'correct_answer', 'order_group', 'image_url', 'metadata', 'required']);
-      }
+      const headers = ['id', 'question_text', 'question_type', 'options', 'correct_answer', 'order_group', 'image_url', 'metadata', 'required'];
+      const sheet = ensureSheetHeaders(ss, payload.testId, headers);
       upsertRow(sheet, 'id', payload.question.id, payload.question);
       return createResponse({ status: 'success' });
     }

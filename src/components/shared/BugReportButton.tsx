@@ -39,7 +39,7 @@ export function BugReportButton({ testId, className }: BugReportButtonProps) {
   const { toast } = useToast();
 
   const handleSubmit = async () => {
-    if (!description.trim()) return;
+    if (!description.trim() || loading) return;
 
     setLoading(true);
     try {
@@ -48,12 +48,12 @@ export function BugReportButton({ testId, className }: BugReportButtonProps) {
 
       const payload = {
         category,
-        description,
+        description: description.trim(),
         page_url: window.location.href,
         test_id: testId || 'N/A',
         browser: navigator.userAgent,
         device,
-        user_name: user?.displayName || localStorage.getItem('dntrng_guest_name') || 'Guest',
+        user_name: user?.displayName || localStorage.getItem('dntrng_guest_name') || 'Anonymous Student',
         user_email: user?.email || 'Anonymous'
       };
 
@@ -69,10 +69,15 @@ export function BugReportButton({ testId, className }: BugReportButtonProps) {
         setDescription('');
         setCategory('other');
       } else {
-        throw new Error();
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Submission Failed');
       }
-    } catch (e) {
-      toast({ variant: "destructive", title: "Submission Failed / Gửi thất bại" });
+    } catch (e: any) {
+      toast({ 
+        variant: "destructive", 
+        title: "Submission Failed / Gửi thất bại",
+        description: e.message 
+      });
     } finally {
       setLoading(false);
     }
