@@ -22,6 +22,7 @@ import { AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QuizLoadingManager } from '@/components/quiz/lifecycle/QuizLoadingManager';
 import { BugReportButton } from '@/components/shared/BugReportButton';
+import { calculateScoreForQuestion } from '@/lib/quiz-utils';
 
 function QuizContent() {
   const searchParams = useSearchParams();
@@ -141,6 +142,37 @@ function QuizContent() {
     }
   };
 
+  const handleNext = () => {
+    if (quiz.mode === 'race') {
+      const currentQ = quiz.questions[quiz.currentQuestionIndex];
+      const response = quiz.responses.find(r => r.questionId === currentQ.id)?.answer;
+      const isCorrect = calculateScoreForQuestion(currentQ, response);
+      
+      if (!isCorrect) {
+        setIsWrongInRace(true);
+        submit();
+        return;
+      }
+    }
+
+    if (quiz.currentQuestionIndex < quiz.questions.length - 1) {
+      const nextIdx = quiz.currentQuestionIndex + 1;
+      setQuiz(prev => ({
+        ...prev,
+        currentQuestionIndex: nextIdx,
+        highestStepReached: Math.max(prev.highestStepReached, nextIdx)
+      }));
+    }
+  };
+
+  const handleJump = (idx: number) => {
+    if (quiz.mode === 'race') return;
+    setQuiz(prev => ({
+      ...prev,
+      currentQuestionIndex: idx
+    }));
+  };
+
   const handleStart = async (mode: QuizMode) => {
     let q = questionsData || [];
     if (mode === 'training') {
@@ -176,7 +208,7 @@ function QuizContent() {
       ) : quiz.isSubmitted ? (
         <QuizResults title={globalData?.tests.find(t => String(t.id) === String(testId))?.title || 'Assessment'} score={quiz.score} totalQuestions={quiz.questions.length} questions={quiz.questions} responses={quiz.responses} serverReviewData={serverReviewData} userName={user?.displayName || guestName || 'Guest User'} onRestart={() => { setIsStarted(false); setQuiz(prev => ({...prev, isSubmitted: false, responses: []})); }} certificateId={generatedCertificateId || undefined} duration={finalDuration} />
       ) : (
-        <QuizActive quiz={quiz} quizTitle={globalData?.tests.find(t => String(t.id) === String(testId))?.title || 'Assessment'} timeLeft={timeLeft} isWrongInRace={isWrongInRace} onResponseChange={(val) => { const q = quiz.questions[quiz.currentQuestionIndex]; const updated = [...quiz.responses]; const idx = updated.findIndex(r => r.questionId === q.id); if (idx > -1) updated[idx].answer = val; else updated.push({ questionId: q.id, answer: val }); setQuiz({ ...quiz, responses: updated }); }} onConfirmResponse={() => { const q = quiz.questions[quiz.currentQuestionIndex]; const updated = [...quiz.responses]; const idx = updated.findIndex(r => r.questionId === q.id); if (idx > -1) { updated[idx].isConfirmed = true; setQuiz({ ...quiz, responses: updated }); } }} onNext={() => { if (quiz.currentQuestionIndex < quiz.questions.length - 1) { const nextIdx = quiz.currentQuestionIndex + 1; setQuiz({ ...quiz, currentQuestionIndex: nextIdx, highestStepReached: Math.max(quiz.highestStepReached, nextIdx) }); } }} onPrev={() => setQuiz({ ...quiz, currentQuestionIndex: Math.max(0, quiz.currentQuestionIndex - 1) })} onSubmit={submit} onJump={(i) => setQuiz({ ...quiz, currentQuestionIndex: i })} onToggleFlag={(id) => { setQuiz(prev => ({ ...prev, flaggedQuestionIds: prev.flaggedQuestionIds?.includes(id) ? prev.flaggedQuestionIds.filter(f => f !== id) : [...(prev.flaggedQuestionIds || []), id] })); }} />
+        <QuizActive quiz={quiz} quizTitle={globalData?.tests.find(t => String(t.id) === String(testId))?.title || 'Assessment'} timeLeft={timeLeft} isWrongInRace={isWrongInRace} onResponseChange={(val) => { const q = quiz.questions[quiz.currentQuestionIndex]; const updated = [...quiz.responses]; const idx = updated.findIndex(r => r.questionId === q.id); if (idx > -1) updated[idx].answer = val; else updated.push({ questionId: q.id, answer: val }); setQuiz({ ...quiz, responses: updated }); }} onConfirmResponse={() => { const q = quiz.questions[quiz.currentQuestionIndex]; const updated = [...quiz.responses]; const idx = updated.findIndex(r => r.questionId === q.id); if (idx > -1) { updated[idx].isConfirmed = true; setQuiz({ ...quiz, responses: updated }); } }} onNext={handleNext} onPrev={() => setQuiz({ ...quiz, currentQuestionIndex: Math.max(0, quiz.currentQuestionIndex - 1) })} onSubmit={submit} onJump={handleJump} onToggleFlag={(id) => { setQuiz(prev => ({ ...prev, flaggedQuestionIds: prev.flaggedQuestionIds?.includes(id) ? prev.flaggedQuestionIds.filter(f => f !== id) : [...(prev.flaggedQuestionIds || []), id] })); }} />
       )}
       <BugReportButton testId={testId || undefined} />
     </>

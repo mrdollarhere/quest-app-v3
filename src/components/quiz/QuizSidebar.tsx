@@ -20,6 +20,8 @@ interface QuizSidebarProps {
 }
 
 export function QuizSidebar({ quiz, isOpen, onOpenChange, onJump, isAnswered }: QuizSidebarProps) {
+  const isRaceMode = quiz.mode === 'race';
+
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-[320px] sm:w-[450px] p-0 flex flex-col bg-white border-l border-slate-100">
@@ -42,6 +44,9 @@ export function QuizSidebar({ quiz, isOpen, onOpenChange, onJump, isAnswered }: 
               <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Marked</span>
             </div>
           </div>
+          {isRaceMode && (
+            <p className="mt-2 text-[10px] font-black text-rose-500 uppercase tracking-widest">Navigation disabled in Race Mode</p>
+          )}
         </SheetHeader>
 
         <ScrollArea className="flex-1">
@@ -58,14 +63,20 @@ export function QuizSidebar({ quiz, isOpen, onOpenChange, onJump, isAnswered }: 
                 return (
                   <button
                     key={q.id}
-                    onClick={() => { onJump(idx); onOpenChange(false); }}
+                    onClick={() => { 
+                      if (isRaceMode) return;
+                      onJump(idx); 
+                      onOpenChange(false); 
+                    }}
+                    disabled={isRaceMode}
                     aria-label={ariaLabel}
                     aria-current={active ? 'step' : undefined}
                     className={cn(
                       "aspect-square rounded-xl flex items-center justify-center text-xs font-black transition-all border-2",
                       active 
                         ? "border-primary bg-primary/5 text-primary" 
-                        : (flagged ? "bg-orange-500 border-orange-500 text-white" : (answered ? "bg-green-500 border-green-500 text-white" : "bg-white border-slate-100 text-slate-400 hover:border-slate-200"))
+                        : (flagged ? "bg-orange-500 border-orange-500 text-white" : (answered ? "bg-green-500 border-green-500 text-white" : "bg-white border-slate-100 text-slate-400 hover:border-slate-200")),
+                      isRaceMode && "cursor-not-allowed opacity-40 grayscale"
                     )}
                   >
                     {idx + 1}

@@ -90,6 +90,7 @@ export function QuizActive({
 
       const currentQuestion = quiz.questions[quiz.currentQuestionIndex];
       const isTrainingMode = quiz.mode === 'training';
+      const isRaceMode = quiz.mode === 'race';
       const response = quiz.responses.find(r => r.questionId === currentQuestion?.id);
       const isConfirmed = !!response?.isConfirmed;
 
@@ -108,7 +109,7 @@ export function QuizActive({
           break;
         case 'ArrowLeft':
           e.preventDefault();
-          if (quiz.currentQuestionIndex > 0 && !isConfirmed) {
+          if (quiz.currentQuestionIndex > 0 && !isRaceMode && !isConfirmed) {
             triggerVisualFeedback('prev');
             onPrev();
           }
@@ -122,8 +123,10 @@ export function QuizActive({
           break;
         case 'g':
         case 'G':
-          triggerVisualFeedback('grid');
-          setIsSidebarOpen(true);
+          if (!isRaceMode) {
+            triggerVisualFeedback('grid');
+            setIsSidebarOpen(true);
+          }
           break;
         case '+':
         case '=':
@@ -178,6 +181,7 @@ export function QuizActive({
   const answeredCount = quiz.questions.filter(q => isAnswered(q.id)).length;
   
   const isTrainingMode = quiz.mode === 'training';
+  const isRaceMode = quiz.mode === 'race';
   const isCorrect = isAnswerConfirmed && isTrainingMode && calculateScoreForQuestion(currentQuestion, currentResponse);
 
   return (
@@ -188,7 +192,7 @@ export function QuizActive({
             <Button 
               variant="ghost" 
               onClick={onPrev} 
-              disabled={quiz.currentQuestionIndex === 0 || quiz.mode === 'race' || isAnswerConfirmed} 
+              disabled={quiz.currentQuestionIndex === 0 || isRaceMode || isAnswerConfirmed} 
               className={cn(
                 "rounded-xl h-12 px-2 md:px-4 text-slate-400 font-bold hover:bg-slate-50 disabled:opacity-30 transition-all",
                 activeShortcut === 'prev' && "bg-primary/10 scale-95"
@@ -213,12 +217,14 @@ export function QuizActive({
               <Button 
                 variant="ghost" 
                 size="icon" 
-                onClick={() => setIsSidebarOpen(true)} 
+                onClick={() => !isRaceMode && setIsSidebarOpen(true)} 
+                disabled={isRaceMode}
                 className={cn(
                   "rounded-full h-10 w-10 hover:bg-slate-50 transition-all",
-                  activeShortcut === 'grid' && "bg-primary/10 scale-95"
+                  activeShortcut === 'grid' && "bg-primary/10 scale-95",
+                  isRaceMode && "opacity-30 cursor-not-allowed"
                 )}
-                title="Navigation Grid (G)"
+                title={isRaceMode ? 'Navigation disabled in Race Mode' : 'Navigation Grid (G)'}
               >
                 <LayoutGrid className="w-5 h-5" />
               </Button>
