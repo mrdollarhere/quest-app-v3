@@ -88,14 +88,14 @@ export function BugReportButton({ testId, className }: BugReportButtonProps) {
       <Button 
         onClick={() => setOpen(true)}
         variant="outline"
-        size="sm"
+        size="icon"
         className={cn(
-          "fixed bottom-4 right-4 z-[90] h-10 px-4 rounded-full border-2 border-slate-100 bg-white/80 backdrop-blur-md text-slate-400 hover:text-primary hover:border-primary/20 shadow-lg group transition-all",
+          "fixed bottom-4 right-4 z-[90] h-10 w-10 rounded-full border-2 border-slate-100 bg-white/80 backdrop-blur-md text-slate-400 hover:text-primary hover:border-primary/20 shadow-lg group transition-all",
           className
         )}
+        title="Report Issue / Báo Lỗi"
       >
-        <Bug className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform" />
-        <span className="text-[10px] font-black uppercase tracking-widest">Report Issue / Báo Lỗi</span>
+        <Bug className="w-4 h-4 group-hover:rotate-12 transition-transform" />
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
