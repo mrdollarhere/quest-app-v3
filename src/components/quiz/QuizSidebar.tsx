@@ -75,7 +75,7 @@ export function QuizSidebar({ quiz, isOpen, onOpenChange, onJump, isAnswered }: 
                       "aspect-square rounded-xl flex items-center justify-center text-xs font-black transition-all border-2",
                       active 
                         ? "border-primary bg-primary/5 text-primary" 
-                        : (flagged ? "bg-orange-500 border-orange-500 text-white" : (answered ? "bg-green-500 border-green-500 text-white" : "bg-white border-slate-100 text-slate-400 hover:border-slate-200")),
+                        : (flagged ? "bg-orange-50 border-orange-500 text-white" : (answered ? "bg-green-500 border-green-500 text-white" : "bg-white border-slate-100 text-slate-400 hover:border-slate-200")),
                       isRaceMode && "cursor-not-allowed opacity-40 grayscale"
                     )}
                   >

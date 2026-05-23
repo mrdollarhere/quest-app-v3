@@ -113,6 +113,29 @@ function QuizContent() {
 
   const submit = async () => {
     if (isSubmittingVisually) return;
+    
+    // Race Mode Validation Protocol
+    if (quiz.mode === 'race') {
+      const currentQ = quiz.questions[quiz.currentQuestionIndex];
+      const response = quiz.responses.find(r => r.questionId === currentQ.id)?.answer;
+      const isCorrect = calculateScoreForQuestion(currentQ, response);
+      
+      if (!isCorrect) {
+        toast({
+          variant: "destructive",
+          title: "Sequence Error",
+          description: "Incorrect answer. Restarting race protocol."
+        });
+        setQuiz(prev => ({
+          ...prev,
+          currentQuestionIndex: 0,
+          responses: [],
+          startTime: Date.now()
+        }));
+        return;
+      }
+    }
+
     const now = Date.now();
     const duration = now - (quizStartTimeRef.current || now);
     setFinalDuration(duration);
@@ -149,8 +172,18 @@ function QuizContent() {
       const isCorrect = calculateScoreForQuestion(currentQ, response);
       
       if (!isCorrect) {
-        setIsWrongInRace(true);
-        submit();
+        toast({
+          variant: "destructive",
+          title: "Sequence Error",
+          description: "Incorrect answer. Returning to start."
+        });
+        // CIRCULAR RESTART PROTOCOL
+        setQuiz(prev => ({
+          ...prev,
+          currentQuestionIndex: 0,
+          responses: [],
+          startTime: Date.now()
+        }));
         return;
       }
     }
