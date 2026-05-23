@@ -61,6 +61,16 @@ function QuizContent() {
 
   const quizStartTimeRef = useRef<number | null>(null);
 
+  // IDENTITY HYDRATION PROTOCOL: Restore guest callsign from registry on mount
+  useEffect(() => {
+    if (!user) {
+      const savedName = localStorage.getItem('dntrng_guest_name');
+      if (savedName && savedName.trim() !== "") {
+        setGuestName(savedName);
+      }
+    }
+  }, [user]);
+
   const { data: questionsData, isLoading: qLoading, error: qError } = useSWR(
     testId ? `/api/proxy/questions?id=${testId}` : null
   );
@@ -110,7 +120,15 @@ function QuizContent() {
       const res = await fetch('/api/proxy/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ testId, responses: quiz.responses, userName: user?.displayName || guestName || 'Guest User', userEmail: user?.email || 'Anonymous', duration, mode: quiz.mode, certificateId: `CRT-${testId}-${now.toString().slice(-6)}`.toUpperCase() })
+        body: JSON.stringify({ 
+          testId, 
+          responses: quiz.responses, 
+          userName: user?.displayName || guestName || 'Guest User', 
+          userEmail: user?.email || 'Anonymous', 
+          duration, 
+          mode: quiz.mode, 
+          certificateId: `CRT-${testId}-${now.toString().slice(-6)}`.toUpperCase() 
+        })
       });
       const data = await res.json();
       if (res.ok) { 

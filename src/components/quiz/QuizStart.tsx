@@ -6,7 +6,7 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Zap, ShieldCheck, ShieldAlert, LogIn } from "lucide-react";
@@ -58,6 +58,16 @@ export function QuizStart({ title, questionsCount, duration, user, guestName, se
   const [password, setPassword] = useState('');
   const [selectedMode, setSelectedMode] = useState<QuizMode | 'live'>('test');
 
+  // REGISTRY SYNC PROTOCOL: Ensure props match localStorage during state transitions
+  useEffect(() => {
+    if (!user && !guestName) {
+      const savedName = localStorage.getItem('dntrng_guest_name');
+      if (savedName && savedName.trim() !== "") {
+        setGuestName(savedName);
+      }
+    }
+  }, [user, guestName, setGuestName]);
+
   const handleVerify = () => {
     if (password.trim().toUpperCase() === generateDailyPassword(undefined, protocolSalt).toUpperCase()) {
       toast({ title: "Access Granted", description: "Security Protocol Cleared." });
@@ -66,6 +76,7 @@ export function QuizStart({ title, questionsCount, duration, user, guestName, se
       if (!user && !guestAccessAllowed) {
         setStep('login_required');
       } else if (user || (savedName && savedName.trim().length > 0)) {
+        if (savedName && !user) setGuestName(savedName);
         setStep('mode');
       } else {
         setStep('identity');
