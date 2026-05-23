@@ -49,26 +49,48 @@ export default function AdminActivityPage() {
   };
 
   /**
-   * DATA NORMALIZATION PROTOCOL v3.0
+   * DATA NORMALIZATION PROTOCOL v3.1
    * Standardizes records from the unified System_Activity registry.
+   * Includes SAFE PARSING for inconsistent detail fields.
    */
   const unifiedData = useMemo(() => {
     if (!Array.isArray(activityLogs)) return [];
 
-    return activityLogs.map(log => ({
-      timestamp: log.timestamp || log.Timestamp,
-      user_name: log.user_name || 'Anonymous',
-      user_email: log.user_email || 'N/A',
-      user_role: log.user_role || 'user',
-      event_type: log.event_type || 'SYSTEM',
-      context: log.context || 'N/A',
-      ip: log.ip_address || log.ip || 'N/A',
-      device: log.device || 'N/A',
-      browser: log.browser || 'N/A',
-      status: log.status || 'VERIFIED',
-      details: typeof log.details === 'string' ? JSON.parse(log.details || '{}') : (log.details || {}),
-      source: 'unified'
-    })).sort((a, b) => 
+    return activityLogs.map(log => {
+      // SAFE PARSING PROTOCOL: Handle plain strings or JSON objects
+      let parsedDetails = {};
+      if (log.details) {
+        if (typeof log.details === 'string') {
+          const trimmed = log.details.trim();
+          if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+            try {
+              parsedDetails = JSON.parse(trimmed);
+            } catch (e) {
+              parsedDetails = { info: trimmed };
+            }
+          } else {
+            parsedDetails = { info: trimmed };
+          }
+        } else {
+          parsedDetails = log.details;
+        }
+      }
+
+      return {
+        timestamp: log.timestamp || log.Timestamp,
+        user_name: log.user_name || 'Anonymous',
+        user_email: log.user_email || 'N/A',
+        user_role: log.user_role || 'user',
+        event_type: log.event_type || 'SYSTEM',
+        context: log.context || 'N/A',
+        ip: log.ip_address || log.ip || 'N/A',
+        device: log.device || 'N/A',
+        browser: log.browser || 'N/A',
+        status: log.status || 'VERIFIED',
+        details: parsedDetails,
+        source: 'unified'
+      };
+    }).sort((a, b) => 
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     );
   }, [activityLogs]);
