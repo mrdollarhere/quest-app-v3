@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -40,12 +39,13 @@ export default function AdminTestDetailPage() {
   const [editingItem, setEditingItem] = useState<any>(null);
   const [dialogs, setDialogs] = useState({ test: false, user: false, question: false, bulk: false });
 
-  // EXPORT REGISTRY HANDLERS
   const handleExportPDF = () => {
+    // PDF Protocol: Targeted for future implementation via jsPDF
     console.log('[Export Protocol] Initializing PDF generation...');
   };
 
   const handleExportWord = () => {
+    // Word Protocol: Targeted for future implementation
     console.log('[Export Protocol] Initializing Word (.docx) generation...');
   };
 
@@ -56,48 +56,61 @@ export default function AdminTestDetailPage() {
     
     try {
       const currentTest = tests.find(t => String(t.id) === String(testId)) || {};
-      
-      // 1. Prepare Metadata Sheet
-      const metadataRows = [
-        { "Registry Field": "Module ID", "Data Value": currentTest.id },
-        { "Registry Field": "Title", "Data Value": currentTest.title },
-        { "Registry Field": "Category", "Data Value": currentTest.category },
-        { "Registry Field": "Difficulty", "Data Value": currentTest.difficulty },
-        { "Registry Field": "Duration", "Data Value": currentTest.duration },
-        { "Registry Field": "Passing Threshold (%)", "Data Value": currentTest.passing_threshold },
-        { "Registry Field": "Certification Enabled", "Data Value": currentTest.certificate_enabled }
+      const dateStr = new Date().toISOString().split('T')[0];
+
+      // 1. Construct SHEET 1 — "Test Info"
+      const infoAOA = [
+        ["Field", "Value"],
+        ["Title", currentTest.title || "N/A"],
+        ["Category", currentTest.category || "General"],
+        ["Difficulty", currentTest.difficulty || "Medium"],
+        ["Duration", currentTest.duration || "15m"],
+        ["Pass Score", `${currentTest.passing_threshold || 70}%`],
+        ["Questions", questions.length],
+        ["Exported At", new Date().toLocaleString()]
+      ];
+      const wsInfo = XLSX.utils.aoa_to_sheet(infoAOA);
+
+      // Apply Column Widths for Info
+      wsInfo['!cols'] = [{ wch: 15 }, { wch: 40 }];
+
+      // 2. Construct SHEET 2 — "Questions"
+      const questionsData = questions.map((q, i) => ({
+        "No.": i + 1,
+        "Question": q.question_text,
+        "Type": q.question_type,
+        "Options": q.options || "[]",
+        "Correct Answer": q.correct_answer || "[]",
+        "Image URL": q.image_url || "",
+        "Required": q.required ? "yes" : "no"
+      }));
+      const wsQuestions = XLSX.utils.json_to_sheet(questionsData);
+
+      // Apply Column Widths for Questions Registry
+      wsQuestions['!cols'] = [
+        { wch: 5 },  // No.
+        { wch: 50 }, // Question
+        { wch: 15 }, // Type
+        { wch: 30 }, // Options
+        { wch: 30 }, // Correct Answer
+        { wch: 30 }, // Image URL
+        { wch: 10 }  // Required
       ];
 
-      // 2. Prepare Questions Sheet
-      const questionsRows = questions.map(q => ({
-        "ID": q.id,
-        "Question Text": q.question_text,
-        "Question Type": q.question_type,
-        "Options": q.options,
-        "Correct Answer": q.correct_answer,
-        "Order Group": q.order_group,
-        "Image URL": q.image_url,
-        "Metadata": q.metadata,
-        "Required": q.required ? "TRUE" : "FALSE"
-      }));
-
-      // 3. Construct Workbook
+      // 3. Create Workbook Registry
       const wb = XLSX.utils.book_new();
-      const wsMetadata = XLSX.utils.json_to_sheet(metadataRows);
-      const wsQuestions = XLSX.utils.json_to_sheet(questionsRows);
+      XLSX.utils.book_append_sheet(wb, wsInfo, "Test Info");
+      XLSX.utils.book_append_sheet(wb, wsQuestions, "Questions");
 
-      XLSX.utils.book_append_sheet(wb, wsMetadata, "Test Info");
-      XLSX.utils.book_append_sheet(wb, wsQuestions, "Questions Registry");
-
-      // 4. Trigger Autonomous Download using standard Blob pattern
+      // 4. Trigger Autonomous Download
       const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
       const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      const dateStr = new Date().toISOString().split('T')[0];
+      const filename = `DNTRNG_${(currentTest.title || testId).replace(/\s+/g, '_')}_${dateStr}.xlsx`;
       
       link.href = url;
-      link.download = `DNTRNG_${testId}_${dateStr}.xlsx`;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -120,14 +133,12 @@ export default function AdminTestDetailPage() {
     try {
       const currentTest = tests.find(t => String(t.id) === String(testId)) || {};
       
-      // Build Question Type Summary
       const typeDistribution: Record<string, number> = {};
       questions.forEach(q => {
         const type = q.question_type || 'unknown';
         typeDistribution[type] = (typeDistribution[type] || 0) + 1;
       });
 
-      // Construct High-Fidelity Export Object
       const exportData = {
         exportedAt: new Date().toISOString(),
         exportVersion: "1.0",
@@ -159,7 +170,6 @@ export default function AdminTestDetailPage() {
         }
       };
 
-      // Trigger Registry Download
       const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -185,7 +195,6 @@ export default function AdminTestDetailPage() {
     if (!testId) return;
     setLoading(true);
     try {
-      // SECURE ADMIN FETCH: Proxy route preserves correct_answer for editing
       const [qRes, tRes] = await Promise.all([
         fetch(`/api/proxy/admin/questions?id=${testId}`),
         fetch('/api/proxy/tests')
