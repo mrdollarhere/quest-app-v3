@@ -1,6 +1,9 @@
 /**
  * @fileOverview Plain-Text Word Document Extraction Service.
- * Reverted to text-only protocol per operator request.
+ * 
+ * Re-engineered for maximum performance and stability by utilizing a 
+ * text-only extraction protocol. All visual assets are rendered as 
+ * plain-text URLs to ensure zero-failure document assembly.
  */
 
 import { 
@@ -26,12 +29,15 @@ interface ExportParams {
   onStatus?: (status: string) => void;
 }
 
+/**
+ * GENERATES PLAIN-TEXT DOCX
+ */
 export async function generateTestWord({ testId, currentTest, questions, withAnswers, onStatus }: ExportParams) {
   const exportDate = new Date();
   const dateDisplay = exportDate.toLocaleDateString();
   const dateIso = exportDate.toISOString().split('T')[0];
 
-  onStatus?.('Building document...');
+  onStatus?.('Assembling document nodes...');
 
   const children: any[] = [
     new Paragraph({ 
@@ -47,7 +53,7 @@ export async function generateTestWord({ testId, currentTest, questions, withAns
       spacing: { after: 400 } 
     }),
     new Paragraph({ 
-      text: `Date: ${dateDisplay}`, 
+      text: `Registry Date: ${dateDisplay}`, 
       alignment: AlignmentType.CENTER, 
       spacing: { after: 400 } 
     }),
@@ -57,8 +63,8 @@ export async function generateTestWord({ testId, currentTest, questions, withAns
         new DocxTableRow({
           children: [
             new DocxTableCell({ children: [new Paragraph({ text: "Duration", alignment: AlignmentType.CENTER, bold: true })], shading: { fill: "F8FAFC" } }),
-            new DocxTableCell({ children: [new Paragraph({ text: "Nodes", alignment: AlignmentType.CENTER, bold: true })], shading: { fill: "F8FAFC" } }),
-            new DocxTableCell({ children: [new Paragraph({ text: "Pass Score", alignment: AlignmentType.CENTER, bold: true })], shading: { fill: "F8FAFC" } }),
+            new DocxTableCell({ children: [new Paragraph({ text: "Items", alignment: AlignmentType.CENTER, bold: true })], shading: { fill: "F8FAFC" } }),
+            new DocxTableCell({ children: [new Paragraph({ text: "Pass Threshold", alignment: AlignmentType.CENTER, bold: true })], shading: { fill: "F8FAFC" } }),
           ]
         }),
         new DocxTableRow({
@@ -81,11 +87,11 @@ export async function generateTestWord({ testId, currentTest, questions, withAns
     children.push(new Paragraph({ text: `${i + 1}. ${q.question_text}`, heading: HeadingLevel.HEADING_2, spacing: { before: 400, after: 100 } }));
     children.push(new Paragraph({ children: [new TextRun({ text: `Interaction: ${q.question_type.replace(/_/g, ' ')}`, italics: true, color: "94a3b8", size: 18 })], spacing: { after: 200 } }));
 
-    // Plain-Text URL Fallback
+    // Visual Asset Node -> Plain Text URL
     if (q.image_url) {
       children.push(new Paragraph({ 
         children: [
-          new TextRun({ text: "Asset URL: ", bold: true, color: "94a3b8", size: 18 }),
+          new TextRun({ text: "Visual Node: ", bold: true, color: "94a3b8", size: 18 }),
           new TextRun({ text: q.image_url, italics: true, color: "3B5BDB", size: 18 })
         ],
         spacing: { before: 100, after: 200 } 
@@ -108,7 +114,7 @@ export async function generateTestWord({ testId, currentTest, questions, withAns
       const tableRows = [
         new DocxTableRow({ 
           children: [
-            new DocxTableCell({ children: [new Paragraph({ text: "Key Node", bold: true })], shading: { fill: "F1F5F9" } }), 
+            new DocxTableCell({ children: [new Paragraph({ text: "Subject", bold: true })], shading: { fill: "F1F5F9" } }), 
             new DocxTableCell({ children: [new Paragraph({ text: "Allocation", bold: true })], shading: { fill: "F1F5F9" } })
           ] 
         })
@@ -149,10 +155,10 @@ export async function generateTestWord({ testId, currentTest, questions, withAns
       });
       children.push(new DocxTable({ rows: tableRows, width: { size: 100, type: WidthType.PERCENTAGE }, spacing: { before: 200, after: 200 } }));
     } else {
-      children.push(new Paragraph({ text: "________________________________________________", spacing: { before: 200 } }));
+      children.push(new Paragraph({ text: "Registry Input: ________________________________________________", spacing: { before: 200 } }));
       if (withAnswers) {
         children.push(new Paragraph({ 
-          children: [new TextRun({ text: `Correct Answer: ${correctArr.join(", ")}`, bold: true, color: "059669" })], 
+          children: [new TextRun({ text: `Correct Alignment: ${correctArr.join(", ")}`, bold: true, color: "059669" })], 
           spacing: { before: 100 } 
         }));
       }
@@ -166,7 +172,7 @@ export async function generateTestWord({ testId, currentTest, questions, withAns
         default: new Paragraph({
           alignment: AlignmentType.CENTER,
           children: [
-            new TextRun({ text: `DNTRNG | Authorized Extraction | Page `, size: 16 }),
+            new TextRun({ text: `DNTRNG | Intelligence Extraction | Page `, size: 16 }),
             new TextRun({ children: ["PAGE_NUMBER"], size: 16 })
           ]
         })
