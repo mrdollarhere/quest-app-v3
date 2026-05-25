@@ -1,5 +1,6 @@
 /**
- * @fileOverview High-Fidelity Word Document Extraction Service.
+ * @fileOverview Plain-Text Word Document Extraction Service.
+ * Reverted to text-only protocol per operator request.
  */
 
 import { 
@@ -12,8 +13,7 @@ import {
   TableCell as DocxTableCell, 
   HeadingLevel, 
   AlignmentType, 
-  WidthType,
-  ImageRun
+  WidthType
 } from "docx";
 import { parseRegistryArray, compareValues } from '@/lib/quiz-utils';
 import { Question } from '@/types/quiz';
@@ -26,102 +26,10 @@ interface ExportParams {
   onStatus?: (status: string) => void;
 }
 
-/**
- * IDENTITY HANDSHAKE: Proxied Image Fetcher
- * Routes requests through internal proxy to bypass CORS and implement security audits.
- */
-async function fetchImageAsBase64(originalUrl: string): Promise<{ data: string, type: string } | null> {
-  try {
-    const proxyUrl = `/api/proxy/image?url=${encodeURIComponent(originalUrl)}`;
-    const response = await fetch(proxyUrl);
-    
-    if (!response.ok) {
-      console.warn('[Word Export] Registry acquisition failure:', originalUrl);
-      return null;
-    }
-    
-    const blob = await response.blob();
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result as string;
-        const data = base64.split(',')[1];
-        const type = blob.type || 'image/jpeg';
-        resolve({ data, type });
-      };
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
-    });
-  } catch (error) {
-    console.warn('[Word Export] Handshake exception:', originalUrl);
-    return null;
-  }
-}
-
-/**
- * PROTOCOL: Image Signature Matcher
- * Identifies if a registry value represents a visual asset URL.
- */
-function isImageUrl(value: string): boolean {
-  if (!value) return false;
-  const lower = value.toLowerCase().trim();
-  return (
-    (lower.startsWith('http://') || lower.startsWith('https://')) &&
-    (lower.endsWith('.png') || 
-     lower.endsWith('.jpg') || 
-     lower.endsWith('.jpeg') || 
-     lower.endsWith('.gif') || 
-     lower.endsWith('.webp') ||
-     lower.includes('postimg.cc') ||
-     lower.includes('imgur.com') ||
-     lower.includes('cloudinary.com') ||
-     lower.includes('supabase.co'))
-  );
-}
-
 export async function generateTestWord({ testId, currentTest, questions, withAnswers, onStatus }: ExportParams) {
   const exportDate = new Date();
   const dateDisplay = exportDate.toLocaleDateString();
   const dateIso = exportDate.toISOString().split('T')[0];
-  let hasWarnings = false;
-
-  // PRE-FETCH PROTOCOL: Parallel image resolution for matching values
-  const imageCache = new Map<string, { data: string, type: string } | null>();
-  const imageUrlsToFetch: string[] = [];
-
-  questions.forEach(q => {
-    // 1. Question-level assets
-    if (q.image_url && isImageUrl(q.image_url)) {
-      imageUrlsToFetch.push(q.image_url);
-    }
-    
-    // 2. Matching interaction assets
-    if (withAnswers && q.question_type === 'matching') {
-      const pairsArr = parseRegistryArray(q.order_group);
-      pairsArr.forEach(p => {
-        const parts = String(p).split('|');
-        const val = parts[1]?.trim();
-        if (val && isImageUrl(val)) {
-          imageUrlsToFetch.push(val);
-        }
-      });
-    }
-  });
-
-  try {
-    if (imageUrlsToFetch.length > 0) {
-      onStatus?.('Fetching images...');
-      const uniqueUrls = Array.from(new Set(imageUrlsToFetch));
-      await Promise.all(uniqueUrls.map(async (url) => {
-        const result = await fetchImageAsBase64(url);
-        if (!result) hasWarnings = true;
-        imageCache.set(url, result);
-      }));
-    }
-  } catch (error) {
-    console.error('[Word Export] Bulk fetch exception:', error);
-    hasWarnings = true;
-  }
 
   onStatus?.('Building document...');
 
@@ -173,27 +81,15 @@ export async function generateTestWord({ testId, currentTest, questions, withAns
     children.push(new Paragraph({ text: `${i + 1}. ${q.question_text}`, heading: HeadingLevel.HEADING_2, spacing: { before: 400, after: 100 } }));
     children.push(new Paragraph({ children: [new TextRun({ text: `Interaction: ${q.question_type.replace(/_/g, ' ')}`, italics: true, color: "94a3b8", size: 18 })], spacing: { after: 200 } }));
 
-    // Question Image Handling
+    // Plain-Text URL Fallback
     if (q.image_url) {
-      const imgData = imageCache.get(q.image_url);
-      if (imgData) {
-        children.push(new Paragraph({
-          children: [
-            new ImageRun({
-              data: Buffer.from(imgData.data, 'base64'),
-              transformation: { width: 400, height: 225 },
-              type: imgData.type.replace('image/', '') as any
-            })
-          ],
-          spacing: { before: 200, after: 200 }
-        }));
-      } else {
-        // Fallback: Render text URL as requested
-        children.push(new Paragraph({ 
-          text: q.image_url, 
-          spacing: { after: 200 } 
-        }));
-      }
+      children.push(new Paragraph({ 
+        children: [
+          new TextRun({ text: "Asset URL: ", bold: true, color: "94a3b8", size: 18 }),
+          new TextRun({ text: q.image_url, italics: true, color: "3B5BDB", size: 18 })
+        ],
+        spacing: { before: 100, after: 200 } 
+      }));
     }
 
     if (['singlechoice', 'oneanswer', 'multiplechoice', 'manyanswers', 'dropdown', 'ordering'].includes(qType)) {
@@ -222,32 +118,10 @@ export async function generateTestWord({ testId, currentTest, questions, withAns
         const [l, r] = String(p).split('|').map(s => s.trim());
         const rightValue = withAnswers ? r : "";
         
-        let rightCellContent: any = [new Paragraph({ text: rightValue })];
-        
-        if (withAnswers && rightValue && isImageUrl(rightValue)) {
-          const imgData = imageCache.get(rightValue);
-          if (imgData) {
-            rightCellContent = [
-              new Paragraph({
-                children: [
-                  new ImageRun({
-                    data: Buffer.from(imgData.data, 'base64'),
-                    transformation: { width: 80, height: 80 },
-                    type: imgData.type.replace('image/', '') as any
-                  })
-                ]
-              })
-            ];
-          } else {
-            // Fallback: render the plain text URL as-is as requested
-            rightCellContent = [new Paragraph({ text: rightValue })];
-          }
-        }
-
         tableRows.push(new DocxTableRow({ 
           children: [
             new DocxTableCell({ children: [new Paragraph({ text: l })] }), 
-            new DocxTableCell({ children: rightCellContent })
+            new DocxTableCell({ children: [new Paragraph({ text: rightValue })] })
           ] 
         }));
       });
@@ -307,6 +181,4 @@ export async function generateTestWord({ testId, currentTest, questions, withAns
   link.download = `DNTRNG_${(currentTest.title || testId).replace(/\s+/g, '_')}_${withAnswers ? 'answerkey' : 'questions'}_${dateIso}.docx`;
   link.click();
   URL.revokeObjectURL(url);
-
-  return { hasWarnings };
 }
