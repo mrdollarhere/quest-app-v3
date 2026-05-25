@@ -19,6 +19,7 @@
 *   **In whitelist mode**: Name matching is case-insensitive and trim-safe.
 *   **validateStudentName**: Called in join-room route for open mode only.
 *   **Settings fetch failure**: In join-room, defaults to open mode silently to ensure session availability.
+*   **Spam Detection**: Zero-answer spam detection handled client-side in `src/lib/spam-guard.ts` using `localStorage` — no server calls for spam tracking.
 
 ## 3. Bug Reporting Registry
 *   **Registry Sync**: BugReports sheet in GAS handles `saveBugReport`, `getBugReports`, `updateBugStatus` actions.
@@ -53,3 +54,4 @@
 - **Proxy Enforced**: Transitioned all administrative and student telemetry to server-side proxy nodes.
 - **Server-Side Classroom Integration**: Migrated Live Mode logic to use `gasPost` directly.
 - **Custom Blacklist Implemented**: Added admin-managed blocked term registry for callsign validation.
+- **Spam Guard Protocol**: Integrated client-side device quarantine for empty submissions.
