@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -26,6 +27,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default function AdminTestDetailPage() {
   const { id } = useParams();
@@ -40,13 +43,84 @@ export default function AdminTestDetailPage() {
   const [dialogs, setDialogs] = useState({ test: false, user: false, question: false, bulk: false });
 
   const handleExportPDF = () => {
-    // PDF Protocol: Targeted for future implementation via jsPDF
-    console.log('[Export Protocol] Initializing PDF generation...');
+    if (!testId || questions.length === 0) return;
+    
+    setIsExporting(true);
+    
+    try {
+      const doc = new jsPDF();
+      const currentTest = tests.find(t => String(t.id) === String(testId)) || {};
+      const dateStr = new Date().toLocaleDateString();
+
+      // 1. Header Protocol
+      doc.setFontSize(22);
+      doc.setTextColor(26, 35, 64); // Navy
+      doc.text(currentTest.title || "DNTRNG Assessment", 14, 20);
+
+      // 2. Metadata Section
+      doc.setFontSize(10);
+      doc.setTextColor(100, 116, 139); // Gray
+      doc.text(`Category: ${currentTest.category || "General"} | Difficulty: ${currentTest.difficulty || "Medium"} | Duration: ${currentTest.duration || "15m"}`, 14, 28);
+      doc.text(`Exported: ${dateStr} | Questions: ${questions.length} | Threshold: ${currentTest.passing_threshold || 70}%`, 14, 33);
+
+      // 3. Questions Registry Table
+      const tableData = questions.map((q, i) => {
+        let optionsText = 'N/A';
+        try {
+          const opts = q.options ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options) : [];
+          optionsText = Array.isArray(opts) ? opts.join(', ') : String(opts);
+        } catch (e) {}
+
+        let correctText = 'N/A';
+        try {
+          const ans = q.correct_answer ? (typeof q.correct_answer === 'string' ? JSON.parse(q.correct_answer) : q.correct_answer) : [];
+          correctText = Array.isArray(ans) ? ans.join(', ') : String(ans);
+        } catch (e) {}
+
+        return [
+          i + 1,
+          q.question_text,
+          String(q.question_type || '').replace(/_/g, ' '),
+          optionsText,
+          correctText
+        ];
+      });
+
+      autoTable(doc, {
+        startY: 40,
+        head: [['No.', 'Question Prompt', 'Type', 'Options', 'Correct Answer']],
+        body: tableData,
+        headStyles: { fillColor: [59, 91, 219], textColor: 255, fontStyle: 'bold' },
+        styles: { fontSize: 8, cellPadding: 3, overflow: 'linebreak' },
+        columnStyles: {
+          0: { cellWidth: 10 },
+          1: { cellWidth: 70 },
+          2: { cellWidth: 25 },
+          3: { cellWidth: 40 },
+          4: { cellWidth: 40 },
+        },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+      });
+
+      // 4. Trigger Autonomous Download
+      const dateKey = new Date().toISOString().split('T')[0];
+      const filename = `DNTRNG_${(currentTest.title || testId).replace(/\s+/g, '_')}_${dateKey}.pdf`;
+      doc.save(filename);
+
+      toast({ title: "PDF exported / Xuất PDF thành công" });
+      trackEvent('admin_test_export_pdf', { test_id: testId, test_name: currentTest.title });
+    } catch (error) {
+      console.error('[Export Error]', error);
+      toast({ variant: "destructive", title: "PDF Export Failed / Xuất PDF thất bại" });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleExportWord = () => {
     // Word Protocol: Targeted for future implementation
     console.log('[Export Protocol] Initializing Word (.docx) generation...');
+    toast({ title: "Word Export coming soon!" });
   };
 
   const handleExportExcel = () => {
@@ -257,7 +331,7 @@ export default function AdminTestDetailPage() {
                 className="rounded-xl p-3 font-bold cursor-pointer"
               >
                 <FileText className="mr-3 h-4 w-4 text-rose-500" />
-                <span>📄 Export as PDF (Soon)</span>
+                <span>📄 Export as PDF</span>
               </DropdownMenuItem>
               <DropdownMenuItem 
                 onClick={handleExportWord} 
