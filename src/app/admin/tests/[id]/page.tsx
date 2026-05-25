@@ -2,7 +2,7 @@
  * AdminTestDetailPage.tsx
  * 
  * Purpose: Diagnostic detail terminal for assessment modules.
- * Refactored: v19.2.1 - Extracted export services and modularized UI.
+ * Refactored: v19.3.0 - Implemented Advanced Export Modal with versioning and random selection.
  */
 
 "use client";
@@ -12,15 +12,15 @@ import { useParams, useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { QuestionsTab } from '@/components/admin/QuestionsTab';
 import { AdminDialogs } from '@/components/admin/AdminDialogs';
-import { ExportVersionDialog } from '@/components/admin/tests/ExportVersionDialog';
+import { AdvancedExportModal } from '@/components/admin/tests/AdvancedExportModal';
 import { Question } from '@/types/quiz';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Download, FileText, Table, ChevronDown, Loader2, FileCode } from 'lucide-react';
+import { ArrowLeft, Download, Loader2, Sparkles } from 'lucide-react';
 import { AILoader } from '@/components/ui/ai-loader';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useSettings } from '@/context/settings-context';
 import { generateTestPDF } from '@/lib/export/pdf-service';
 import { generateTestWord } from '@/lib/export/word-service';
-import { generateTestExcel, generateTestJSON } from '@/lib/export/data-service';
+import { generateTestJSON } from '@/lib/export/data-service';
 import { cn } from '@/lib/utils';
 import JSZip from 'jszip';
 
@@ -28,11 +28,13 @@ export default function AdminTestDetailPage() {
   const { id: testId } = useParams();
   const router = useRouter();
   const { toast } = useToast();
+  const { settings } = useSettings();
+
   const [loading, setLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportStatus, setExportStatus] = useState("");
   const [showExportModal, setShowExportModal] = useState(false);
-  const [exportFormat, setExportFormat] = useState<'pdf' | 'docx' | null>(null);
+  
   const [questions, setQuestions] = useState<Question[]>([]);
   const [tests, setTests] = useState<any[]>([]);
   const [editingItem, setEditingItem] = useState<any>(null);
@@ -58,31 +60,55 @@ export default function AdminTestDetailPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleExport = async (withAnswers: boolean) => {
-    setIsExporting(true); 
+  /**
+   * ADVANCED EXPORT HANDLER
+   * Orchestrates the document assembly based on the provided configuration.
+   */
+  const handleBeginExport = async (config: any) => {
+    setIsExporting(true);
     setShowExportModal(false);
-    setExportStatus("Initializing...");
+    setExportStatus("Generating export...");
+    
+    toast({ 
+      title: "Generating export... / Đang tạo file...", 
+      description: "Assembling document nodes. This may take a moment."
+    });
 
     try {
-      const params = { 
-        testId: String(testId), 
-        currentTest, 
-        questions, 
-        withAnswers,
-        onStatus: (status: string) => setExportStatus(status)
-      };
-
-      if (exportFormat === 'pdf') {
-        toast({ title: "Generating PDF... / Đang tạo PDF..." });
-        await generateTestPDF(params);
-      } else if (exportFormat === 'docx') {
-        await generateTestWord(params);
+      // Temporary: Log config until export services are updated to handle the new object
+      console.log('[Registry Export] Initializing with config:', config);
+      
+      // Mapped Logic for existing formats (Single Version only for now)
+      if (config.format === 'pdf') {
+        await generateTestPDF({ 
+          testId: String(testId), 
+          currentTest, 
+          questions: questions.slice(0, config.questionCount === 'all' ? questions.length : config.questionCount), 
+          withAnswers: config.contentType === 'answers',
+          onStatus: (s) => setExportStatus(s)
+        });
+      } else if (config.format === 'word') {
+        await generateTestWord({ 
+          testId: String(testId), 
+          currentTest, 
+          questions: questions.slice(0, config.questionCount === 'all' ? questions.length : config.questionCount), 
+          withAnswers: config.contentType === 'answers',
+          onStatus: (s) => setExportStatus(s)
+        });
+      } else if (config.format === 'json') {
+        await generateTestJSON({ 
+          testId: String(testId), 
+          currentTest, 
+          questions 
+        });
       }
-      toast({ title: "Extraction Successful" });
-    } catch (e) { 
-      toast({ variant: "destructive", title: "Export Failed" }); 
-    } finally { 
-      setIsExporting(false); 
+      
+      toast({ title: "Extraction Successful / Xuất thành công" });
+    } catch (e) {
+      console.error('[Export Error]', e);
+      toast({ variant: "destructive", title: "Export Failed / Xuất thất bại" });
+    } finally {
+      setIsExporting(false);
       setExportStatus("");
     }
   };
@@ -90,34 +116,30 @@ export default function AdminTestDetailPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between mb-2">
-        <Button variant="ghost" onClick={() => router.push('/admin/tests')} className="rounded-full">
+        <Button variant="ghost" onClick={() => router.push('/admin/tests')} className="rounded-full font-bold text-slate-400 hover:text-slate-900 transition-colors">
           <ArrowLeft className="w-4 h-4 mr-2" /> Back to Tests
         </Button>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" disabled={loading || isExporting} className="rounded-full h-11 px-6 font-bold border-2 bg-white shadow-sm min-w-[140px]">
-              {isExporting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  <span className="text-[10px] uppercase truncate max-w-[100px]">{exportStatus || 'Exporting...'}</span>
-                </>
-              ) : (
-                <>
-                  <Download className="w-4 h-4 mr-2" />
-                  Export
-                </>
-              )}
-              <ChevronDown className="w-4 h-4 ml-2 opacity-50" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-2xl border-none w-64 bg-white">
-            <DropdownMenuItem onClick={() => { setExportFormat('pdf'); setShowExportModal(true); }} className="rounded-xl p-3 font-bold cursor-pointer"><FileText className="mr-3 h-4 w-4 text-rose-500" /> Export PDF</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => { setExportFormat('docx'); setShowExportModal(true); }} className="rounded-xl p-3 font-bold cursor-pointer"><FileText className="mr-3 h-4 w-4 text-blue-500" /> Export Word</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => generateTestExcel({ testId: String(testId), currentTest, questions })} className="rounded-xl p-3 font-bold cursor-pointer"><Table className="mr-3 h-4 w-4 text-emerald-500" /> Export Excel</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => generateTestJSON({ testId: String(testId), currentTest, questions })} className="rounded-xl p-3 font-bold cursor-pointer"><FileCode className="mr-3 h-4 w-4 text-amber-500" /> Export JSON</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Button 
+          onClick={() => setShowExportModal(true)} 
+          disabled={loading || isExporting || questions.length === 0}
+          className={cn(
+            "rounded-full h-12 px-10 font-black uppercase text-xs tracking-[0.2em] shadow-xl transition-all border-none",
+            isExporting ? "bg-slate-100 text-slate-400" : "bg-primary text-white hover:scale-105 shadow-primary/20"
+          )}
+        >
+          {isExporting ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-3 animate-spin" />
+              {exportStatus || 'Working...'}
+            </>
+          ) : (
+            <>
+              <Download className="w-4 h-4 mr-3" />
+              Export / Xuất
+            </>
+          )}
+        </Button>
       </div>
 
       {loading && questions.length === 0 ? <div className="py-20"><AILoader /></div> : (
@@ -157,7 +179,14 @@ export default function AdminTestDetailPage() {
         onSaveTest={() => {}} onSaveUser={() => {}} loading={loading}
       />
 
-      <ExportVersionDialog open={showExportModal} onOpenChange={setShowExportModal} format={exportFormat} onSelect={handleBeginExport => handleExport(handleBeginExport)} />
+      <AdvancedExportModal 
+        open={showExportModal}
+        onOpenChange={setShowExportModal}
+        questions={questions}
+        testTitle={String(currentTest.title || "Module")}
+        platformName={String(settings.platform_name || "DNTRNG")}
+        onExport={handleBeginExport}
+      />
     </div>
   );
 }
