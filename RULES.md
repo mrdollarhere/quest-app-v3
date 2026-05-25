@@ -14,6 +14,7 @@
 *   **Auth**: Admin routes require an `auth-session` cookie with `role === admin`.
 *   **join_mode setting**: open or whitelist, stored in Settings sheet.
 *   **name_whitelist setting**: JSON string array of approved names, stored in Settings sheet.
+*   **custom_blacklist setting**: JSON string array of blocked words/names, stored in Settings sheet.
 *   **In whitelist mode**: Name matching is case-insensitive and trim-safe.
 *   **validateStudentName**: Called in join-room route for open mode only.
 *   **Settings fetch failure**: In join-room, defaults to open mode silently to ensure session availability.
@@ -49,3 +50,4 @@
 - **Zero-Public-URL**: Removed `NEXT_PUBLIC_API_URL` from client bundles.
 - **Proxy Enforced**: Transitioned all administrative and student telemetry to server-side proxy nodes.
 - **Server-Side Classroom Integration**: Migrated Live Mode logic to use `gasPost` directly.
+- **Custom Blacklist Implemented**: Added admin-managed blocked term registry for callsign validation.

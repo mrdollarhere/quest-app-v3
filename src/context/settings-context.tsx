@@ -13,7 +13,8 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<Record<string, string>>({
     join_mode: 'open',
-    name_whitelist: '[]'
+    name_whitelist: '[]',
+    custom_blacklist: '[]'
   });
   const [loading, setLoading] = useState(true);
 

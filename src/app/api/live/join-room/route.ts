@@ -24,11 +24,13 @@ export async function POST(request: Request) {
     // REGISTRY SETTINGS FETCH: Determine validation protocol
     let joinMode = 'open';
     let whitelist: string[] = [];
+    let customBlacklist: string[] = [];
     
     try {
       const settings = await gasGet('getSettings');
       joinMode = settings.join_mode || 'open';
       whitelist = JSON.parse(settings.name_whitelist || '[]');
+      customBlacklist = JSON.parse(settings.custom_blacklist || '[]');
     } catch (e) {
       // Fail-Safe: Default to open mode if registry unreachable
       console.warn('[Live Join] Settings fetch failed, defaulting to open mode.');
@@ -69,8 +71,8 @@ export async function POST(request: Request) {
         }, { status: 403 });
       }
     } else {
-      // Open Mode: High-Fidelity Validator
-      const validation = validateStudentName(studentName);
+      // Open Mode: High-Fidelity Validator with Custom Blacklist
+      const validation = validateStudentName(studentName, customBlacklist);
       if (!validation.valid) {
         return NextResponse.json({ 
           error: validation.reason?.en || 'Please enter your real full name.' 

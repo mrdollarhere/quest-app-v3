@@ -92,6 +92,11 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
     catch { return []; }
   }, [settings.name_whitelist]);
 
+  const customBlacklist: string[] = useMemo(() => {
+    try { return JSON.parse(settings.custom_blacklist || '[]'); }
+    catch { return []; }
+  }, [settings.custom_blacklist]);
+
   const isWhitelistActive = joinMode === 'whitelist' && whitelist.length > 0;
 
   // Real-time validation for Open Mode
@@ -101,9 +106,9 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
     const words = guestName.trim().split(/\s+/).filter(w => w.length > 0);
     if (words.length < 2) return 'incomplete';
     
-    const result = validateStudentName(guestName);
+    const result = validateStudentName(guestName, customBlacklist);
     return result.valid ? 'valid' : 'invalid';
-  }, [guestName, isWhitelistActive]);
+  }, [guestName, isWhitelistActive, customBlacklist]);
 
   // Grace Period Protocol after unlocking
   useEffect(() => {
@@ -135,7 +140,7 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
       setError(null);
       onContinue();
     } else {
-      const result = validateStudentName(guestName);
+      const result = validateStudentName(guestName, customBlacklist);
       if (!result.valid) {
         setError(`${LABELS.en.spam}\n${LABELS.vi.spam}`);
         triggerViolation();

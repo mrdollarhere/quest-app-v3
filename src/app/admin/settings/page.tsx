@@ -15,7 +15,8 @@ import {
   Plus, 
   X, 
   Trash2,
-  UserCheck
+  UserCheck,
+  Ban
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -71,10 +72,12 @@ export default function AdminSettingsPage() {
     guest_access_allowed: 'true',
     google_sheet_url: '',
     join_mode: 'open',
-    name_whitelist: '[]'
+    name_whitelist: '[]',
+    custom_blacklist: '[]'
   });
 
   const [bulkInput, setBulkInput] = useState('');
+  const [blacklistBulkInput, setBlacklistBulkInput] = useState('');
 
   const fetchFullSettings = async () => {
     setLoading(true);
@@ -139,6 +142,7 @@ export default function AdminSettingsPage() {
   };
 
   const whitelist = JSON.parse(formData.name_whitelist || '[]');
+  const blacklist = JSON.parse(formData.custom_blacklist || '[]');
 
   const updateWhitelist = async (newList: string[]) => {
     const json = JSON.stringify(newList);
@@ -148,6 +152,17 @@ export default function AdminSettingsPage() {
       setInitialData(prev => ({ ...prev, name_whitelist: json }));
     } catch (e) {
       toast({ variant: "destructive", title: "Whitelist Sync Failed" });
+    }
+  };
+
+  const updateBlacklist = async (newList: string[]) => {
+    const json = JSON.stringify(newList);
+    setFormData({ ...formData, custom_blacklist: json });
+    try {
+      await saveSetting('custom_blacklist', json);
+      setInitialData(prev => ({ ...prev, custom_blacklist: json }));
+    } catch (e) {
+      toast({ variant: "destructive", title: "Blacklist Sync Failed" });
     }
   };
 
@@ -161,8 +176,22 @@ export default function AdminSettingsPage() {
     updateWhitelist([...whitelist, trimmed]);
   };
 
+  const addBlacklistWord = (word: string) => {
+    const trimmed = word.trim().toLowerCase();
+    if (!trimmed) return;
+    if (blacklist.some((n: string) => n.toLowerCase() === trimmed)) {
+      toast({ title: "Duplicate Entry", description: "This term is already blacklisted." });
+      return;
+    }
+    updateBlacklist([...blacklist, trimmed]);
+  };
+
   const removeWhitelistName = (name: string) => {
     updateWhitelist(whitelist.filter((n: string) => n !== name));
+  };
+
+  const removeBlacklistWord = (word: string) => {
+    updateBlacklist(blacklist.filter((n: string) => n !== word));
   };
 
   const handleBulkImport = () => {
@@ -176,6 +205,19 @@ export default function AdminSettingsPage() {
     updateWhitelist(combined);
     setBulkInput('');
     toast({ title: "Import Successful", description: `${importedCount} new identity nodes registered.` });
+  };
+
+  const handleBlacklistBulkImport = () => {
+    const words = blacklistBulkInput.split('\n')
+      .map(n => n.trim().toLowerCase())
+      .filter(n => n.length > 0);
+    
+    const combined = Array.from(new Set([...blacklist, ...words]));
+    const importedCount = combined.length - blacklist.length;
+    
+    updateBlacklist(combined);
+    setBlacklistBulkInput('');
+    toast({ title: "Import Successful", description: `${importedCount} new terms blacklisted.` });
   };
 
   if (loading) return <div className="py-40"><AILoader messages={["Accessing System Registry...", "Retrieving Calibration Nodes..."]} /></div>;
@@ -351,6 +393,115 @@ export default function AdminSettingsPage() {
                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Roster restriction is currently disabled</p>
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Custom Name Blacklist Section */}
+          <Card className="border-none shadow-sm bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden border dark:border-slate-800">
+            <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b p-8">
+              <div className="space-y-1">
+                <h2 className="text-xl font-black flex items-center gap-3">
+                  <Ban className="w-5 h-5 text-rose-500" /> Custom Name Blacklist
+                </h2>
+                <CardDescription>Block specific words or names from being used as callsigns</CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent className="p-8 space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Block Word/Name</Label>
+                  <div className="flex gap-2">
+                    <Input 
+                      id="new-blacklist-word"
+                      placeholder="Enter word to block..."
+                      className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-100 font-bold"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          addBlacklistWord(e.currentTarget.value);
+                          e.currentTarget.value = '';
+                        }
+                      }}
+                    />
+                    <Button 
+                      variant="secondary"
+                      className="h-12 w-12 rounded-xl p-0 shrink-0"
+                      onClick={() => {
+                        const input = document.getElementById('new-blacklist-word') as HTMLInputElement;
+                        addBlacklistWord(input.value);
+                        input.value = '';
+                      }}
+                    >
+                      <Plus className="w-5 h-5" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Bulk Block</Label>
+                  <Textarea 
+                    placeholder="Paste words, one per line..."
+                    value={blacklistBulkInput}
+                    onChange={(e) => setBlacklistBulkInput(e.target.value)}
+                    className="rounded-xl min-h-[48px] h-12 bg-slate-50 border-none ring-1 ring-slate-100 font-medium py-3"
+                  />
+                  <Button 
+                    variant="outline" 
+                    onClick={handleBlacklistBulkImport}
+                    disabled={!blacklistBulkInput.trim()}
+                    className="w-full h-11 rounded-xl font-black uppercase text-[10px] tracking-widest border-2"
+                  >
+                    Import Blocklist
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Blocked Terms ({blacklist.length})</Label>
+                  {blacklist.length > 0 && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 px-3 text-rose-500 hover:text-rose-600 hover:bg-rose-50 font-black uppercase text-[9px] tracking-widest rounded-full">
+                          <Trash2 className="w-3 h-3 mr-2" /> Clear All
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="rounded-[2.5rem] border-none shadow-2xl">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="text-2xl font-black uppercase tracking-tight">Purge Blacklist?</AlertDialogTitle>
+                          <AlertDialogDescription className="text-slate-500 font-medium">This will permanently delete all {blacklist.length} custom blocked terms.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter className="mt-6 gap-3">
+                          <AlertDialogCancel className="rounded-full font-bold uppercase text-[10px] h-12">Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => updateBlacklist([])} className="rounded-full bg-rose-500 text-white font-black uppercase text-[10px] h-12 border-none">Purge Blacklist</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2 p-6 bg-slate-50/50 dark:bg-slate-800/50 rounded-[2rem] border border-slate-100 dark:border-slate-800 min-h-[120px]">
+                  {blacklist.map((word: string) => (
+                    <Badge 
+                      key={word} 
+                      variant="secondary" 
+                      className="pl-3 pr-1 py-1 gap-1 bg-white dark:bg-slate-900 border border-rose-100 dark:border-rose-900/30 shadow-sm text-xs font-bold rounded-none text-rose-600"
+                    >
+                      {word}
+                      <button 
+                        onClick={() => removeBlacklistWord(word)}
+                        className="p-1 hover:text-rose-500 transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </Badge>
+                  ))}
+                  {blacklist.length === 0 && (
+                    <div className="w-full flex flex-col items-center justify-center opacity-20 py-8">
+                      <Ban className="w-8 h-8 mb-2" />
+                      <p className="text-[10px] font-black uppercase tracking-widest text-center">No custom terms blocked</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>

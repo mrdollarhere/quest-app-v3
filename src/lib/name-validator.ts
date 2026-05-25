@@ -1,7 +1,8 @@
 /**
- * DNTRNG™ IDENTITY INTEGRITY PROTOCOL v4.0
+ * DNTRNG™ IDENTITY INTEGRITY PROTOCOL v4.1
  * 
  * CORE VALIDATION ENGINE for English and Vietnamese Name Registry.
+ * Updated: v19.2.1 - Support for dynamic custom blacklist injection.
  * 
  * TEST CASES:
  * 1. "Nguyễn Văn A"      -> VALID (Score: 90+)
@@ -42,7 +43,7 @@ interface ValidationResult {
   score?: number;
 }
 
-export function validateStudentName(name: string): ValidationResult {
+export function validateStudentName(name: string, customBlacklist: string[] = []): ValidationResult {
   const trimmed = name.trim();
   const lower = trimmed.toLowerCase();
   const words = trimmed.split(/\s+/).filter(w => w.length > 0);
@@ -73,7 +74,8 @@ export function validateStudentName(name: string): ValidationResult {
   });
 
   // 5. Profanity & Reserved Shield
-  if (BANNED_TERMS.some(term => neutralized.includes(term))) {
+  const allBlocked = [...BANNED_TERMS, ...customBlacklist.map(w => String(w).toLowerCase().trim())];
+  if (allBlocked.some(term => term && neutralized.includes(term))) {
     return { valid: false, reason: { en: "Identity rejected by profanity filter.", vi: "Tên chứa từ ngữ không phù hợp." } };
   }
 
@@ -93,7 +95,6 @@ export function validateStudentName(name: string): ValidationResult {
   if (vowelDensity > 0.80) score -= 20; // Unlikely density
 
   // C. Consonant Streak Guard
-  const maxConsonants = 5;
   const consonantStreak = /[^aeiouyàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹ\s\d]{6,}/i;
   if (consonantStreak.test(lower)) score -= 60;
 
