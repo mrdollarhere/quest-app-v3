@@ -6,7 +6,7 @@
 import { jsPDF } from 'jspdf';
 import { Question } from '@/types/quiz';
 import { parseRegistryArray, compareValues } from '@/lib/quiz-utils';
-import { loadRobotoFont } from './font-loader';
+import { loadRobotoFont, loadRobotoBoldFont } from './font-loader';
 
 interface ExportParams {
   testId: string;
@@ -70,10 +70,15 @@ export async function generateTestPDF({ testId, currentTest, questions, withAnsw
 
   let hasCustomFont = false;
   try {
-    const fontBase64 = await loadRobotoFont();
-    pdf.addFileToVFS('Roboto.ttf', fontBase64);
+    const [normalFont, boldFont] = await Promise.all([
+      loadRobotoFont(),
+      loadRobotoBoldFont()
+    ]);
+    pdf.addFileToVFS('Roboto.ttf', normalFont);
+    pdf.addFileToVFS('Roboto-Bold.ttf', boldFont);
     pdf.addFont('Roboto.ttf', 'Roboto', 'normal');
-    pdf.setFont('Roboto');
+    pdf.addFont('Roboto-Bold.ttf', 'Roboto', 'bold');
+    pdf.setFont('Roboto', 'normal');
     hasCustomFont = true;
   } catch (e) {
     console.warn('[PDF] Vietnamese font failed to load, using ASCII fallback');
@@ -130,8 +135,10 @@ export async function generateTestPDF({ testId, currentTest, questions, withAnsw
       if (hasCustomFont) pdf.setFont('Roboto', 'normal');
     }
 
+    // Set font to BOLD for question text
     pdf.setFontSize(11);
-    if (!hasCustomFont) pdf.setFont('helvetica', 'bold');
+    if (hasCustomFont) pdf.setFont('Roboto', 'bold');
+    else pdf.setFont('helvetica', 'bold');
     
     const qLabel = `${i + 1}. `;
     const qText = cleanText(q.question_text);
@@ -141,8 +148,10 @@ export async function generateTestPDF({ testId, currentTest, questions, withAnsw
     pdf.text(splitQ, margin + 12, y);
     y += (splitQ.length * 6) + 2;
 
+    // Reset font weight for other elements
     pdf.setFontSize(9);
-    if (!hasCustomFont) pdf.setFont('helvetica', 'italic');
+    if (hasCustomFont) pdf.setFont('Roboto', 'normal');
+    else pdf.setFont('helvetica', 'italic');
     
     pdf.setTextColor(150, 150, 150);
     pdf.text(`[${qTypeRaw.replace(/_/g, ' ').toUpperCase()}]`, margin + 12, y);
@@ -244,7 +253,8 @@ export async function generateTestPDF({ testId, currentTest, questions, withAnsw
     // Footer Nodes
     pdf.setFontSize(8);
     pdf.setTextColor(180, 180, 180);
-    if (!hasCustomFont) pdf.setFont('helvetica', 'normal');
+    if (hasCustomFont) pdf.setFont('Roboto', 'normal');
+    else pdf.setFont('helvetica', 'normal');
     
     pdf.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - 12, { align: 'right' });
     pdf.text(testTitleClean, margin, pageHeight - 12);
