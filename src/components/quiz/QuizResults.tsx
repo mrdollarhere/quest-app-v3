@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { User, RotateCcw, ArrowRight, FileBadge, Clock, Target, Trophy, Zap, CheckCircle2 } from "lucide-react";
+import { User, RotateCcw, ArrowRight, FileBadge, Clock, Target, Trophy, Zap, CheckCircle2, Sparkles } from "lucide-react";
 import Link from 'next/link';
 import { getVerdictData } from '@/lib/quiz-config';
 import { useSettings } from '@/context/settings-context';
@@ -19,8 +19,9 @@ import { useAuth } from '@/context/auth-context';
 import { BackToTop } from '@/components/BackToTop';
 import { SiteFooter } from '@/components/SiteFooter';
 import { BugReportButton } from '@/components/shared/BugReportButton';
+import { CardView } from '@/components/library/CardView';
 
-export function QuizResults({ title, testId, score, totalQuestions, questions, responses, serverReviewData, userName, onRestart, startTime, endTime, testMetadata, certificateId, duration }: any) {
+export function QuizResults({ title, testId, score, totalQuestions, questions, responses, serverReviewData, userName, onRestart, startTime, endTime, testMetadata, certificateId, duration, allTests = [] }: any) {
   const { settings } = useSettings();
   const { user } = useAuth();
   const [textSize, setTextSize] = useState<'normal' | 'large' | 'small'>('normal');
@@ -39,6 +40,51 @@ export function QuizResults({ title, testId, score, totalQuestions, questions, r
       confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
     }
   }, [isPass]);
+
+  const recommendations = useMemo(() => {
+    if (!allTests.length) return [];
+
+    const difficultyMap: Record<string, number> = { 
+      'easy': 1, 'beginner': 1, 
+      'medium': 2, 'intermediate': 2, 
+      'hard': 3, 'advanced': 3 
+    };
+
+    const currentDiff = difficultyMap[String(testMetadata?.difficulty || '').toLowerCase()] || 2;
+    const currentCat = testMetadata?.category || 'General';
+
+    // 1. Initial Filtering: Exclude current test
+    let pool = allTests.filter(t => String(t.id) !== String(testId));
+
+    if (isPass) {
+      // Logic: Same category, same or higher difficulty
+      let suggestions = pool.filter(t => 
+        t.category === currentCat && 
+        (difficultyMap[String(t.difficulty || '').toLowerCase()] || 2) >= currentDiff
+      );
+
+      if (suggestions.length < 2) {
+        // Fallback: Just same category
+        suggestions = pool.filter(t => t.category === currentCat);
+      }
+
+      if (suggestions.length < 2) {
+        // Final Fallback: Any tests
+        suggestions = pool;
+      }
+
+      return suggestions.slice(0, 3);
+    } else {
+      // Logic: Same category, any difficulty
+      let suggestions = pool.filter(t => t.category === currentCat);
+      
+      if (suggestions.length < 2) {
+        suggestions = pool;
+      }
+
+      return suggestions.slice(0, 3);
+    }
+  }, [allTests, testId, testMetadata, isPass]);
 
   const formatDuration = (ms: number) => {
     const totalSeconds = Math.floor(ms / 1000);
@@ -128,6 +174,35 @@ export function QuizResults({ title, testId, score, totalQuestions, questions, r
             </Link>
           )}
         </div>
+
+        {/* What's Next Section */}
+        {recommendations.length > 0 && (
+          <div className="space-y-8 pt-12 pb-8 border-t border-slate-200">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Mission Pipeline</span>
+                </div>
+                <h3 className="text-3xl font-black uppercase tracking-tight text-slate-900 leading-none">
+                  {isPass ? "Great job! Try these next:" : "Keep practicing:"}
+                </h3>
+                <p className="text-sm font-medium text-slate-500 italic">
+                  {isPass ? "Làm tốt lắm! Thử tiếp theo:" : "Tiếp tục luyện tập:"}
+                </p>
+              </div>
+              <Link href="/tests">
+                <Button variant="ghost" className="rounded-full font-black uppercase text-[10px] tracking-widest text-slate-400 hover:text-primary">
+                  View Full Library <ArrowRight className="ml-2 w-3.5 h-3.5" />
+                </Button>
+              </Link>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <CardView tests={recommendations} />
+            </div>
+          </div>
+        )}
 
         <StepAnalytics questions={questions} responses={responses} serverReviewData={serverReviewData} textSize={textSize} />
       </div>

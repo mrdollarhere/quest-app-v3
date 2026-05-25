@@ -221,6 +221,8 @@ function QuizContent() {
     setIsStarted(true); setQuiz(prev => ({ ...prev, questions: q, mode, currentQuestionIndex: 0, responses: [] }));
   };
 
+  const currentTestMetadata = globalData?.tests.find(t => String(t.id) === String(testId));
+
   if (globalData?.maintenance) return <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center"><AlertCircle className="w-12 h-12 text-amber-500 mb-6" /><h2 className="text-3xl font-black text-slate-900 uppercase">Maintenance Mode</h2><Button onClick={() => router.push('/')} className="mt-8 rounded-full">Return Home</Button></div>;
   if (qError || (questionsData && questionsData.length === 0)) return <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center"><AlertCircle className="w-16 h-16 text-rose-500 mb-6" /><h2 className="text-3xl font-black text-slate-900">Module Empty</h2><Button onClick={() => router.push('/tests')} className="mt-8 rounded-full">Return to Library</Button></div>;
 
@@ -237,11 +239,25 @@ function QuizContent() {
   return (
     <>
       {!isStarted ? (
-        <QuizStart title={globalData?.tests.find(t => String(t.id) === String(testId))?.title || 'Assessment'} questionsCount={questionsData?.length || 0} user={user} guestName={guestName} setGuestName={setGuestName} protocolSalt={globalData?.salt} isProtectionEnabled={globalData?.protection} guestAccessAllowed={globalData?.guest} onStart={handleStart} testId={testId || undefined} />
+        <QuizStart title={currentTestMetadata?.title || 'Assessment'} questionsCount={questionsData?.length || 0} user={user} guestName={guestName} setGuestName={setGuestName} protocolSalt={globalData?.salt} isProtectionEnabled={globalData?.protection} guestAccessAllowed={globalData?.guest} onStart={handleStart} testId={testId || undefined} />
       ) : quiz.isSubmitted ? (
-        <QuizResults title={globalData?.tests.find(t => String(t.id) === String(testId))?.title || 'Assessment'} score={quiz.score} totalQuestions={quiz.questions.length} questions={quiz.questions} responses={quiz.responses} serverReviewData={serverReviewData} userName={user?.displayName || guestName || 'Guest User'} onRestart={() => { setIsStarted(false); setQuiz(prev => ({...prev, isSubmitted: false, responses: []})); }} certificateId={generatedCertificateId || undefined} duration={finalDuration} />
+        <QuizResults 
+          title={currentTestMetadata?.title || 'Assessment'} 
+          testId={testId}
+          score={quiz.score} 
+          totalQuestions={quiz.questions.length} 
+          questions={quiz.questions} 
+          responses={quiz.responses} 
+          serverReviewData={serverReviewData} 
+          userName={user?.displayName || guestName || 'Guest User'} 
+          onRestart={() => { setIsStarted(false); setQuiz(prev => ({...prev, isSubmitted: false, responses: []})); }} 
+          certificateId={generatedCertificateId || undefined} 
+          duration={finalDuration}
+          allTests={globalData?.tests}
+          testMetadata={currentTestMetadata}
+        />
       ) : (
-        <QuizActive quiz={quiz} quizTitle={globalData?.tests.find(t => String(t.id) === String(testId))?.title || 'Assessment'} timeLeft={timeLeft} isWrongInRace={isWrongInRace} onResponseChange={(val) => { const q = quiz.questions[quiz.currentQuestionIndex]; const updated = [...quiz.responses]; const idx = updated.findIndex(r => r.questionId === q.id); if (idx > -1) updated[idx].answer = val; else updated.push({ questionId: q.id, answer: val }); setQuiz({ ...quiz, responses: updated }); }} onConfirmResponse={() => { const q = quiz.questions[quiz.currentQuestionIndex]; const updated = [...quiz.responses]; const idx = updated.findIndex(r => r.questionId === q.id); if (idx > -1) { updated[idx].isConfirmed = true; setQuiz({ ...quiz, responses: updated }); } }} onNext={handleNext} onPrev={() => setQuiz({ ...quiz, currentQuestionIndex: Math.max(0, quiz.currentQuestionIndex - 1) })} onSubmit={submit} onJump={handleJump} onToggleFlag={(id) => { setQuiz(prev => ({ ...prev, flaggedQuestionIds: prev.flaggedQuestionIds?.includes(id) ? prev.flaggedQuestionIds.filter(f => f !== id) : [...(prev.flaggedQuestionIds || []), id] })); }} />
+        <QuizActive quiz={quiz} quizTitle={currentTestMetadata?.title || 'Assessment'} timeLeft={timeLeft} isWrongInRace={isWrongInRace} onResponseChange={(val) => { const q = quiz.questions[quiz.currentQuestionIndex]; const updated = [...quiz.responses]; const idx = updated.findIndex(r => r.questionId === q.id); if (idx > -1) updated[idx].answer = val; else updated.push({ questionId: q.id, answer: val }); setQuiz({ ...quiz, responses: updated }); }} onConfirmResponse={() => { const q = quiz.questions[quiz.currentQuestionIndex]; const updated = [...quiz.responses]; const idx = updated.findIndex(r => r.questionId === q.id); if (idx > -1) { updated[idx].isConfirmed = true; setQuiz({ ...quiz, responses: updated }); } }} onNext={handleNext} onPrev={() => setQuiz({ ...quiz, currentQuestionIndex: Math.max(0, quiz.currentQuestionIndex - 1) })} onSubmit={submit} onJump={handleJump} onToggleFlag={(id) => { setQuiz(prev => ({ ...prev, flaggedQuestionIds: prev.flaggedQuestionIds?.includes(id) ? prev.flaggedQuestionIds.filter(f => f !== id) : [...(prev.flaggedQuestionIds || []), id] })); }} />
       )}
       <BugReportButton testId={testId || undefined} />
     </>
