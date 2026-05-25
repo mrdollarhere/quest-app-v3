@@ -17,7 +17,8 @@ import {
   Loader2,
   FileCheck,
   HelpCircle,
-  X
+  X,
+  FileCode
 } from 'lucide-react';
 import { AILoader } from '@/components/ui/ai-loader';
 import { logActivity } from '@/lib/activity-log';
@@ -39,7 +40,20 @@ import {
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { parseRegistryArray } from '@/lib/quiz-utils';
+import { 
+  Document, 
+  Packer, 
+  Paragraph, 
+  TextRun, 
+  Table as DocxTable, 
+  TableRow as DocxTableRow, 
+  TableCell as DocxTableCell, 
+  HeadingLevel, 
+  AlignmentType, 
+  BorderStyle, 
+  WidthType 
+} from "docx";
+import { parseRegistryArray, compareValues } from '@/lib/quiz-utils';
 
 export default function AdminTestDetailPage() {
   const { id } = useParams();
@@ -48,7 +62,8 @@ export default function AdminTestDetailPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [showPdfDialog, setShowPdfDialog] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'pdf' | 'docx' | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [tests, setTests] = useState<any[]>([]);
   const [editingItem, setEditingItem] = useState<any>(null);
@@ -56,11 +71,11 @@ export default function AdminTestDetailPage() {
 
   const currentTest = tests.find(t => String(t.id) === String(testId)) || {};
 
-  const handleExportPDF = (withAnswers: boolean) => {
+  const handleExportPDF = async (withAnswers: boolean) => {
     if (!testId || questions.length === 0) return;
     
     setIsExporting(true);
-    setShowPdfDialog(false);
+    setShowExportModal(false);
     
     const doc = new jsPDF();
     const dateStr = new Date().toLocaleDateString();
@@ -101,195 +116,291 @@ export default function AdminTestDetailPage() {
     doc.text(`Registry ID: ${testId}`, 105, 280, { align: "center" });
 
     // 2. Questions Generation Protocol
-    const processQuestions = async () => {
-      for (let i = 0; i < questions.length; i++) {
-        const q = questions[i];
-        doc.addPage();
-        
-        // Header on every page
-        doc.setFontSize(8);
-        doc.setTextColor(203, 213, 225);
-        doc.text(`DNTRNG | ${currentTest.title}`, 14, 10);
-        doc.text(`Page ${doc.internal.getNumberOfPages()}`, 190, 10, { align: "right" });
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      doc.addPage();
+      
+      doc.setFontSize(8);
+      doc.setTextColor(203, 213, 225);
+      doc.text(`DNTRNG | ${currentTest.title}`, 14, 10);
+      doc.text(`Page ${doc.internal.getNumberOfPages()}`, 190, 10, { align: "right" });
 
-        let y = 30;
-        
-        // Question Text
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(14);
-        doc.setTextColor(30, 41, 59);
-        const qText = `${i + 1}. ${q.question_text}`;
-        const qLines = doc.splitTextToSize(qText, 180);
-        doc.text(qLines, 14, y);
-        y += (qLines.length * 7);
+      let y = 30;
+      
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.setTextColor(30, 41, 59);
+      const qText = `${i + 1}. ${q.question_text}`;
+      const qLines = doc.splitTextToSize(qText, 180);
+      doc.text(qLines, 14, y);
+      y += (qLines.length * 7);
 
-        // Question Type Label
-        doc.setFont("helvetica", "italic");
-        doc.setFontSize(9);
-        doc.setTextColor(148, 163, 184);
-        doc.text(`Module: ${String(q.question_type || '').replace(/_/g, ' ')}`, 14, y);
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(9);
+      doc.setTextColor(148, 163, 184);
+      doc.text(`Module: ${String(q.question_type || '').replace(/_/g, ' ')}`, 14, y);
+      y += 10;
+
+      if (q.image_url) {
         y += 10;
+        doc.setFontSize(8);
+        doc.text("[Visual Asset Attached - View in online registry]", 14, y);
+        y += 5;
+      }
 
-        // Image Attachment
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
+      doc.setTextColor(51, 65, 85);
+      
+      const qType = String(q.question_type || '').toLowerCase().replace(/[\s_]/g, '');
+      const correctArr = parseRegistryArray(q.correct_answer);
+
+      if (['singlechoice', 'oneanswer', 'multiplechoice', 'manyanswers', 'dropdown', 'ordering'].includes(qType)) {
+        const opts = parseRegistryArray(q.options || q.order_group);
+        opts.forEach((opt, idx) => {
+          const label = String.fromCharCode(65 + idx);
+          const isCorrect = withAnswers && correctArr.some(c => compareValues(c, opt));
+          const optText = `${label}. ${opt}${isCorrect ? " ✓" : ""}`;
+          const optLines = doc.splitTextToSize(optText, 170);
+          if (isCorrect) doc.setTextColor(5, 150, 105);
+          doc.text(optLines, 20, y);
+          doc.setTextColor(51, 65, 85);
+          y += (optLines.length * 6) + 2;
+        });
+      } 
+      else if (qType === 'matching') {
+        const pairs = parseRegistryArray(q.order_group);
+        const body = pairs.map(p => {
+          const [l, r] = String(p).split('|').map(s => s.trim());
+          return [l, withAnswers ? r : "________________"];
+        });
+        autoTable(doc, {
+          startY: y,
+          head: [['Registry Key', 'Allocation']],
+          body: body,
+          theme: 'striped',
+          headStyles: { fillColor: [59, 91, 219] },
+          margin: { left: 14 }
+        });
+        y = (doc as any).lastAutoTable.finalY + 10;
+      }
+      else if (qType === 'matrixchoice' || qType === 'multipletruefalse') {
+        const rows = parseRegistryArray(q.order_group);
+        const cols = qType === 'multipletruefalse' ? ['True', 'False'] : parseRegistryArray(q.options);
+        const body = rows.map((row, rIdx) => {
+          return [row, ...cols.map(col => {
+            if (withAnswers && compareValues(col, correctArr[rIdx])) return "[ ✓ ]";
+            return "[   ]";
+          })];
+        });
+        autoTable(doc, {
+          startY: y,
+          head: [['Node', ...cols]],
+          body: body,
+          theme: 'grid',
+          headStyles: { fillColor: [59, 91, 219] },
+          margin: { left: 14 }
+        });
+        y = (doc as any).lastAutoTable.finalY + 10;
+      }
+      else if (qType === 'shorttext' || qType === 'rating') {
+        doc.text("Response: ________________________________________________", 14, y);
+        y += 10;
+        if (withAnswers) {
+          doc.setTextColor(5, 150, 105);
+          doc.text(`Correct: ${correctArr.join(", ")}`, 14, y);
+          doc.setTextColor(51, 65, 85);
+          y += 10;
+        }
+      }
+    }
+
+    const typeLabel = withAnswers ? "answerkey" : "questions";
+    doc.save(`DNTRNG_${(currentTest.title || testId).replace(/\s+/g, '_')}_${typeLabel}_${dateKey}.pdf`);
+    setIsExporting(false);
+    toast({ title: "PDF exported / Xuất PDF thành công" });
+  };
+
+  const handleExportWord = async (withAnswers: boolean) => {
+    if (!testId || questions.length === 0) return;
+    
+    setIsExporting(true);
+    setShowExportModal(false);
+
+    try {
+      const dateStr = new Date().toLocaleDateString();
+      
+      const children: any[] = [
+        new Paragraph({
+          text: currentTest.title || "Assessment Module",
+          heading: HeadingLevel.HEADING_1,
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 200 }
+        }),
+        new Paragraph({
+          text: `${currentTest.category || "General"} | ${currentTest.difficulty || "Medium"}`,
+          heading: HeadingLevel.HEADING_3,
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 400 }
+        }),
+        new DocxTable({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: [
+            new DocxTableRow({
+              children: [
+                new DocxTableCell({ children: [new Paragraph({ text: "Duration", alignment: AlignmentType.CENTER, style: "bold" })] }),
+                new DocxTableCell({ children: [new Paragraph({ text: "Nodes", alignment: AlignmentType.CENTER, style: "bold" })] }),
+                new DocxTableCell({ children: [new Paragraph({ text: "Pass Score", alignment: AlignmentType.CENTER, style: "bold" })] }),
+                new DocxTableCell({ children: [new Paragraph({ text: "Exported At", alignment: AlignmentType.CENTER, style: "bold" })] }),
+              ]
+            }),
+            new DocxTableRow({
+              children: [
+                new DocxTableCell({ children: [new Paragraph({ text: currentTest.duration || "15m", alignment: AlignmentType.CENTER })] }),
+                new DocxTableCell({ children: [new Paragraph({ text: String(questions.length), alignment: AlignmentType.CENTER })] }),
+                new DocxTableCell({ children: [new Paragraph({ text: `${currentTest.passing_threshold || 70}%`, alignment: AlignmentType.CENTER })] }),
+                new DocxTableCell({ children: [new Paragraph({ text: dateStr, alignment: AlignmentType.CENTER })] }),
+              ]
+            })
+          ],
+          spacing: { after: 600 }
+        }),
+        new Paragraph({ text: "", spacing: { after: 400 } })
+      ];
+
+      questions.forEach((q, i) => {
+        const qType = String(q.question_type || '').toLowerCase().replace(/[\s_]/g, '');
+        const correctArr = parseRegistryArray(q.correct_answer);
+
+        children.push(new Paragraph({
+          text: `${i + 1}. ${q.question_text}`,
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 400, after: 100 }
+        }));
+
+        children.push(new Paragraph({
+          children: [new TextRun({ text: `Module: ${q.question_type}`, italics: true, color: "94a3b8", size: 18 })],
+          spacing: { after: 200 }
+        }));
+
         if (q.image_url) {
-          try {
-            const imgData = await fetchImageAsBase64(q.image_url);
-            if (imgData) {
-              const imgProps = doc.getImageProperties(imgData);
-              const maxWidth = 120;
-              const maxHeight = 60;
-              let imgWidth = imgProps.width;
-              let imgHeight = imgProps.height;
-              
-              const ratio = Math.min(maxWidth / imgWidth, maxHeight / imgHeight);
-              imgWidth *= ratio;
-              imgHeight *= ratio;
-              
-              doc.addImage(imgData, 'JPEG', 14, y, imgWidth, imgHeight);
-              y += imgHeight + 10;
-            }
-          } catch (e) {}
+          children.push(new Paragraph({
+            children: [new TextRun({ text: "[Image: see online version for visual asset]", italics: true, color: "cbd5e1", size: 16 })],
+            spacing: { after: 200 }
+          }));
         }
 
-        // Options/Interaction Render
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(11);
-        doc.setTextColor(51, 65, 85);
-        
-        const qType = String(q.question_type || '').toLowerCase();
-        
-        if (['single_choice', 'multiple_choice', 'dropdown', 'ordering'].includes(qType)) {
+        if (['singlechoice', 'oneanswer', 'multiplechoice', 'manyanswers', 'dropdown', 'ordering'].includes(qType)) {
           const opts = parseRegistryArray(q.options || q.order_group);
           opts.forEach((opt, idx) => {
-            const label = String.fromCharCode(65 + idx); // A, B, C...
-            const optLines = doc.splitTextToSize(`${label}. ${opt}`, 170);
-            doc.text(optLines, 20, y);
-            y += (optLines.length * 6) + 2;
+            const isCorrect = withAnswers && correctArr.some(c => compareValues(c, opt));
+            children.push(new Paragraph({
+              text: `${opt}${isCorrect ? " [CORRECT ✓]" : ""}`,
+              bullet: { level: 0 },
+              spacing: { before: 100 }
+            }));
           });
         } 
         else if (qType === 'matching') {
           const pairs = parseRegistryArray(q.order_group);
-          const body = pairs.map(p => [p.split('|')[0], withAnswers ? p.split('|')[1] : "________________"]);
-          autoTable(doc, {
-            startY: y,
-            head: [['Property / Vế trái', 'Assignment / Vế phải']],
-            body: body,
-            theme: 'striped',
-            headStyles: { fillColor: [59, 91, 219] },
-            margin: { left: 14 }
+          const tableRows = [
+            new DocxTableRow({
+              children: [
+                new DocxTableCell({ children: [new Paragraph({ text: "Key Node", bold: true })] }),
+                new DocxTableCell({ children: [new Paragraph({ text: "Allocation", bold: true })] })
+              ]
+            })
+          ];
+          pairs.forEach(p => {
+            const [l, r] = String(p).split('|').map(s => s.trim());
+            tableRows.push(new DocxTableRow({
+              children: [
+                new DocxTableCell({ children: [new Paragraph({ text: l })] }),
+                new DocxTableCell({ children: [new Paragraph({ text: withAnswers ? r : "" })] })
+              ]
+            }));
           });
-          y = (doc as any).lastAutoTable.finalY + 10;
+          children.push(new DocxTable({ rows: tableRows, width: { size: 100, type: WidthType.PERCENTAGE }, spacing: { before: 200, after: 200 } }));
         }
-        else if (qType === 'matrix_choice' || qType === 'multiple_true_false') {
+        else if (qType === 'matrixchoice' || qType === 'multipletruefalse') {
           const rows = parseRegistryArray(q.order_group);
-          const cols = parseRegistryArray(q.options);
-          const body = rows.map(r => [r, ...cols.map(() => "[  ]")]);
-          autoTable(doc, {
-            startY: y,
-            head: [['Registry Node', ...cols]],
-            body: body,
-            theme: 'grid',
-            headStyles: { fillColor: [59, 91, 219] },
-            margin: { left: 14 }
+          const cols = qType === 'multipletruefalse' ? ['True', 'False'] : parseRegistryArray(q.options);
+          const tableRows = [
+            new DocxTableRow({
+              children: [
+                new DocxTableCell({ children: [new Paragraph({ text: "Interaction", bold: true })] }),
+                ...cols.map(c => new DocxTableCell({ children: [new Paragraph({ text: c, bold: true, alignment: AlignmentType.CENTER })] }))
+              ]
+            })
+          ];
+          rows.forEach((row, rIdx) => {
+            tableRows.push(new DocxTableRow({
+              children: [
+                new DocxTableCell({ children: [new Paragraph({ text: row })] }),
+                ...cols.map(col => {
+                  const isCorrect = withAnswers && compareValues(col, correctArr[rIdx]);
+                  return new DocxTableCell({ children: [new Paragraph({ text: isCorrect ? "✓" : "", alignment: AlignmentType.CENTER })] });
+                })
+              ]
+            }));
           });
-          y = (doc as any).lastAutoTable.finalY + 10;
+          children.push(new DocxTable({ rows: tableRows, width: { size: 100, type: WidthType.PERCENTAGE }, spacing: { before: 200, after: 200 } }));
         }
-        else if (qType === 'short_text') {
-          doc.text("Response: ________________________________________________", 14, y);
-          y += 10;
+        else {
+          children.push(new Paragraph({ text: "________________________________________________", spacing: { before: 200 } }));
+          if (withAnswers) {
+            children.push(new Paragraph({ children: [new TextRun({ text: `Correct Answer: ${correctArr.join(", ")}`, bold: true, color: "059669" })], spacing: { before: 100 } }));
+          }
         }
-
-        // Answer Key Overlay
-        if (withAnswers) {
-          y += 5;
-          doc.setFont("helvetica", "bold");
-          doc.setTextColor(5, 150, 105); // Emerald 600
-          const answers = parseRegistryArray(q.correct_answer);
-          doc.text(`Correct: ${answers.join(", ")}`, 14, y);
-        }
-      }
-
-      const typeLabel = withAnswers ? "answerkey" : "questions";
-      const filename = `DNTRNG_${(currentTest.title || testId).replace(/\s+/g, '_')}_${typeLabel}_${dateKey}.pdf`;
-      doc.save(filename);
-      setIsExporting(false);
-      toast({ title: "PDF exported / Xuất PDF thành công" });
-    };
-
-    processQuestions();
-  };
-
-  const fetchImageAsBase64 = async (url: string): Promise<string | null> => {
-    try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(blob);
       });
-    } catch (e) {
-      return null;
+
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: children
+        }]
+      });
+
+      const blob = await Packer.toBlob(doc);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `DNTRNG_${(currentTest.title || testId).replace(/\s+/g, '_')}_${withAnswers ? 'answerkey' : 'questions'}_${new Date().toISOString().split('T')[0]}.docx`;
+      link.click();
+      URL.revokeObjectURL(url);
+      
+      toast({ title: "Word document exported / Xuất Word thành công" });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Word Export Failed" });
+    } finally {
+      setIsExporting(false);
     }
   };
 
   const handleExportExcel = () => {
     if (!testId || questions.length === 0) return;
-    
     setIsExporting(true);
-    
     try {
       const dateStr = new Date().toISOString().split('T')[0];
-
-      // 1. Construct SHEET 1 — "Test Info"
-      const infoAOA = [
-        ["Field", "Value"],
-        ["Title", currentTest.title || "N/A"],
-        ["Category", currentTest.category || "General"],
-        ["Difficulty", currentTest.difficulty || "Medium"],
-        ["Duration", currentTest.duration || "15m"],
-        ["Pass Score", `${currentTest.passing_threshold || 70}%`],
-        ["Questions", questions.length],
-        ["Exported At", new Date().toLocaleString()]
-      ];
+      const infoAOA = [["Field", "Value"], ["Title", currentTest.title || "N/A"], ["Category", currentTest.category || "General"], ["Difficulty", currentTest.difficulty || "Medium"], ["Duration", currentTest.duration || "15m"], ["Pass Score", `${currentTest.passing_threshold || 70}%`], ["Questions", questions.length], ["Exported At", new Date().toLocaleString()]];
       const wsInfo = XLSX.utils.aoa_to_sheet(infoAOA);
       wsInfo['!cols'] = [{ wch: 15 }, { wch: 40 }];
-
-      // 2. Construct SHEET 2 — "Questions"
-      const questionsData = questions.map((q, i) => ({
-        "No.": i + 1,
-        "Question": q.question_text,
-        "Type": q.question_type,
-        "Options": q.options || "[]",
-        "Correct Answer": q.correct_answer || "[]",
-        "Image URL": q.image_url || "",
-        "Required": q.required ? "yes" : "no"
-      }));
+      const questionsData = questions.map((q, i) => ({ "No.": i + 1, "Question": q.question_text, "Type": q.question_type, "Options": q.options || "[]", "Correct Answer": q.correct_answer || "[]", "Image URL": q.image_url || "", "Required": q.required ? "yes" : "no" }));
       const wsQuestions = XLSX.utils.json_to_sheet(questionsData);
-      wsQuestions['!cols'] = [
-        { wch: 5 }, { wch: 50 }, { wch: 15 }, { wch: 30 }, { wch: 30 }, { wch: 30 }, { wch: 10 }
-      ];
-
+      wsQuestions['!cols'] = [{ wch: 5 }, { wch: 50 }, { wch: 15 }, { wch: 30 }, { wch: 30 }, { wch: 30 }, { wch: 10 }];
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, wsInfo, "Test Info");
       XLSX.utils.book_append_sheet(wb, wsQuestions, "Questions");
-
       const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
       const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = url;
-      link.download = `DNTRNG_${(currentTest.title || testId).replace(/\s+/g, '_')}_${dateStr}.xlsx`;
+      link.href = url; link.download = `DNTRNG_${(currentTest.title || testId).replace(/\s+/g, '_')}_${dateStr}.xlsx`;
       link.click();
       URL.revokeObjectURL(url);
-
       toast({ title: "Excel exported / Xuất Excel thành công" });
-      trackEvent('admin_test_export_excel', { test_id: testId, test_name: currentTest.title });
-    } catch (error) {
-      toast({ variant: "destructive", title: "Excel Export Failed" });
-    } finally {
-      setIsExporting(false);
-    }
+    } catch (error) { toast({ variant: "destructive", title: "Excel Export Failed" }); }
+    finally { setIsExporting(false); }
   };
 
   const handleExportJSON = () => {
@@ -297,56 +408,18 @@ export default function AdminTestDetailPage() {
     setIsExporting(true);
     try {
       const typeDistribution: Record<string, number> = {};
-      questions.forEach(q => {
-        const type = q.question_type || 'unknown';
-        typeDistribution[type] = (typeDistribution[type] || 0) + 1;
-      });
-
-      const exportData = {
-        exportedAt: new Date().toISOString(),
-        exportVersion: "1.0",
-        platform: "DNTRNG",
-        test: {
-          id: currentTest.id,
-          title: currentTest.title,
-          description: currentTest.description,
-          category: currentTest.category,
-          difficulty: currentTest.difficulty,
-          duration: currentTest.duration,
-          passing_threshold: currentTest.passing_threshold,
-          certificate_enabled: currentTest.certificate_enabled
-        },
-        questions: questions.map(q => ({
-          id: q.id,
-          question_text: q.question_text,
-          question_type: q.question_type,
-          options: q.options,
-          correct_answer: q.correct_answer,
-          order_group: q.order_group,
-          image_url: q.image_url,
-          metadata: q.metadata,
-          required: q.required
-        })),
-        summary: {
-          totalQuestions: questions.length,
-          questionTypes: typeDistribution
-        }
-      };
-
+      questions.forEach(q => { const type = q.question_type || 'unknown'; typeDistribution[type] = (typeDistribution[type] || 0) + 1; });
+      const exportData = { exportedAt: new Date().toISOString(), exportVersion: "1.0", platform: "DNTRNG", test: { id: currentTest.id, title: currentTest.title, description: currentTest.description, category: currentTest.category, difficulty: currentTest.difficulty, duration: currentTest.duration, passing_threshold: currentTest.passing_threshold, certificate_enabled: currentTest.certificate_enabled }, questions: questions.map(q => ({ id: q.id, question_text: q.question_text, question_type: q.question_type, options: q.options, correct_answer: q.correct_answer, order_group: q.order_group, image_url: q.image_url, metadata: q.metadata, required: q.required })), summary: { totalQuestions: questions.length, questionTypes: typeDistribution } };
       const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       const dateStr = new Date().toISOString().split('T')[0];
-      link.href = url;
-      link.download = `DNTRNG_${testId}_${dateStr}.json`;
+      link.href = url; link.download = `DNTRNG_${testId}_${dateStr}.json`;
       link.click();
       URL.revokeObjectURL(url);
       toast({ title: "JSON exported / Xuất JSON thành công" });
-    } catch (error) {
-      toast({ variant: "destructive", title: "Export Failed" });
-    } finally {
-      setIsExporting(false);
-    }
+    } catch (error) { toast({ variant: "destructive", title: "Export Failed" }); }
+    finally { setIsExporting(false); }
   };
 
   const fetchData = async () => {
@@ -361,14 +434,16 @@ export default function AdminTestDetailPage() {
       const tData = await tRes.json();
       setQuestions(Array.isArray(qData) ? qData : []);
       setTests(Array.isArray(tData) ? tData : []);
-    } catch (err) {
-      toast({ variant: "destructive", title: "Sync Error" });
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { toast({ variant: "destructive", title: "Sync Error" }); }
+    finally { setLoading(false); }
   };
 
   useEffect(() => { fetchData(); }, [testId]);
+
+  const openExportModal = (format: 'pdf' | 'docx') => {
+    setExportFormat(format);
+    setShowExportModal(true);
+  };
 
   return (
     <div className="space-y-6">
@@ -380,47 +455,27 @@ export default function AdminTestDetailPage() {
         <div className="flex items-center gap-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button 
-                variant="outline" 
-                disabled={loading || isExporting} 
-                className="rounded-full h-11 px-6 font-bold border-2 bg-white shadow-sm"
-              >
+              <Button variant="outline" disabled={loading || isExporting} className="rounded-full h-11 px-6 font-bold border-2 bg-white shadow-sm">
                 {isExporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
                 Export
                 <ChevronDown className="w-4 h-4 ml-2 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-2xl border-none w-64 bg-white">
-              <DropdownMenuItem 
-                onClick={() => setShowPdfDialog(true)} 
-                disabled={isExporting} 
-                className="rounded-xl p-3 font-bold cursor-pointer"
-              >
+              <DropdownMenuItem onClick={() => openExportModal('pdf')} className="rounded-xl p-3 font-bold cursor-pointer">
                 <FileText className="mr-3 h-4 w-4 text-rose-500" />
                 <span>📄 Export as PDF</span>
               </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => toast({ title: "Coming Soon" })} 
-                disabled={isExporting} 
-                className="rounded-xl p-3 font-bold cursor-pointer"
-              >
+              <DropdownMenuItem onClick={() => openExportModal('docx')} className="rounded-xl p-3 font-bold cursor-pointer">
                 <FileText className="mr-3 h-4 w-4 text-blue-500" />
-                <span>📝 Export as Word (Soon)</span>
+                <span>📝 Export as Word (.docx)</span>
               </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={handleExportExcel} 
-                disabled={isExporting} 
-                className="rounded-xl p-3 font-bold cursor-pointer"
-              >
+              <DropdownMenuItem onClick={handleExportExcel} className="rounded-xl p-3 font-bold cursor-pointer">
                 <Table className="mr-3 h-4 w-4 text-emerald-500" />
                 <span>📊 Export as Excel (.xlsx)</span>
               </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={handleExportJSON} 
-                disabled={isExporting} 
-                className="rounded-xl p-3 font-bold cursor-pointer"
-              >
-                <FileJson className="mr-3 h-4 w-4 text-amber-500" />
+              <DropdownMenuItem onClick={handleExportJSON} className="rounded-xl p-3 font-bold cursor-pointer">
+                <FileCode className="mr-3 h-4 w-4 text-amber-500" />
                 <span>🔧 Export as JSON (backup)</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -489,23 +544,27 @@ export default function AdminTestDetailPage() {
         loading={loading}
       />
 
-      <Dialog open={showPdfDialog} onOpenChange={setShowPdfDialog}>
+      <Dialog open={showExportModal} onOpenChange={setShowExportModal}>
         <DialogContent className="sm:max-w-[480px] rounded-[2.5rem] p-10 border-none shadow-2xl bg-white">
           <DialogHeader>
             <div className="flex items-center gap-4 mb-2">
-              <div className="p-3 bg-rose-50 rounded-2xl">
-                <FileText className="w-6 h-6 text-rose-500" />
+              <div className={cn("p-3 rounded-2xl", exportFormat === 'pdf' ? "bg-rose-50" : "bg-blue-50")}>
+                <FileText className={cn("w-6 h-6", exportFormat === 'pdf' ? "text-rose-500" : "text-blue-500")} />
               </div>
               <div>
-                <DialogTitle className="text-2xl font-black uppercase tracking-tight">Export PDF / Xuất PDF</DialogTitle>
-                <DialogDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest">Select output variant</DialogDescription>
+                <DialogTitle className="text-2xl font-black uppercase tracking-tight">
+                  Export {exportFormat?.toUpperCase()}
+                </DialogTitle>
+                <DialogDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                  Select document variant
+                </DialogDescription>
               </div>
             </div>
           </DialogHeader>
 
           <div className="py-8 space-y-4">
              <Button 
-                onClick={() => handleExportPDF(false)}
+                onClick={() => exportFormat === 'pdf' ? handleExportPDF(false) : handleExportWord(false)}
                 className="w-full h-20 rounded-3xl bg-slate-50 border-2 border-slate-100 hover:border-primary/20 hover:bg-white transition-all text-slate-900 font-black flex items-center justify-between px-8 group shadow-sm hover:shadow-xl"
              >
                 <div className="flex flex-col items-start">
@@ -516,7 +575,7 @@ export default function AdminTestDetailPage() {
              </Button>
 
              <Button 
-                onClick={() => handleExportPDF(true)}
+                onClick={() => exportFormat === 'pdf' ? handleExportPDF(true) : handleExportWord(true)}
                 className="w-full h-20 rounded-3xl bg-slate-50 border-2 border-slate-100 hover:border-emerald-500/20 hover:bg-white transition-all text-slate-900 font-black flex items-center justify-between px-8 group shadow-sm hover:shadow-xl"
              >
                 <div className="flex flex-col items-start">
@@ -528,7 +587,7 @@ export default function AdminTestDetailPage() {
           </div>
 
           <DialogFooter>
-             <Button variant="ghost" onClick={() => setShowPdfDialog(false)} className="w-full h-12 rounded-full font-bold text-slate-400">Cancel / Hủy</Button>
+             <Button variant="ghost" onClick={() => setShowExportModal(false)} className="w-full h-12 rounded-full font-bold text-slate-400">Cancel / Hủy</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
