@@ -1,5 +1,6 @@
 /**
  * @fileOverview High-Fidelity PDF Intelligence Extraction Service.
+ * Implements Visual Capture Protocol v19.5 with high-precision scaling.
  */
 
 import { jsPDF } from 'jspdf';
@@ -15,121 +16,194 @@ interface ExportParams {
   onProgress?: (msg: string) => void;
 }
 
+/**
+ * Builds the HTML content for a specific question node with only inline styles.
+ * Bypasses Tailwind dependency for extraction reliability.
+ */
+function buildOptionsHTML(q: Question, showAnswers: boolean) {
+  const qType = String(q.question_type || '').toLowerCase().replace(/[\s_]/g, '');
+  const options = parseRegistryArray(q.options || q.order_group);
+  const correct = parseRegistryArray(q.correct_answer);
+
+  if (['singlechoice', 'oneanswer', 'multiplechoice', 'manyanswers', 'dropdown', 'ordering'].includes(qType)) {
+    return options.map((opt, idx) => {
+      const label = String.fromCharCode(65 + idx);
+      const isCorrect = showAnswers && correct.some(c => compareValues(c, opt));
+      return `
+        <div style="margin: 8px 0; padding: 8px 12px; font-size: 14px; color: ${isCorrect ? '#059669' : '#334155'}; border-radius: 8px; ${isCorrect ? 'font-weight: 900; background: #f0fdf4; border: 1px solid #bbf7d0;' : 'background: #f8fafc; border: 1px solid #f1f5f9;'}">
+          <span style="color: ${isCorrect ? '#059669' : '#94a3b8'}; margin-right: 8px;">${label}.</span>
+          ${opt} ${isCorrect ? '<span style="float: right;">✓</span>' : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  if (qType === 'matching') {
+    let table = '<table style="width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 13px; border: 1px solid #e2e8f0;">';
+    table += '<tr style="background: #f1f5f9;"><th style="border: 1px solid #e2e8f0; padding: 12px; text-align: left; font-weight: 900; text-transform: uppercase; color: #64748b;">Key Node</th><th style="border: 1px solid #e2e8f0; padding: 12px; text-align: left; font-weight: 900; text-transform: uppercase; color: #64748b;">Allocation</th></tr>';
+    parseRegistryArray(q.order_group).forEach(p => {
+      const [l, r] = String(p).split('|').map(s => s.trim());
+      table += `<tr><td style="border: 1px solid #e2e8f0; padding: 12px; font-weight: 700; color: #1e293b; background: #ffffff;">${l}</td><td style="border: 1px solid #e2e8f0; padding: 12px; color: ${showAnswers ? '#059669' : '#cbd5e1'}; font-weight: ${showAnswers ? '900' : 'normal'}; background: #ffffff;">${showAnswers ? r : '____________________'}</td></tr>`;
+    });
+    table += '</table>';
+    return table;
+  }
+
+  if (qType === 'matrixchoice' || qType === 'multipletruefalse') {
+    const rows = parseRegistryArray(q.order_group);
+    const cols = qType === 'multipletruefalse' ? ['True', 'False'] : parseRegistryArray(q.options);
+    let table = '<table style="width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 12px; border: 1px solid #e2e8f0;">';
+    table += `<tr style="background: #f1f5f9;"><th style="border: 1px solid #e2e8f0; padding: 10px; text-align: left; font-weight: 900; text-transform: uppercase; color: #64748b;">Interaction</th>${cols.map(c => `<th style="border: 1px solid #e2e8f0; padding: 10px; text-align: center; font-weight: 900; text-transform: uppercase; color: #64748b;">${c}</th>`).join('')}</tr>`;
+    rows.forEach((row, rIdx) => {
+      table += `<tr><td style="border: 1px solid #e2e8f0; padding: 10px; font-weight: 700; color: #1e293b; background: #ffffff;">${row}</td>`;
+      cols.forEach(col => {
+        const isChecked = showAnswers && compareValues(col, correct[rIdx]);
+        table += `<td style="border: 1px solid #e2e8f0; padding: 10px; text-align: center; background: #ffffff;">${isChecked ? '<span style="color: #059669; font-size: 20px; font-weight: bold;">●</span>' : '<span style="color: #e2e8f0; font-size: 20px;">○</span>'}</td>`;
+      });
+      table += '</tr>';
+    });
+    table += '</table>';
+    return table;
+  }
+
+  return `
+    <div style="margin: 15px 0; padding: 25px; background: #f8fafc; border: 2px dashed #e2e8f0; border-radius: 12px; color: #94a3b8; font-size: 14px; font-weight: 500;">
+      Response Registry: ____________________________________________________________________
+    </div>
+    ${showAnswers ? `<div style="margin-top: 12px; padding: 12px 20px; background: #f0fdf4; border-left: 5px solid #22c55e; color: #15803d; font-weight: 900; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em;">✓ Correct answer: ${correct.join(', ')}</div>` : ''}
+  `;
+}
+
 export async function generateTestPDF({ testId, currentTest, questions, withAnswers }: ExportParams) {
+  console.log('[PDF] Starting high-fidelity export pulse');
+  console.log('[PDF] Registry count:', questions.length);
+
   const element = document.createElement('div');
   element.id = 'pdf-render-node';
-  element.style.width = '794px';
-  element.style.padding = '60px';
-  element.style.backgroundColor = '#ffffff';
-  element.style.color = '#0f172a';
-  element.style.fontFamily = '"Inter", sans-serif';
-  element.style.position = 'absolute';
-  element.style.left = '-9999px';
+  
+  // PROTOCOL: Technically visible but off-screen rendering
+  element.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 794px;
+    z-index: -1;
+    opacity: 0;
+    pointer-events: none;
+    background-color: #ffffff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding: 80px;
+    box-sizing: border-box;
+    color: #0f172a;
+  `;
 
-  let html = `
-    <div style="text-align: center; margin-bottom: 60px;">
-      <div style="font-size: 42px; font-weight: 900; color: #1e293b; margin-bottom: 8px;">DNTRNG</div>
-      <div style="font-size: 11px; font-weight: 800; color: #3b82f6; letter-spacing: 0.4em; margin-bottom: 40px; text-transform: uppercase;">Intelligence Registry Protocol</div>
-      <div style="width: 120px; height: 2px; background: #3b82f6; margin: 0 auto 50px;"></div>
-      <h1 style="font-size: 36px; font-weight: 900; line-height: 1.2; margin-bottom: 30px; color: #0f172a;">${currentTest.title || "Assessment Module"}</h1>
-      <div style="display: flex; flex-direction: column; gap: 10px; font-size: 16px; color: #64748b; font-weight: 500;">
-        <div>Category: ${currentTest.category || "General"}</div>
-        <div>Difficulty: ${currentTest.difficulty || "Medium"}</div>
-        <div>Duration: ${currentTest.duration || "15m"}</div>
-        <div>Export Type: ${withAnswers ? "Answer Key / Đáp án" : "Questions Only / Chỉ câu hỏi"}</div>
+  const headerHtml = `
+    <div style="text-align: center; margin-bottom: 80px;">
+      <div style="font-size: 48px; font-weight: 900; color: #1e293b; margin-bottom: 8px; letter-spacing: -0.02em;">DNTRNG</div>
+      <div style="font-size: 11px; font-weight: 800; color: #2563eb; letter-spacing: 0.4em; margin-bottom: 40px; text-transform: uppercase;">Intelligence Registry Protocol</div>
+      <div style="width: 120px; height: 3px; background: #2563eb; margin: 0 auto 50px;"></div>
+      <h1 style="font-size: 38px; font-weight: 900; line-height: 1.1; margin-bottom: 24px; color: #0f172a;">${currentTest.title || "Assessment Module"}</h1>
+      <div style="font-size: 15px; color: #64748b; font-weight: 600; display: flex; justify-content: center; gap: 20px;">
+        <span>CATEGORY: ${String(currentTest.category || "General").toUpperCase()}</span>
+        <span>|</span>
+        <span>LEVEL: ${String(currentTest.difficulty || "Medium").toUpperCase()}</span>
+        <span>|</span>
+        <span>NODES: ${questions.length}</span>
       </div>
     </div>
   `;
 
-  questions.forEach((q, i) => {
-    const qType = String(q.question_type || '').toLowerCase().replace(/[\s_]/g, '');
-    const options = parseRegistryArray(q.options || q.order_group);
-    const correctArr = parseRegistryArray(q.correct_answer);
+  const questionsHtml = questions.map((q, i) => `
+    <div style="margin-bottom: 60px; page-break-inside: avoid; border-left: 6px solid #f1f5f9; padding-left: 30px;">
+      <div style="display: flex; gap: 15px; margin-bottom: 12px;">
+        <span style="font-size: 18px; font-weight: 900; color: #2563eb;">${i + 1}.</span>
+        <div style="font-size: 18px; font-weight: 800; color: #0f172a; line-height: 1.4;">${q.question_text}</div>
+      </div>
+      <div style="font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 25px;">
+        Interaction: ${q.question_type.replace(/_/g, ' ')}
+      </div>
+      ${q.image_url ? `<div style="margin-bottom: 25px;"><img src="${q.image_url}" style="max-width: 100%; border: 1px solid #e2e8f0; border-radius: 0;" /></div>` : ''}
+      ${buildOptionsHTML(q, withAnswers)}
+    </div>
+  `).join('');
 
-    html += `
-      <div style="margin-bottom: 50px; page-break-inside: avoid; border-left: 4px solid #f1f5f9; padding-left: 24px;">
-        <div style="display: flex; gap: 12px; margin-bottom: 12px;">
-          <span style="font-size: 18px; font-weight: 900; color: #3b82f6;">${i + 1}.</span>
-          <div style="font-size: 18px; font-weight: 700; color: #1e293b;">${q.question_text}</div>
-        </div>
-        <div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 20px;">
-          Module: ${q.question_type.replace(/_/g, ' ')}
-        </div>
-    `;
+  const footerHtml = `
+    <div style="margin-top: 100px; text-align: center; border-top: 1px solid #f1f5f9; pt: 40px;">
+      <p style="font-size: 9px; font-weight: 900; color: #cbd5e1; text-transform: uppercase; letter-spacing: 0.4em;">
+        Authorized Extraction • DNTRNG Platform v19.5 • ${new Date().toLocaleDateString()}
+      </p>
+    </div>
+  `;
 
-    if (q.image_url) {
-      html += `<div style="margin-bottom: 20px;"><img src="${q.image_url}" style="max-width: 100%; max-height: 300px; border: 1px solid #e2e8f0; border-radius: 0;" /></div>`;
-    }
-
-    if (['singlechoice', 'oneanswer', 'multiplechoice', 'manyanswers', 'dropdown', 'ordering'].includes(qType)) {
-      options.forEach((opt, idx) => {
-        const label = String.fromCharCode(65 + idx);
-        const isCorrect = withAnswers && correctArr.some(c => compareValues(c, opt));
-        html += `
-          <div style="display: flex; align-items: flex-start; gap: 12px; font-size: 15px; margin-bottom: 8px; ${isCorrect ? 'color: #059669; font-weight: 700;' : 'color: #475569;'}">
-            <span style="font-weight: 800; color: ${isCorrect ? '#059669' : '#cbd5e1'}; min-width: 24px;">${label}.</span>
-            <span>${opt} ${isCorrect ? '✓' : ''}</span>
-          </div>
-        `;
-      });
-    } else if (qType === 'matching') {
-      html += '<table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px;">';
-      html += '<tr style="background: #f8fafc;"><th style="border: 1px solid #e2e8f0; padding: 12px; text-align: left;">Key Node</th><th style="border: 1px solid #e2e8f0; padding: 12px; text-align: left;">Allocation</th></tr>';
-      parseRegistryArray(q.order_group).forEach(p => {
-        const [l, r] = String(p).split('|').map(s => s.trim());
-        html += `<tr><td style="border: 1px solid #e2e8f0; padding: 12px; font-weight: 600;">${l}</td><td style="border: 1px solid #e2e8f0; padding: 12px; color: ${withAnswers ? '#059669' : '#cbd5e1'};">${withAnswers ? r : '____________________'}</td></tr>`;
-      });
-      html += '</table>';
-    } else if (qType === 'matrixchoice' || qType === 'multipletruefalse') {
-      const rows = parseRegistryArray(q.order_group);
-      const cols = qType === 'multipletruefalse' ? ['True', 'False'] : parseRegistryArray(q.options);
-      html += '<table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px;">';
-      html += `<tr style="background: #f8fafc;"><th style="border: 1px solid #e2e8f0; padding: 10px; text-align: left;">Interaction</th>${cols.map(c => `<th style="border: 1px solid #e2e8f0; padding: 10px; text-align: center;">${c}</th>`).join('')}</tr>`;
-      rows.forEach((row, rIdx) => {
-        html += `<tr><td style="border: 1px solid #e2e8f0; padding: 10px; font-weight: 600;">${row}</td>`;
-        cols.forEach(col => {
-          const isChecked = withAnswers && compareValues(col, correctArr[rIdx]);
-          html += `<td style="border: 1px solid #e2e8f0; padding: 10px; text-align: center;">${isChecked ? '<span style="color: #059669; font-size: 18px;">●</span>' : '<span style="color: #e2e8f0; font-size: 18px;">○</span>'}</td>`;
-        });
-        html += '</tr>';
-      });
-      html += '</table>';
-    } else {
-      html += '<div style="margin-bottom: 20px; padding: 20px; background: #f8fafc; border: 2px dashed #e2e8f0; border-radius: 0; color: #94a3b8; font-size: 14px;">Response: ________________________________________________</div>';
-      if (withAnswers) {
-        html += `<div style="color: #059669; font-weight: 800; font-size: 15px; display: flex; align-items: center; gap: 8px;"><span style="background: #ecfdf5; padding: 4px 10px;">✓ Correct: ${correctArr.join(', ')}</span></div>`;
-      }
-    }
-    html += '</div>';
-  });
-
-  element.innerHTML = html;
+  element.innerHTML = headerHtml + questionsHtml + footerHtml;
+  
+  console.log('[PDF] Hydrating hidden DOM node...');
   document.body.appendChild(element);
-  await new Promise(resolve => setTimeout(resolve, 500));
 
-  const canvas = await html2canvas(element, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', logging: false });
-  document.body.removeChild(element);
+  // STEP: layout delay for browser rendering & image hydration
+  await new Promise(resolve => setTimeout(resolve, 1000));
 
-  const imgData = canvas.toDataURL('image/jpeg', 0.95);
-  const pdf = new jsPDF('p', 'mm', 'a4');
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
-  const imgWidth = pageWidth;
-  const imgHeight = (canvas.height * pageWidth) / canvas.width;
-  
-  let heightLeft = imgHeight;
-  let position = 0;
-  
-  pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-  heightLeft -= pageHeight;
-  
-  while (heightLeft > 0) {
-    position = heightLeft - imgHeight;
-    pdf.addPage();
-    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-    heightLeft -= pageHeight;
+  console.log('[PDF] Extraction node dimensions:', element.offsetWidth, 'x', element.offsetHeight);
+
+  try {
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      width: 794,
+      height: element.scrollHeight,
+      windowWidth: 794,
+      scrollX: 0,
+      scrollY: 0,
+      logging: true
+    });
+
+    if (canvas.width === 0 || canvas.height === 0) {
+      throw new Error('Canvas capture failure: Dimensions zero');
+    }
+
+    console.log('[PDF] Visual capture complete. Initializing distribution pulse.');
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'px',
+      format: 'a4'
+    });
+
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
+
+    // SCALING: Pixel-to-PDF ratio
+    const ratio = pdfWidth / (canvasWidth / 2); // Divide by 2 because scale is 2
+    const scaledHeight = (canvasHeight / 2) * ratio;
+
+    let yPosition = 0;
+    let remainingHeight = scaledHeight;
+
+    // Distribution Sequence
+    pdf.addImage(imgData, 'JPEG', 0, yPosition, pdfWidth, scaledHeight);
+    remainingHeight -= pdfHeight;
+
+    while (remainingHeight > 0) {
+      yPosition -= pdfHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', 0, yPosition, pdfWidth, scaledHeight);
+      remainingHeight -= pdfHeight;
+    }
+
+    const typeLabel = withAnswers ? "answerkey" : "questions";
+    const dateStr = new Date().toISOString().split('T')[0];
+    pdf.save(`DNTRNG_${(currentTest.title || testId).replace(/\s+/g, '_')}_${typeLabel}_${dateStr}.pdf`);
+    
+    console.log('[PDF] Extraction successful.');
+  } catch (error) {
+    console.error('[PDF] Terminal protocol failure:', error);
+    throw error;
+  } finally {
+    document.body.removeChild(element);
   }
-
-  const typeLabel = withAnswers ? "answerkey" : "questions";
-  pdf.save(`DNTRNG_${(currentTest.title || testId).replace(/\s+/g, '_')}_${typeLabel}_${new Date().toISOString().split('T')[0]}.pdf`);
 }
