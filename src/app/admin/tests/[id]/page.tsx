@@ -21,6 +21,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { generateTestPDF } from '@/lib/export/pdf-service';
 import { generateTestWord } from '@/lib/export/word-service';
 import { generateTestExcel, generateTestJSON } from '@/lib/export/data-service';
+import { cn } from '@/lib/utils';
 
 export default function AdminTestDetailPage() {
   const { id: testId } = useParams();
@@ -28,6 +29,7 @@ export default function AdminTestDetailPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [exportStatus, setExportStatus] = useState("");
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportFormat, setExportFormat] = useState<'pdf' | 'docx' | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -56,9 +58,19 @@ export default function AdminTestDetailPage() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleExport = async (withAnswers: boolean) => {
-    setIsExporting(true); setShowExportModal(false);
+    setIsExporting(true); 
+    setShowExportModal(false);
+    setExportStatus("Initializing...");
+
     try {
-      const params = { testId: String(testId), currentTest, questions, withAnswers };
+      const params = { 
+        testId: String(testId), 
+        currentTest, 
+        questions, 
+        withAnswers,
+        onStatus: (status: string) => setExportStatus(status)
+      };
+
       if (exportFormat === 'pdf') {
         toast({ title: "Generating PDF... / Đang tạo PDF..." });
         await generateTestPDF(params);
@@ -66,8 +78,12 @@ export default function AdminTestDetailPage() {
         await generateTestWord(params);
       }
       toast({ title: "Extraction Successful" });
-    } catch (e) { toast({ variant: "destructive", title: "Export Failed" }); }
-    finally { setIsExporting(false); }
+    } catch (e) { 
+      toast({ variant: "destructive", title: "Export Failed" }); 
+    } finally { 
+      setIsExporting(false); 
+      setExportStatus("");
+    }
   };
 
   return (
@@ -79,9 +95,19 @@ export default function AdminTestDetailPage() {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" disabled={loading || isExporting} className="rounded-full h-11 px-6 font-bold border-2 bg-white shadow-sm">
-              {isExporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
-              Export <ChevronDown className="w-4 h-4 ml-2 opacity-50" />
+            <Button variant="outline" disabled={loading || isExporting} className="rounded-full h-11 px-6 font-bold border-2 bg-white shadow-sm min-w-[140px]">
+              {isExporting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <span className="text-[10px] uppercase truncate max-w-[100px]">{exportStatus || 'Exporting...'}</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 mr-2" />
+                  Export
+                </>
+              )}
+              <ChevronDown className="w-4 h-4 ml-2 opacity-50" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-2xl border-none w-64 bg-white">
