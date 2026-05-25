@@ -82,6 +82,7 @@ export default function AdminTestDetailPage() {
     try {
       // 1. Create hidden element for high-fidelity rendering
       const element = document.createElement('div');
+      element.id = 'pdf-render-node';
       element.style.width = '794px'; // Standard A4 width at 96 DPI
       element.style.padding = '60px';
       element.style.backgroundColor = '#ffffff';
@@ -128,6 +129,14 @@ export default function AdminTestDetailPage() {
               Module: ${q.question_type.replace(/_/g, ' ')}
             </div>
         `;
+
+        if (q.image_url) {
+          html += `
+            <div style="margin-bottom: 20px;">
+              <img src="${q.image_url}" style="max-width: 100%; max-height: 300px; border: 1px solid #e2e8f0;" />
+            </div>
+          `;
+        }
 
         if (['singlechoice', 'oneanswer', 'multiplechoice', 'manyanswers', 'dropdown', 'ordering'].includes(qType)) {
           html += '<div style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px;">';
@@ -185,6 +194,9 @@ export default function AdminTestDetailPage() {
       element.innerHTML = html;
       document.body.appendChild(element);
 
+      // Hydration Protocol: Wait for potential browser reflow and image caching
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       // 3. Capture with html2canvas (Supports Unicode natively via browser rendering)
       const canvas = await html2canvas(element, {
         scale: 2,
@@ -196,8 +208,13 @@ export default function AdminTestDetailPage() {
 
       document.body.removeChild(element);
 
+      if (canvas.width === 0 || canvas.height === 0) {
+        throw new Error('Canvas rendering produced zero-dimension buffer.');
+      }
+
       // 4. Generate PDF via Visual-Split Protocol
-      const imgData = canvas.toDataURL('image/png', 1.0);
+      // Use JPEG for better compression of high-res buffers to avoid string truncation errors
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
@@ -209,14 +226,14 @@ export default function AdminTestDetailPage() {
       let position = 0;
       
       // Page 1
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
       heightLeft -= pageHeight;
       
       // Multi-page distribution
       while (heightLeft > 0) {
         position = heightLeft - imgHeight;
         pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
         heightLeft -= pageHeight;
       }
 
