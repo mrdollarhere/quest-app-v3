@@ -1,11 +1,12 @@
 /**
  * @fileOverview High-Fidelity PDF Intelligence Extraction Service.
- * Implements Direct Text Protocol v2.0 using jsPDF for reliability.
+ * Implements Direct Text Protocol v2.1 with Unicode Support.
  */
 
 import { jsPDF } from 'jspdf';
 import { Question } from '@/types/quiz';
 import { parseRegistryArray, compareValues } from '@/lib/quiz-utils';
+import { loadRobotoFont } from './font-loader';
 
 interface ExportParams {
   testId: string;
@@ -22,8 +23,8 @@ interface ExportParams {
 }
 
 /**
- * LINGUISTIC NORMALIZATION HELPER
- * Replaces Vietnamese diacritics with ASCII equivalents for standard font compatibility.
+ * LINGUISTIC NORMALIZATION FALLBACK
+ * Only used if custom font fails to load.
  */
 function toAscii(text: string): string {
   if (!text) return "";
@@ -59,13 +60,28 @@ function toAscii(text: string): string {
 }
 
 export async function generateTestPDF({ testId, currentTest, questions, withAnswers, onStatus, returnOutput, watermark }: ExportParams) {
-  onStatus?.('Generating document buffer...');
+  onStatus?.('Synchronizing Unicode fonts...');
 
   const pdf = new jsPDF({
     orientation: 'p',
     unit: 'mm',
     format: 'a4'
   });
+
+  let hasCustomFont = false;
+  try {
+    const fontBase64 = await loadRobotoFont();
+    pdf.addFileToVFS('Roboto.ttf', fontBase64);
+    pdf.addFont('Roboto.ttf', 'Roboto', 'normal');
+    pdf.setFont('Roboto');
+    hasCustomFont = true;
+  } catch (e) {
+    console.warn('[PDF] Vietnamese font failed to load, using ASCII fallback');
+    pdf.setFont('helvetica');
+  }
+
+  // Define dynamic text cleaner based on font status
+  const cleanText = (t: string) => hasCustomFont ? (t || "") : toAscii(t);
 
   const pageWidth = 210;
   const pageHeight = 297;
@@ -75,17 +91,21 @@ export async function generateTestPDF({ testId, currentTest, questions, withAnsw
 
   // PAGE 1: COVER
   pdf.setFontSize(20);
-  pdf.setFont('helvetica', 'bold');
-  const titleText = toAscii(currentTest.title || "Assessment Module");
+  if (hasCustomFont) pdf.setFont('Roboto', 'normal');
+  else pdf.setFont('helvetica', 'bold');
+  
+  const titleText = cleanText(currentTest.title || "Assessment Module");
   const splitTitle = pdf.splitTextToSize(titleText, usableWidth);
   pdf.text(splitTitle, margin, y);
   y += (splitTitle.length * 8) + 10;
 
   pdf.setFontSize(12);
-  pdf.setFont('helvetica', 'normal');
-  pdf.text(`Category: ${toAscii(currentTest.category || "General")}`, margin, y);
+  if (hasCustomFont) pdf.setFont('Roboto', 'normal');
+  else pdf.setFont('helvetica', 'normal');
+  
+  pdf.text(`Category: ${cleanText(currentTest.category || "General")}`, margin, y);
   y += 7;
-  pdf.text(`Difficulty: ${toAscii(currentTest.difficulty || "Medium")} | Duration: ${toAscii(currentTest.duration || "15m")}`, margin, y);
+  pdf.text(`Difficulty: ${cleanText(currentTest.difficulty || "Medium")} | Duration: ${cleanText(currentTest.duration || "15m")}`, margin, y);
   y += 7;
   pdf.text(`Questions: ${questions.length}`, margin, y);
   y += 7;
@@ -107,12 +127,14 @@ export async function generateTestPDF({ testId, currentTest, questions, withAnsw
     if (y + estHeight > 280) {
       pdf.addPage();
       y = 20;
+      if (hasCustomFont) pdf.setFont('Roboto', 'normal');
     }
 
     pdf.setFontSize(11);
-    pdf.setFont('helvetica', 'bold');
+    if (!hasCustomFont) pdf.setFont('helvetica', 'bold');
+    
     const qLabel = `${i + 1}. `;
-    const qText = toAscii(q.question_text);
+    const qText = cleanText(q.question_text);
     const splitQ = pdf.splitTextToSize(qText, usableWidth - 12);
     
     pdf.text(qLabel, margin, y);
@@ -120,23 +142,24 @@ export async function generateTestPDF({ testId, currentTest, questions, withAnsw
     y += (splitQ.length * 6) + 2;
 
     pdf.setFontSize(9);
-    pdf.setFont('helvetica', 'italic');
+    if (!hasCustomFont) pdf.setFont('helvetica', 'italic');
+    
     pdf.setTextColor(150, 150, 150);
     pdf.text(`[${qTypeRaw.replace(/_/g, ' ').toUpperCase()}]`, margin + 12, y);
     pdf.setTextColor(0, 0, 0);
     y += 8;
 
     pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'normal');
+    if (!hasCustomFont) pdf.setFont('helvetica', 'normal');
 
     if (['singlechoice', 'oneanswer', 'multiplechoice', 'manyanswers', 'dropdown'].includes(qTypeNormalized)) {
       options.forEach((opt, optIdx) => {
         const letter = String.fromCharCode(65 + optIdx);
         const isCorrect = withAnswers && correctArr.some(c => compareValues(c, opt));
-        const optText = `${letter}. ${toAscii(opt)} ${isCorrect ? "[CORRECT]" : ""}`;
+        const optText = `${letter}. ${cleanText(opt)} ${isCorrect ? "[CORRECT]" : ""}`;
         const wrapped = pdf.splitTextToSize(optText, usableWidth - 15);
         
-        if (y + (wrapped.length * 6) > 285) { pdf.addPage(); y = 20; }
+        if (y + (wrapped.length * 6) > 285) { pdf.addPage(); y = 20; if (hasCustomFont) pdf.setFont('Roboto', 'normal'); }
         
         if (isCorrect) pdf.setTextColor(0, 128, 0);
         pdf.text(wrapped, margin + 15, y);
@@ -151,39 +174,39 @@ export async function generateTestPDF({ testId, currentTest, questions, withAnsw
     } else if (qTypeNormalized === 'matching') {
         parseRegistryArray(q.order_group).forEach(p => {
           const [l, r] = String(p).split('|').map(s => s.trim());
-          const matchText = `${toAscii(l)}  ->  ${withAnswers ? toAscii(r) : '________________'}`;
+          const matchText = `${cleanText(l)}  ->  ${withAnswers ? cleanText(r) : '________________'}`;
           const wrapped = pdf.splitTextToSize(matchText, usableWidth - 15);
-          if (y + (wrapped.length * 6) > 285) { pdf.addPage(); y = 20; }
+          if (y + (wrapped.length * 6) > 285) { pdf.addPage(); y = 20; if (hasCustomFont) pdf.setFont('Roboto', 'normal'); }
           pdf.text(wrapped, margin + 15, y);
           y += (wrapped.length * 6) + 1;
         });
     } else if (qTypeNormalized === 'matrixchoice' || qTypeNormalized === 'multipletruefalse') {
         const rows = parseRegistryArray(q.order_group);
         rows.forEach((row, rIdx) => {
-            const rowText = `${toAscii(row)}: ${withAnswers ? toAscii(correctArr[rIdx]) : '________________'}`;
+            const rowText = `${cleanText(row)}: ${withAnswers ? cleanText(correctArr[rIdx]) : '________________'}`;
             const wrapped = pdf.splitTextToSize(rowText, usableWidth - 15);
-            if (y + (wrapped.length * 6) > 285) { pdf.addPage(); y = 20; }
+            if (y + (wrapped.length * 6) > 285) { pdf.addPage(); y = 20; if (hasCustomFont) pdf.setFont('Roboto', 'normal'); }
             pdf.text(wrapped, margin + 15, y);
             y += (wrapped.length * 6) + 1;
         });
     } else if (qTypeNormalized === 'ordering') {
         const displayItems = withAnswers ? correctArr : options;
         displayItems.forEach((item, idx) => {
-            const itemText = `${idx + 1}. ${toAscii(item)}`;
+            const itemText = `${idx + 1}. ${cleanText(item)}`;
             const wrapped = pdf.splitTextToSize(itemText, usableWidth - 15);
-            if (y + (wrapped.length * 6) > 285) { pdf.addPage(); y = 20; }
+            if (y + (wrapped.length * 6) > 285) { pdf.addPage(); y = 20; if (hasCustomFont) pdf.setFont('Roboto', 'normal'); }
             pdf.text(wrapped, margin + 15, y);
             y += (wrapped.length * 6) + 1;
         });
     } else if (qTypeNormalized === 'shorttext') {
-        pdf.text(`Answer: ${withAnswers ? toAscii(correctArr[0] || "") : "________________________"}`, margin + 15, y);
+        pdf.text(`Answer: ${withAnswers ? cleanText(correctArr[0] || "") : "________________________"}`, margin + 15, y);
         y += 8;
     } else {
         pdf.text("Registry Input Required: ________________________", margin + 15, y);
         if (withAnswers && correctArr.length > 0) {
             y += 6;
             pdf.setTextColor(0, 128, 0);
-            pdf.text(`Target: ${toAscii(correctArr.join(', '))}`, margin + 15, y);
+            pdf.text(`Target: ${cleanText(correctArr.join(', '))}`, margin + 15, y);
             pdf.setTextColor(0, 0, 0);
         }
         y += 8;
@@ -194,24 +217,24 @@ export async function generateTestPDF({ testId, currentTest, questions, withAnsw
 
   // FINALIZATION: PAGE NUMBERS & WATERMARKS
   const totalPages = pdf.internal.getNumberOfPages();
-  const testTitleNormalized = toAscii(currentTest.title || "Test");
+  const testTitleClean = cleanText(currentTest.title || "Test");
   
   for (let i = 1; i <= totalPages; i++) {
     pdf.setPage(i);
     
-    // WATERMARK PROTOCOL: Render behind text using transparency
+    // WATERMARK PROTOCOL
     if (watermark?.enabled && watermark.text) {
       pdf.saveGraphicsState();
-      // Normalize opacity from 10/20/30 to 0.1/0.2/0.3
       const opacityValue = (watermark.opacity > 1) ? watermark.opacity / 100 : watermark.opacity;
       
-      // @ts-ignore - GState exists in jsPDF but might missing type definition
+      // @ts-ignore
       pdf.setGState(new (pdf as any).GState({ opacity: opacityValue }));
-      pdf.setFontSize(60);
+      pdf.setFontSize(48);
       pdf.setTextColor(180, 180, 180);
-      pdf.setFont('helvetica', 'bold');
+      if (hasCustomFont) pdf.setFont('Roboto', 'normal');
+      else pdf.setFont('helvetica', 'bold');
       
-      pdf.text(toAscii(watermark.text), pageWidth / 2, pageHeight / 2, {
+      pdf.text(cleanText(watermark.text), pageWidth / 2, pageHeight / 2, {
         align: 'center',
         angle: 45
       });
@@ -221,8 +244,10 @@ export async function generateTestPDF({ testId, currentTest, questions, withAnsw
     // Footer Nodes
     pdf.setFontSize(8);
     pdf.setTextColor(180, 180, 180);
+    if (!hasCustomFont) pdf.setFont('helvetica', 'normal');
+    
     pdf.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - 12, { align: 'right' });
-    pdf.text(testTitleNormalized, margin, pageHeight - 12);
+    pdf.text(testTitleClean, margin, pageHeight - 12);
   }
 
   if (returnOutput) {
