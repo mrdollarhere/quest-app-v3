@@ -1,62 +1,52 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { useToast } from '@/hooks/use-toast';
+import React from 'react';
 import { ResponsesTab } from '@/components/admin/ResponsesTab';
 import { AILoader } from '@/components/ui/ai-loader';
+import { useAdminData } from '@/hooks/useAdminData';
 
+/**
+ * DNTRNG™ RESPONSES TERMINAL
+ * 
+ * Refactored: v19.4.0 (Phase 2 Hardening)
+ * Purpose: Diagnostic interface for mission submission logs.
+ */
 export default function AdminResponsesPage() {
-  const [loading, setLoading] = useState(false);
-  const [responses, setResponses] = useState<any[]>([]);
-  const [tests, setTests] = useState<any[]>([]);
-  const { toast } = useToast();
+  const { data: responsesData, loading, refresh } = useAdminData({
+    url: '/api/proxy/admin/responses',
+    initialData: []
+  });
 
-  const fetchData = async () => {
-    setLoading(true);
+  const { data: testsData } = useAdminData({
+    url: '/api/proxy/tests',
+    initialData: []
+  });
+
+  const handleDelete = async (timestamp: string, email: string) => {
     try {
-      // Registry Protocol: Protected Proxy Fetch
-      const [resRes, testsRes] = await Promise.all([
-        fetch('/api/proxy/admin/responses'),
-        fetch('/api/proxy/tests')
-      ]);
-      
-      const resData = await resRes.json();
-      const testsData = await testsRes.json();
-      
-      setResponses(Array.isArray(resData) ? resData : []);
-      setTests(Array.isArray(testsData) ? testsData : []);
-    } catch (err) {
-      toast({ variant: "destructive", title: "Access Denied", description: "Submission registry is protected." });
-    } finally {
-      setLoading(false);
+      const res = await fetch('/api/proxy/admin/delete-response', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timestamp, email })
+      });
+      if (res.ok) refresh();
+    } catch (e) {
+      console.error('[Delete Error]', e);
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  if (loading && responses.length === 0) {
-    return (
-      <div className="py-20">
-        <AILoader />
-      </div>
-    );
+  if (loading && responsesData.length === 0) {
+    return <div className="py-20"><AILoader messages={["Accessing Submission Registry..."]} /></div>;
   }
 
   return (
     <div className="space-y-6">
       <ResponsesTab 
-        responses={responses} 
-        tests={tests}
+        responses={responsesData} 
+        tests={testsData}
         loading={loading}
-        onRefresh={fetchData}
-        onDelete={(timestamp, email) => {
-          fetch('/api/proxy/admin/delete-response', {
-            method: 'POST',
-            body: JSON.stringify({ timestamp, email })
-          }).then(() => fetchData());
-        }}
+        onRefresh={refresh}
+        onDelete={handleDelete}
       />
     </div>
   );

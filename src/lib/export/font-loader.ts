@@ -3,6 +3,7 @@
  * 
  * Purpose: Handles dynamic fetching and base64 encoding of TTF fonts for PDF generation.
  * Logic: Implements a single-session cache node to minimize network travel.
+ * Updated: v19.3.1 - Switched to stable jsDelivr CDN nodes.
  */
 
 let cachedNormalFont: string | null = null;
@@ -23,7 +24,8 @@ async function fetchAndBase64(url: string): Promise<string> {
 
 export async function loadRobotoFont(): Promise<string> {
   if (cachedNormalFont) return cachedNormalFont;
-  const FONT_URL = 'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Me5Q.ttf';
+  // Stable CDN node for Roboto Regular
+  const FONT_URL = 'https://cdn.jsdelivr.net/gh/googlefonts/roboto@main/src/hinted/Roboto-Regular.ttf';
   try {
     cachedNormalFont = await fetchAndBase64(FONT_URL);
     return cachedNormalFont;
@@ -35,7 +37,8 @@ export async function loadRobotoFont(): Promise<string> {
 
 export async function loadRobotoBoldFont(): Promise<string> {
   if (cachedBoldFont) return cachedBoldFont;
-  const BOLD_FONT_URL = 'https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc4.ttf';
+  // Stable CDN node for Roboto Bold
+  const BOLD_FONT_URL = 'https://cdn.jsdelivr.net/gh/googlefonts/roboto@main/src/hinted/Roboto-Bold.ttf';
   try {
     cachedBoldFont = await fetchAndBase64(BOLD_FONT_URL);
     return cachedBoldFont;

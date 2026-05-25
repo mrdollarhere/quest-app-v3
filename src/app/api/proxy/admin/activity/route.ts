@@ -1,27 +1,21 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { gasGet } from '@/lib/server/gas-proxy';
+import { safeGasGet } from '@/lib/utils/gas-helpers';
+import { getAdminSession } from '@/lib/utils/auth-helpers';
+import { buildErrorResponse } from '@/lib/utils/api-helpers';
 
 /**
  * GET /api/proxy/admin/activity
- * Protected route: Retrieves technical logs with high-capacity slicing.
+ * Refactored: v19.4.0 (Shared Auth Protocol)
  */
 export async function GET(request: Request) {
-  const cookieStore = await cookies();
-  const c = cookieStore.get('auth-session');
-  
-  if (!c) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  
-  const session = JSON.parse(c.value);
-  if (session.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const session = await getAdminSession();
+  if (!session) return buildErrorResponse('Unauthorized', 401);
 
   const { searchParams } = new URL(request.url);
   const limit = searchParams.get('limit') || '500';
 
-  try {
-    const data = await gasGet('getActivity', { limit });
-    return NextResponse.json(data);
-  } catch (error) {
-    return NextResponse.json({ error: 'Registry error' }, { status: 500 });
-  }
+  const data = await safeGasGet('getActivity', { limit });
+  if (!data) return buildErrorResponse('Registry unreachable', 500);
+
+  return NextResponse.json(data);
 }
