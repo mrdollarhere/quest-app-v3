@@ -38,7 +38,7 @@ export default function AdminTestDetailPage() {
   const [editingItem, setEditingItem] = useState<any>(null);
   const [dialogs, setDialogs] = useState({ test: false, user: false, question: false, bulk: false });
 
-  // EXPORT REGISTRY HANDLERS (Stubs)
+  // EXPORT REGISTRY HANDLERS
   const handleExportPDF = () => {
     console.log('[Export Protocol] Initializing PDF generation...');
   };
@@ -52,7 +52,72 @@ export default function AdminTestDetailPage() {
   };
 
   const handleExportJSON = () => {
-    console.log('[Export Protocol] Initializing JSON backup generation...');
+    if (!testId || questions.length === 0) return;
+    
+    setIsExporting(true);
+    
+    try {
+      const currentTest = tests.find(t => String(t.id) === String(testId)) || {};
+      
+      // Build Question Type Summary
+      const typeDistribution: Record<string, number> = {};
+      questions.forEach(q => {
+        const type = q.question_type || 'unknown';
+        typeDistribution[type] = (typeDistribution[type] || 0) + 1;
+      });
+
+      // Construct High-Fidelity Export Object
+      const exportData = {
+        exportedAt: new Date().toISOString(),
+        exportVersion: "1.0",
+        platform: "DNTRNG",
+        test: {
+          id: currentTest.id,
+          title: currentTest.title,
+          description: currentTest.description,
+          category: currentTest.category,
+          difficulty: currentTest.difficulty,
+          duration: currentTest.duration,
+          passing_threshold: currentTest.passing_threshold,
+          certificate_enabled: currentTest.certificate_enabled
+        },
+        questions: questions.map(q => ({
+          id: q.id,
+          question_text: q.question_text,
+          question_type: q.question_type,
+          options: q.options,
+          correct_answer: q.correct_answer,
+          order_group: q.order_group,
+          image_url: q.image_url,
+          metadata: q.metadata,
+          required: q.required
+        })),
+        summary: {
+          totalQuestions: questions.length,
+          questionTypes: typeDistribution
+        }
+      };
+
+      // Trigger Registry Download
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const dateStr = new Date().toISOString().split('T')[0];
+      
+      link.href = url;
+      link.download = `DNTRNG_${testId}_${dateStr}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({ title: "JSON exported / Xuất JSON thành công" });
+      trackEvent('admin_test_export_json', { test_id: testId, test_name: currentTest.title });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Export Failed / Xuất thất bại" });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const fetchData = async () => {
@@ -121,8 +186,8 @@ export default function AdminTestDetailPage() {
                 disabled={isExporting} 
                 className="rounded-xl p-3 font-bold cursor-pointer"
               >
-                <FileText className="mr-3 h-4 w-4 text-rose-500" />
-                <span>📄 Export as PDF</span>
+                <FileText className="mr-3 h-4 w-4 text-rose-50" />
+                <span>📄 Export as PDF (Soon)</span>
               </DropdownMenuItem>
               <DropdownMenuItem 
                 onClick={handleExportWord} 
@@ -130,7 +195,7 @@ export default function AdminTestDetailPage() {
                 className="rounded-xl p-3 font-bold cursor-pointer"
               >
                 <FileText className="mr-3 h-4 w-4 text-blue-500" />
-                <span>📝 Export as Word (.docx)</span>
+                <span>📝 Export as Word (Soon)</span>
               </DropdownMenuItem>
               <DropdownMenuItem 
                 onClick={handleExportExcel} 
@@ -138,7 +203,7 @@ export default function AdminTestDetailPage() {
                 className="rounded-xl p-3 font-bold cursor-pointer"
               >
                 <Table className="mr-3 h-4 w-4 text-emerald-500" />
-                <span>📊 Export as Excel (.xlsx)</span>
+                <span>📊 Export as Excel (Soon)</span>
               </DropdownMenuItem>
               <DropdownMenuItem 
                 onClick={handleExportJSON} 
