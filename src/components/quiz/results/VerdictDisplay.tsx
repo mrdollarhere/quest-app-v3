@@ -1,4 +1,3 @@
-
 /**
  * VerdictDisplay.tsx
  * 
@@ -27,7 +26,7 @@ export function VerdictDisplay({ verdict }: VerdictDisplayProps) {
     )}>
       <div className="flex items-center gap-3 mb-3">
         <VerdictIcon className={cn("w-4 h-4", verdict.color)} />
-        <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Verdict</h4>
+        <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Result / Kết Quả</h4>
       </div>
       <h3 className={cn("text-2xl font-black uppercase tracking-tight mb-2", verdict.color)}>
         {verdict.title}

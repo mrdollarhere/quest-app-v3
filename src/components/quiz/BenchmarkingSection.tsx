@@ -19,12 +19,8 @@ export function BenchmarkingSection({ testId, percentage, enabled = true }: Benc
     const fetchComparison = async () => {
       setLoading(true);
       try {
-        // Now using the proxied admin/responses route (only works if admin, or need public aggregate)
-        // Note: Benchmarking currently uses full responses list, which is restricted.
-        // We fetch through the secure proxy.
         const res = await fetch('/api/proxy/admin/responses');
         if (!res.ok) {
-          // If not authenticated as admin, benchmarking is skipped for security
           setPercentile(null);
           return;
         }
@@ -57,7 +53,7 @@ export function BenchmarkingSection({ testId, percentage, enabled = true }: Benc
     return (
       <div className="p-8 bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] border border-slate-100 dark:border-slate-800 flex items-center justify-center gap-3 mb-10">
         <Loader2 className="w-5 h-5 text-primary animate-spin" />
-        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Syncing Comparison Registry...</span>
+        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Comparing results... / Đang so sánh kết quả...</span>
       </div>
     );
   }
@@ -69,15 +65,18 @@ export function BenchmarkingSection({ testId, percentage, enabled = true }: Benc
           <TrendingUp className="w-6 h-6 text-primary" />
         </div>
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mb-0.5">Global Benchmarking</p>
-          <p className="text-xl font-bold text-slate-700 dark:text-slate-300">System Percentile: <span className="text-primary">{percentile}%</span></p>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mb-0.5">Your Ranking / Xếp hạng của bạn</p>
+          <div className="space-y-0.5">
+            <p className="text-xl font-bold text-slate-700 dark:text-slate-300">
+              You scored higher than <span className="text-primary">{percentile}%</span> of students
+            </p>
+            <p className="text-xs font-medium text-slate-400 italic">
+              Bạn đạt cao hơn {percentile}% học sinh khác
+            </p>
+          </div>
         </div>
       </div>
       <div className="space-y-3">
-        <div className="flex justify-between items-center px-1">
-          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Entry</span>
-          <span className="text-[9px] font-black text-primary uppercase tracking-widest">Mastery</span>
-        </div>
         <div className="h-3 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden p-0.5 border border-white dark:border-slate-600">
           <div 
             className="h-full bg-primary rounded-full transition-all duration-1000 ease-out" 

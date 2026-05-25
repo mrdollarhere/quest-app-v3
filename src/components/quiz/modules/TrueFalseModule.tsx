@@ -28,7 +28,6 @@ export const TrueFalseModule: React.FC<Props> = ({ question, value, onChange, re
         className="flex flex-col gap-[10px]"
       >
         {['True', 'False'].map((o) => {
-          // SEMANTIC COMPARISON: Equate True/False with Đúng/Sai
           const isSelected = compareValues(value, o);
           const isCorrect = compareValues(o, correctAnswer);
           const isWrong = isSelected && !isCorrect;
@@ -82,7 +81,7 @@ export const TrueFalseModule: React.FC<Props> = ({ question, value, onChange, re
                   reviewMode && !isCorrect && !isSelected && "text-slate-400"
                 )}
               >
-                {o}
+                {o === 'True' ? 'True / Đúng' : 'False / Sai'}
               </Label>
               {reviewMode && isCorrect && (
                 <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
@@ -96,7 +95,7 @@ export const TrueFalseModule: React.FC<Props> = ({ question, value, onChange, re
         <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center gap-3 animate-in slide-in-from-top-2">
           <CheckCircle2 className="w-4 h-4 text-emerald-600" />
           <p className="text-sm font-black text-emerald-700 uppercase tracking-tight">
-            Correct Registry: <span className="font-bold lowercase tracking-normal">{correctAnswer}</span>
+            Answer / Đáp án: <span className="font-bold lowercase tracking-normal">{correctAnswer === 'True' ? 'True / Đúng' : 'False / Sai'}</span>
           </p>
         </div>
       )}

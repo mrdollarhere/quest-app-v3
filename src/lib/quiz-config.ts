@@ -15,32 +15,32 @@ export interface Verdict {
 
 export const getVerdictData = (pct: number): Verdict => {
   if (pct >= 90) return { 
-    title: "Excellent work",
-    message: "Outstanding! You have mastered this test.", 
+    title: "Excellent! You mastered this topic. / Xuất sắc! Bạn đã nắm vững chủ đề này.",
+    message: "Outstanding performance! You have successfully completed this assessment. / Kết quả thật tuyệt vời! Bạn đã hoàn thành xuất sắc bài kiểm tra này.", 
     color: "text-emerald-600",
     border: "border-emerald-500",
     bg: "bg-emerald-50",
     iconName: 'Trophy'
   };
   if (pct >= 75) return { 
-    title: "Well done",
-    message: "Strong performance! A few mistakes here and there — see the review below to improve further.", 
+    title: "Well done! A few things to review. / Làm tốt lắm! Có một vài điểm cần xem lại.",
+    message: "Strong performance! Review the questions you missed to improve further. / Kết quả rất tốt! Hãy xem lại các câu sai để hoàn thiện hơn nhé.", 
     color: "text-blue-600",
     border: "border-blue-500",
     bg: "bg-blue-50",
     iconName: 'CheckCircle2'
   };
   if (pct >= 50) return { 
-    title: "Good effort",
-    message: "You are getting there. Check what you missed below and keep going!", 
+    title: "Good effort. Keep practicing! / Cố gắng tốt. Hãy tiếp tục luyện tập!",
+    message: "You are making progress. Check the answers below to see where you can improve. / Bạn đang tiến bộ đấy. Hãy xem đáp án bên dưới để biết điểm cần cải thiện.", 
     color: "text-amber-600",
     border: "border-amber-500",
     bg: "bg-amber-50",
     iconName: 'Target'
   };
   return { 
-    title: "Not quite there yet",
-    message: "Review the questions below and try again — you will improve with practice!", 
+    title: "Keep going. Review and try again. / Tiếp tục nào. Xem lại bài và thử lại.",
+    message: "Practice makes perfect! Review the materials and try the test again. / Luyện tập nhiều sẽ thành công! Hãy xem lại bài và thử làm lại nhé.", 
     color: "text-rose-600",
     border: "border-rose-500",
     bg: "bg-rose-50",

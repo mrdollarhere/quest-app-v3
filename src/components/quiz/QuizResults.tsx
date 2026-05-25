@@ -28,8 +28,6 @@ export function QuizResults({ title, testId, score, totalQuestions, questions, r
   const [isGenerating, setIsGenerating] = useState(false);
 
   const percentage = Math.round((score / (totalQuestions || 1)) * 100);
-  
-  // REGISTRY SCALING PROTOCOL: Normalize total possible to 1000
   const normalizedScore = Math.round((score / (totalQuestions || 1)) * 1000);
   
   const verdict = getVerdictData(percentage);
@@ -53,35 +51,28 @@ export function QuizResults({ title, testId, score, totalQuestions, questions, r
     const currentDiff = difficultyMap[String(testMetadata?.difficulty || '').toLowerCase()] || 2;
     const currentCat = testMetadata?.category || 'General';
 
-    // 1. Initial Filtering: Exclude current test
     let pool = allTests.filter(t => String(t.id) !== String(testId));
 
     if (isPass) {
-      // Logic: Same category, same or higher difficulty
       let suggestions = pool.filter(t => 
         t.category === currentCat && 
         (difficultyMap[String(t.difficulty || '').toLowerCase()] || 2) >= currentDiff
       );
 
       if (suggestions.length < 2) {
-        // Fallback: Just same category
         suggestions = pool.filter(t => t.category === currentCat);
       }
 
       if (suggestions.length < 2) {
-        // Final Fallback: Any tests
         suggestions = pool;
       }
 
       return suggestions.slice(0, 3);
     } else {
-      // Logic: Same category, any difficulty
       let suggestions = pool.filter(t => t.category === currentCat);
-      
       if (suggestions.length < 2) {
         suggestions = pool;
       }
-
       return suggestions.slice(0, 3);
     }
   }, [allTests, testId, testMetadata, isPass]);
@@ -92,9 +83,7 @@ export function QuizResults({ title, testId, score, totalQuestions, questions, r
     const mins = Math.floor(totalSeconds / 60);
     const secs = totalSeconds % 60;
     if (mins < 60) return `${mins}m ${secs}s`;
-    const hours = Math.floor(mins / 60);
-    const remainingMins = mins % 60;
-    return `${hours}h ${remainingMins}m`;
+    return `${Math.floor(mins / 60)}h ${mins % 60}m`;
   };
 
   const handleDownload = async () => {
@@ -114,20 +103,19 @@ export function QuizResults({ title, testId, score, totalQuestions, questions, r
               <User className="w-7 h-7 text-white" />
             </div>
             <div className="text-left">
-              <p className="text-[10px] font-black uppercase text-slate-400">Assessment Operator</p>
+              <p className="text-[10px] font-black uppercase text-slate-400">Student / Học sinh</p>
               <h1 className="text-3xl font-black text-slate-900 uppercase">{userName}</h1>
             </div>
           </div>
           <h2 className="text-xl font-black text-slate-400 uppercase tracking-[0.5em]">{title}</h2>
         </div>
 
-        {/* Tactical Metrics Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-          <StatCard icon={Trophy} label="Precision (%)" value={`${percentage}%`} color="blue" />
-          <StatCard icon={Zap} label="Intel Index" value={normalizedScore} color="orange" />
-          <StatCard icon={CheckCircle2} label="Correct Nodes" value={score} color="green" />
-          <StatCard icon={Target} label="Mission Total" value={totalQuestions} color="purple" />
-          <StatCard icon={Clock} label="Mission Time" value={formatDuration(duration || 0)} color="rose" />
+          <StatCard icon={Trophy} label="Score / Điểm" value={`${percentage}%`} color="blue" />
+          <StatCard icon={Zap} label="Points / Điểm số" value={normalizedScore} color="orange" />
+          <StatCard icon={CheckCircle2} label="Correct / Đúng" value={score} color="green" />
+          <StatCard icon={Target} label="Questions / Câu hỏi" value={totalQuestions} color="purple" />
+          <StatCard icon={Clock} label="Time / Thời gian" value={formatDuration(duration || 0)} color="rose" />
         </div>
 
         <Card className="p-8 md:p-10 border-none shadow-2xl rounded-[3rem] bg-white flex flex-col md:flex-row items-center gap-10">
@@ -144,12 +132,12 @@ export function QuizResults({ title, testId, score, totalQuestions, questions, r
             <div className="flex items-center gap-6">
               <FileBadge className="w-12 h-12 text-primary" />
               <div>
-                <h4 className="text-primary font-black uppercase text-[10px]">Credential Issued</h4>
-                <p className="text-xl font-bold">Certification ready for download.</p>
+                <h4 className="text-primary font-black uppercase text-[10px]">Certificate Ready / Chứng chỉ sẵn sàng</h4>
+                <p className="text-xl font-bold">You passed! Download your certificate. / Bạn đã qua! Tải chứng chỉ của bạn.</p>
               </div>
             </div>
             <Button onClick={handleDownload} disabled={isGenerating} className="h-14 rounded-full px-10 bg-primary font-black uppercase text-xs">
-              {isGenerating ? 'Generating...' : 'Download Certificate'}
+              {isGenerating ? 'Generating...' : 'Download Certificate / Tải Chứng Chỉ'}
             </Button>
           </div>
         )}
@@ -159,41 +147,37 @@ export function QuizResults({ title, testId, score, totalQuestions, questions, r
           user ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-1 sm:grid-cols-2"
         )}>
           <Button onClick={onRestart} variant="outline" className="h-16 rounded-full font-black uppercase text-xs border-2">
-            <RotateCcw className="mr-3 w-4 h-4" /> Try Again
+            <RotateCcw className="mr-3 w-4 h-4" /> Try Again / Làm Lại
           </Button>
-          <Link href="/tests">
+          <Link href="/tests" className="w-full">
             <Button className="w-full h-16 rounded-full font-black uppercase text-xs bg-primary text-white border-none">
-              Back to Tests <ArrowRight className="ml-3 w-4 h-4" />
+              All Tests / Tất Cả Bài <ArrowRight className="ml-3 w-4 h-4" />
             </Button>
           </Link>
           {user && (
-            <Link href="/profile">
+            <Link href="/profile" className="w-full">
               <Button variant="secondary" className="w-full h-16 rounded-full font-black uppercase text-xs shadow-sm bg-slate-900 text-white hover:bg-slate-800">
-                <User className="mr-3 w-4 h-4" /> Identity Registry
+                <User className="mr-3 w-4 h-4" /> My Profile / Hồ sơ của tôi
               </Button>
             </Link>
           )}
         </div>
 
-        {/* What's Next Section */}
         {recommendations.length > 0 && (
           <div className="space-y-8 pt-12 pb-8 border-t border-slate-200">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-primary animate-pulse" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Mission Pipeline</span>
+                  <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Learning Path / Lộ trình học</span>
                 </div>
                 <h3 className="text-3xl font-black uppercase tracking-tight text-slate-900 leading-none">
-                  {isPass ? "Great job! Try these next:" : "Keep practicing:"}
+                  {isPass ? "Great job! Try these next: / Làm tốt lắm! Thử tiếp theo:" : "Keep practicing: / Tiếp tục luyện tập:"}
                 </h3>
-                <p className="text-sm font-medium text-slate-500 italic">
-                  {isPass ? "Làm tốt lắm! Thử tiếp theo:" : "Tiếp tục luyện tập:"}
-                </p>
               </div>
               <Link href="/tests">
                 <Button variant="ghost" className="rounded-full font-black uppercase text-[10px] tracking-widest text-slate-400 hover:text-primary">
-                  View Full Library <ArrowRight className="ml-2 w-3.5 h-3.5" />
+                  View Full Library / Xem tất cả bài <ArrowRight className="ml-2 w-3.5 h-3.5" />
                 </Button>
               </Link>
             </div>

@@ -11,7 +11,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface StepAnalyticsProps {
@@ -32,7 +31,7 @@ function Legend() {
         <button className="w-full flex items-center justify-between p-6 hover:bg-slate-50 transition-colors text-left group">
           <div className="flex items-center gap-3">
             <Info className="w-4 h-4 text-slate-400 group-hover:text-primary transition-colors" />
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Review Protocol Legend / Chú thích</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Legend / Chú thích</span>
           </div>
           <ChevronDown className={cn("w-4 h-4 text-slate-300 transition-transform duration-300", isOpen && "rotate-180")} />
         </button>
@@ -124,21 +123,16 @@ export function StepAnalytics({ questions, serverReviewData = [], textSize }: St
           </div>
           <div className="space-y-1">
             <div className="flex items-center gap-4">
-              <h3 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900 dark:text-white uppercase leading-none">Review Audit</h3>
-              <div className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full border border-slate-200 shadow-sm">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                  {filterMode === 'all' ? `${reviewItems.length} questions` : `${incorrectCount} errors`}
-                </span>
-              </div>
+              <h3 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900 dark:text-white uppercase leading-none">Review Answers / Xem Lại Đáp Án</h3>
             </div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.4em]">Question-by-question diagnostic breakdown</p>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.4em]">See what you got right and wrong / Xem câu đúng và câu sai của bạn</p>
           </div>
         </div>
         
         <div className="flex items-center gap-4">
           <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200">
-            <Button variant={filterMode === 'all' ? 'default' : 'ghost'} size="sm" onClick={(e) => handleFilterChange('all', e)} className={cn("rounded-xl font-black uppercase text-[9px] tracking-widest h-9 px-4", filterMode === 'all' ? "bg-white text-primary shadow-sm" : "text-slate-400")}>All</Button>
-            <Button variant={filterMode === 'incorrect' ? 'default' : 'ghost'} size="sm" onClick={(e) => handleFilterChange('incorrect', e)} className={cn("rounded-xl font-black uppercase text-[9px] tracking-widest h-9 px-4", filterMode === 'incorrect' ? "bg-white text-rose-50 shadow-sm" : "text-slate-400")}>Incorrect</Button>
+            <Button variant={filterMode === 'all' ? 'default' : 'ghost'} size="sm" onClick={(e) => handleFilterChange('all', e)} className={cn("rounded-xl font-black uppercase text-[9px] tracking-widest h-9 px-4", filterMode === 'all' ? "bg-white text-primary shadow-sm" : "text-slate-400")}>All / Tất cả</Button>
+            <Button variant={filterMode === 'incorrect' ? 'default' : 'ghost'} size="sm" onClick={(e) => handleFilterChange('incorrect', e)} className={cn("rounded-xl font-black uppercase text-[9px] tracking-widest h-9 px-4", filterMode === 'incorrect' ? "bg-white text-rose-50 shadow-sm" : "text-slate-400")}>Wrong Only / Chỉ Câu Sai</Button>
           </div>
           <div className={cn("p-4 rounded-full border transition-all duration-500", isCollapsed ? "bg-white text-slate-300" : "bg-primary text-white border-primary shadow-lg shadow-primary/20")}>
             <ChevronDown className={cn("w-6 h-6 transition-transform duration-500", !isCollapsed && "rotate-180")} />
@@ -178,12 +172,12 @@ export function StepAnalytics({ questions, serverReviewData = [], textSize }: St
                       </div>
                       <div className="flex flex-col min-w-0 flex-1">
                         <div className="flex items-center gap-4 mb-2">
-                          <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Question {idx + 1}</span>
+                          <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Question {idx + 1} / Câu {idx + 1}</span>
                           <div className={cn(
                             "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest", 
                             !hasAnswer ? "bg-amber-500 text-white" : (item.isCorrect ? "bg-emerald-500 text-white" : "bg-rose-500 text-white")
                           )}>
-                            {!hasAnswer ? "Skipped / Bỏ qua" : (item.isCorrect ? "Correct" : "Incorrect")}
+                            {!hasAnswer ? "Skipped / Bỏ qua" : (item.isCorrect ? "Correct ✓ / Đúng ✓" : "Wrong ✗ / Sai ✗")}
                           </div>
                         </div>
                         <h4 className="font-semibold text-slate-900 text-xl tracking-tight line-clamp-1 group-hover:text-primary transition-colors">{item.questionText}</h4>
@@ -193,12 +187,6 @@ export function StepAnalytics({ questions, serverReviewData = [], textSize }: St
                   <AccordionContent className="px-10 pb-10 pt-0">
                     <div className="h-px w-full bg-slate-100 mb-8" />
                     <div className="max-w-4xl mx-auto rounded-[2rem] bg-slate-50 p-8 border border-slate-100 shadow-inner" data-textsize={textSize}>
-                      {!hasAnswer && (
-                        <div className="mb-8 p-4 bg-amber-50 border-2 border-amber-100 rounded-2xl flex items-center gap-4 text-amber-700 animate-in slide-in-from-top-2">
-                          <AlertCircle className="w-5 h-5" />
-                          <p className="text-xs font-black uppercase tracking-tight">No answer submitted / Không có câu trả lời</p>
-                        </div>
-                      )}
                       <QuestionRenderer 
                         question={{
                           id: item.questionId,
@@ -223,8 +211,8 @@ export function StepAnalytics({ questions, serverReviewData = [], textSize }: St
         ) : (
           <div className="py-20 text-center bg-white rounded-[3rem] border-4 border-dashed border-slate-100">
             <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto mb-6"><CheckCircle2 className="w-10 h-10 text-emerald-500" /></div>
-            <h4 className="text-2xl font-black text-slate-900 uppercase tracking-tight">No issues detected</h4>
-            <Button variant="link" onClick={(e) => handleFilterChange('all', e)} className="mt-4 font-black uppercase text-[10px] text-primary">View All Questions</Button>
+            <h4 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Perfect! No mistakes. / Tuyệt vời! Không có lỗi sai.</h4>
+            <Button variant="link" onClick={(e) => handleFilterChange('all', e)} className="mt-4 font-black uppercase text-[10px] text-primary">View All Questions / Xem tất cả câu hỏi</Button>
           </div>
         )}
       </div>
