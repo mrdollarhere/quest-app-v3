@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -25,6 +26,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import * as XLSX from 'xlsx';
 
 export default function AdminTestDetailPage() {
   const { id } = useParams();
@@ -48,7 +50,66 @@ export default function AdminTestDetailPage() {
   };
 
   const handleExportExcel = () => {
-    console.log('[Export Protocol] Initializing Excel (.xlsx) generation...');
+    if (!testId || questions.length === 0) return;
+    
+    setIsExporting(true);
+    
+    try {
+      const currentTest = tests.find(t => String(t.id) === String(testId)) || {};
+      
+      // 1. Prepare Metadata Sheet
+      const metadataRows = [
+        { "Registry Field": "Module ID", "Data Value": currentTest.id },
+        { "Registry Field": "Title", "Data Value": currentTest.title },
+        { "Registry Field": "Category", "Data Value": currentTest.category },
+        { "Registry Field": "Difficulty", "Data Value": currentTest.difficulty },
+        { "Registry Field": "Duration", "Data Value": currentTest.duration },
+        { "Registry Field": "Passing Threshold (%)", "Data Value": currentTest.passing_threshold },
+        { "Registry Field": "Certification Enabled", "Data Value": currentTest.certificate_enabled }
+      ];
+
+      // 2. Prepare Questions Sheet
+      const questionsRows = questions.map(q => ({
+        "ID": q.id,
+        "Question Text": q.question_text,
+        "Question Type": q.question_type,
+        "Options": q.options,
+        "Correct Answer": q.correct_answer,
+        "Order Group": q.order_group,
+        "Image URL": q.image_url,
+        "Metadata": q.metadata,
+        "Required": q.required ? "TRUE" : "FALSE"
+      }));
+
+      // 3. Construct Workbook
+      const wb = XLSX.utils.book_new();
+      const wsMetadata = XLSX.utils.json_to_sheet(metadataRows);
+      const wsQuestions = XLSX.utils.json_to_sheet(questionsRows);
+
+      XLSX.utils.book_append_sheet(wb, wsMetadata, "Test Info");
+      XLSX.utils.book_append_sheet(wb, wsQuestions, "Questions Registry");
+
+      // 4. Trigger Autonomous Download using standard Blob pattern
+      const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const dateStr = new Date().toISOString().split('T')[0];
+      
+      link.href = url;
+      link.download = `DNTRNG_${testId}_${dateStr}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({ title: "Excel exported / Xuất Excel thành công" });
+      trackEvent('admin_test_export_excel', { test_id: testId, test_name: currentTest.title });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Excel Export Failed / Xuất Excel thất bại" });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleExportJSON = () => {
@@ -186,7 +247,7 @@ export default function AdminTestDetailPage() {
                 disabled={isExporting} 
                 className="rounded-xl p-3 font-bold cursor-pointer"
               >
-                <FileText className="mr-3 h-4 w-4 text-rose-50" />
+                <FileText className="mr-3 h-4 w-4 text-rose-500" />
                 <span>📄 Export as PDF (Soon)</span>
               </DropdownMenuItem>
               <DropdownMenuItem 
@@ -203,7 +264,7 @@ export default function AdminTestDetailPage() {
                 className="rounded-xl p-3 font-bold cursor-pointer"
               >
                 <Table className="mr-3 h-4 w-4 text-emerald-500" />
-                <span>📊 Export as Excel (Soon)</span>
+                <span>📊 Export as Excel (.xlsx)</span>
               </DropdownMenuItem>
               <DropdownMenuItem 
                 onClick={handleExportJSON} 
