@@ -22,6 +22,7 @@ import { generateTestPDF } from '@/lib/export/pdf-service';
 import { generateTestWord } from '@/lib/export/word-service';
 import { generateTestExcel, generateTestJSON } from '@/lib/export/data-service';
 import { cn } from '@/lib/utils';
+import JSZip from 'jszip';
 
 export default function AdminTestDetailPage() {
   const { id: testId } = useParams();
