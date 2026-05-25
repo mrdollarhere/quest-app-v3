@@ -54,6 +54,7 @@ import {
   WidthType 
 } from "docx";
 import { parseRegistryArray, compareValues } from '@/lib/quiz-utils';
+import { cn } from '@/lib/utils';
 
 export default function AdminTestDetailPage() {
   const { id } = useParams();
