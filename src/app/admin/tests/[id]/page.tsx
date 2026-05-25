@@ -21,6 +21,7 @@ import { useSettings } from '@/context/settings-context';
 import { generateTestPDF } from '@/lib/export/pdf-service';
 import { generateTestWord } from '@/lib/export/word-service';
 import { generateTestJSON } from '@/lib/export/data-service';
+import { filterQuestions, selectQuestions, generateVersion, generateAllVersions } from '@/lib/export-utils';
 import { cn } from '@/lib/utils';
 import JSZip from 'jszip';
 
@@ -67,7 +68,7 @@ export default function AdminTestDetailPage() {
   const handleBeginExport = async (config: any) => {
     setIsExporting(true);
     setShowExportModal(false);
-    setExportStatus("Generating export...");
+    setExportStatus("Initializing...");
     
     toast({ 
       title: "Generating export... / Đang tạo file...", 
@@ -75,32 +76,98 @@ export default function AdminTestDetailPage() {
     });
 
     try {
-      // Temporary: Log config until export services are updated to handle the new object
-      console.log('[Registry Export] Initializing with config:', config);
-      
-      // Mapped Logic for existing formats (Single Version only for now)
-      if (config.format === 'pdf') {
-        await generateTestPDF({ 
-          testId: String(testId), 
-          currentTest, 
-          questions: questions.slice(0, config.questionCount === 'all' ? questions.length : config.questionCount), 
-          withAnswers: config.contentType === 'answers',
-          onStatus: (s) => setExportStatus(s)
+      // 1. REGISTRY FILTERING & SELECTION
+      const filtered = filterQuestions(questions, config.difficulties);
+      const selectedPool = selectQuestions(filtered, config.questionCount);
+
+      if (config.versions > 1) {
+        // 2. BULK VERSION PROTOCOL (ZIP)
+        const zip = new JSZip();
+        const allVersions = generateAllVersions(selectedPool, config.versions, config.shuffleQuestions, config.shuffleOptions);
+        
+        for (const v of allVersions) {
+          setExportStatus(`Generating ${v.label}...`);
+          
+          if (config.format === 'pdf') {
+            const blob = await generateTestPDF({ 
+              testId: String(testId), 
+              currentTest, 
+              questions: v.questions, 
+              withAnswers: config.contentType === 'answers',
+              returnOutput: true,
+              watermark: config.watermark
+            }) as Blob;
+            zip.file(`DNTRNG_${testId}_${v.label.replace(' ', '_')}.pdf`, blob);
+          } else if (config.format === 'word') {
+            const blob = await generateTestWord({ 
+              testId: String(testId), 
+              currentTest, 
+              questions: v.questions, 
+              withAnswers: config.contentType === 'answers',
+              returnOutput: true
+            }) as Blob;
+            zip.file(`DNTRNG_${testId}_${v.label.replace(' ', '_')}.docx`, blob);
+          }
+        }
+
+        // 3. ARCHIVE METADATA
+        const readmeContent = `DNTRNG Export Package
+-----------------------
+Assessment: ${currentTest.title || testId}
+Generated: ${new Date().toLocaleString()}
+Source Count: ${questions.length}
+Items Per Version: ${selectedPool.length}
+Total Versions: ${config.versions}
+
+Randomization Pulse:
+- Shuffled Questions: ${config.shuffleQuestions ? 'Yes' : 'No'}
+- Shuffled Options: ${config.shuffleOptions ? 'Yes' : 'No'}
+
+Note: This package contains ${config.contentType === 'answers' ? 'Answer Keys' : 'Question Sets'}.`;
+        
+        zip.file("README.txt", readmeContent);
+
+        setExportStatus("Packaging ZIP...");
+        const zipBlob = await zip.generateAsync({ 
+          type: "blob",
+          compression: "DEFLATE",
+          compressionOptions: { level: 6 }
         });
-      } else if (config.format === 'word') {
-        await generateTestWord({ 
-          testId: String(testId), 
-          currentTest, 
-          questions: questions.slice(0, config.questionCount === 'all' ? questions.length : config.questionCount), 
-          withAnswers: config.contentType === 'answers',
-          onStatus: (s) => setExportStatus(s)
-        });
-      } else if (config.format === 'json') {
-        await generateTestJSON({ 
-          testId: String(testId), 
-          currentTest, 
-          questions 
-        });
+
+        // 4. NATIVE DOWNLOAD TRIGGER
+        const url = URL.createObjectURL(zipBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `DNTRNG_${String(currentTest.title || testId).replace(/\s+/g, '_')}_${config.versions}versions.zip`;
+        link.click();
+        URL.revokeObjectURL(url);
+      } else {
+        // 5. SINGLE VERSION PROTOCOL (Direct Download)
+        setExportStatus("Assembling Document...");
+        const version = generateVersion(selectedPool, "A", config.shuffleQuestions, config.shuffleOptions);
+        
+        if (config.format === 'pdf') {
+          await generateTestPDF({ 
+            testId: String(testId), 
+            currentTest, 
+            questions: version.questions, 
+            withAnswers: config.contentType === 'answers',
+            watermark: config.watermark
+          });
+        } else if (config.format === 'word') {
+          await generateTestWord({ 
+            testId: String(testId), 
+            currentTest, 
+            questions: version.questions, 
+            withAnswers: config.contentType === 'answers'
+          });
+        } else if (config.format === 'json') {
+          await generateTestJSON({ 
+            testId: String(testId), 
+            currentTest, 
+            questions: selectedPool 
+          });
+        }
       }
       
       toast({ title: "Extraction Successful / Xuất thành công" });

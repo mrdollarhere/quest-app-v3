@@ -13,6 +13,12 @@ interface ExportParams {
   questions: Question[];
   withAnswers: boolean;
   onStatus?: (status: string) => void;
+  returnOutput?: boolean;
+  watermark?: {
+    enabled: boolean;
+    text: string;
+    opacity: number;
+  };
 }
 
 /**
@@ -52,7 +58,7 @@ function toAscii(text: string): string {
   return text.split('').map(char => map[char] || char).join('').normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
-export async function generateTestPDF({ testId, currentTest, questions, withAnswers, onStatus }: ExportParams) {
+export async function generateTestPDF({ testId, currentTest, questions, withAnswers, onStatus, returnOutput, watermark }: ExportParams) {
   onStatus?.('Generating document buffer...');
 
   const pdf = new jsPDF({
@@ -196,10 +202,29 @@ export async function generateTestPDF({ testId, currentTest, questions, withAnsw
   
   for (let i = 1; i <= totalPages; i++) {
     pdf.setPage(i);
+    
+    // Add Watermark if enabled
+    if (watermark?.enabled) {
+      pdf.saveGraphicsState();
+      pdf.setGState(new (pdf as any).GState({ opacity: watermark.opacity / 100 }));
+      pdf.setFontSize(40);
+      pdf.setTextColor(150, 150, 150);
+      pdf.text(toAscii(watermark.text), pageWidth / 2, pageHeight / 2, {
+        align: 'center',
+        angle: 45
+      });
+      pdf.restoreGraphicsState();
+    }
+
     pdf.setFontSize(8);
     pdf.setTextColor(180, 180, 180);
     pdf.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - 12, { align: 'right' });
     pdf.text(testTitleNormalized, margin, pageHeight - 12);
+  }
+
+  if (returnOutput) {
+    onStatus?.('');
+    return pdf.output('blob');
   }
 
   const typeLabel = withAnswers ? "answerkey" : "questions";

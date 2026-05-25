@@ -27,12 +27,13 @@ interface ExportParams {
   questions: Question[];
   withAnswers: boolean;
   onStatus?: (status: string) => void;
+  returnOutput?: boolean;
 }
 
 /**
  * GENERATES PLAIN-TEXT DOCX
  */
-export async function generateTestWord({ testId, currentTest, questions, withAnswers, onStatus }: ExportParams) {
+export async function generateTestWord({ testId, currentTest, questions, withAnswers, onStatus, returnOutput }: ExportParams) {
   const exportDate = new Date();
   const dateDisplay = exportDate.toLocaleDateString();
   const dateIso = exportDate.toISOString().split('T')[0];
@@ -181,10 +182,17 @@ export async function generateTestWord({ testId, currentTest, questions, withAns
   });
   
   const blob = await Packer.toBlob(doc);
+  
+  if (returnOutput) {
+    onStatus?.('');
+    return blob;
+  }
+
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
   link.download = `DNTRNG_${(currentTest.title || testId).replace(/\s+/g, '_')}_${withAnswers ? 'answerkey' : 'questions'}_${dateIso}.docx`;
   link.click();
   URL.revokeObjectURL(url);
+  onStatus?.('');
 }
