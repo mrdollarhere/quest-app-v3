@@ -168,49 +168,48 @@ export async function generateTestWord({ testId, currentTest, questions, withAns
     }
   });
 
-  // WATERMARK CALIBRATION: Add watermark to the header of the section
-  let header = undefined;
+  // WATERMARK CALIBRATION: Setup section configuration
+  const sectionConfig: any = {
+    children,
+    footers: {
+      default: new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [
+          new TextRun({ text: `DNTRNG | Intelligence Extraction | Page `, size: 16 }),
+          new TextRun({ children: ["PAGE_NUMBER"], size: 16 })
+        ]
+      })
+    }
+  };
+
+  // Only apply headers if a watermark is enabled
   if (watermark?.enabled && watermark.text) {
-    // Calibrate color based on opacity tiers (Light, Medium, Dark)
-    // 10% -> #EEEEEE, 20% -> #CCCCCC, 30% -> #AAAAAA
     let color = "EEEEEE";
     if (watermark.opacity >= 30) color = "AAAAAA";
     else if (watermark.opacity >= 20) color = "CCCCCC";
 
-    header = new Header({
-      children: [
-        new Paragraph({
-          alignment: AlignmentType.CENTER,
-          children: [
-            new TextRun({
-              text: watermark.text,
-              color: color,
-              size: 144, // Approx 72pt
-              bold: true,
-            })
-          ],
-          spacing: { before: 2000 } // Position down the page to simulate center
-        })
-      ]
-    });
+    sectionConfig.headers = {
+      default: new Header({
+        children: [
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+              new TextRun({
+                text: watermark.text,
+                color: color,
+                size: 144, // Approx 72pt
+                bold: true,
+              })
+            ],
+            spacing: { before: 2000 }
+          })
+        ]
+      })
+    };
   }
 
   const doc = new Document({ 
-    sections: [{ 
-      headers: {
-        default: header as any
-      },
-      children,
-      footers: {
-        default: new Paragraph({
-          alignment: AlignmentType.CENTER,
-          children: [
-            new TextRun({ text: `DNTRNG | Intelligence Extraction | Page `, size: 16 }),
-            new TextRun({ children: ["PAGE_NUMBER"], size: 16 })
-          ]
-        })
-      }
-    }] 
+    sections: [sectionConfig] 
   });
   
   const blob = await Packer.toBlob(doc);
@@ -223,7 +222,8 @@ export async function generateTestWord({ testId, currentTest, questions, withAns
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `DNTRNG_${(currentTest.title || testId).replace(/\s+/g, '_')}_${withAnswers ? 'answerkey' : 'questions'}_${dateIso}.docx`;
+  const dateStr = dateIso;
+  link.download = `DNTRNG_${(currentTest.title || testId).replace(/\s+/g, '_')}_${withAnswers ? 'answerkey' : 'questions'}_${dateStr}.docx`;
   link.click();
   URL.revokeObjectURL(url);
   onStatus?.('');
