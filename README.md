@@ -11,21 +11,21 @@ Experience the student node here: [quest-dntrng.vercel.app](https://quest-dntrng
 *   **Complex Interactions**: Supports Multi-row True/False, Multiple Choice (Single/Multi), Ordering, and Matching.
 *   **Diagnostic Audit**: Immediate standing registry and intelligence audit upon completion.
 *   **Zero Infrastructure**: Powered entirely by Google Sheets and Google Apps Script.
-*   **PDF Export**: Export assessments as student versions or teacher answer keys.
+*   **Multi-Format Export**: Export assessments as JSON, Excel, Word, or PDF (Questions Only or Answer Keys).
 
 ## 🏗️ Technical Architecture
 *   **Frontend**: Next.js 15 (App Router), React 19, Tailwind CSS.
 *   **Websockets**: Pusher Channels for live classroom orchestration.
-*   **Registry**: Google Sheets Bridge v18.9 (REST API).
+*   **Registry**: Google Sheets Bridge v19.2 (REST API).
 *   **Deployment**: Vercel (Frontend) + Google Apps Script (Backend).
 
 ## 📋 Quick Start
 1.  **Registry Setup**: Create a Google Sheet and inject the script from `src/lib/gas/latest.ts`.
-2.  **Environment**: Configure `NEXT_PUBLIC_API_URL` and Pusher credentials.
+2.  **Environment**: Configure `APPS_SCRIPT_URL` and Pusher credentials.
 3.  **Deployment**: Push to Vercel and initialize your first assessment module.
 
 ## 🔧 Technical Notes
-### Vietnamese Character Support in PDF
-The default PDF export uses standard fonts. To support full Vietnamese diacritics in exported PDFs, you must install and register a UTF-8 compatible font (like Roboto or Inter) with jsPDF in the `handleExportPDF` function. Currently, some characters may appear incorrectly unless a custom font is added.
+### High-Fidelity PDF Export
+To ensure perfect rendering of Vietnamese diacritics and complex interaction modules, the platform utilizes a **Visual Capture Protocol** (`html2canvas` + `jsPDF`). This ensures that exported documents appear exactly as they do in the browser, bypassing standard PDF encoding limitations.
 
 *Built for teachers who demand precision.*

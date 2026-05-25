@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/dialog";
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import html2canvas from 'html2canvas';
 import { 
   Document, 
   Packer, 
@@ -77,149 +77,160 @@ export default function AdminTestDetailPage() {
     
     setIsExporting(true);
     setShowExportModal(false);
-    
-    const doc = new jsPDF();
-    const dateStr = new Date().toLocaleDateString();
-    const dateKey = new Date().toISOString().split('T')[0];
+    toast({ title: "Generating PDF... / Đang tạo PDF..." });
 
-    // 1. Cover Page Construction
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(28);
-    doc.setTextColor(26, 35, 64);
-    doc.text("DNTRNG", 105, 60, { align: "center" });
-    
-    doc.setFontSize(10);
-    doc.setTextColor(59, 91, 219);
-    doc.text("INTELLIGENCE REGISTRY PROTOCOL", 105, 68, { align: "center" });
+    try {
+      // 1. Create hidden element for high-fidelity rendering
+      const element = document.createElement('div');
+      element.style.width = '794px'; // Standard A4 width at 96 DPI
+      element.style.padding = '60px';
+      element.style.backgroundColor = '#ffffff';
+      element.style.color = '#0f172a';
+      element.style.fontFamily = '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+      element.style.position = 'absolute';
+      element.style.left = '-9999px';
+      element.style.top = '0';
+      element.style.zIndex = '-1';
 
-    doc.setDrawColor(59, 91, 219);
-    doc.setLineWidth(1);
-    doc.line(80, 75, 130, 75);
+      // 2. Build Content HTML
+      let html = `
+        <div style="text-align: center; margin-bottom: 60px;">
+          <div style="font-size: 42px; font-weight: 900; color: #1e293b; margin-bottom: 8px;">DNTRNG</div>
+          <div style="font-size: 11px; font-weight: 800; color: #3b82f6; letter-spacing: 0.4em; margin-bottom: 40px; text-transform: uppercase;">Intelligence Registry Protocol</div>
+          <div style="width: 120px; height: 2px; background: #3b82f6; margin: 0 auto 50px;"></div>
+          <h1 style="font-size: 36px; font-weight: 900; line-height: 1.2; margin-bottom: 30px; color: #0f172a;">${currentTest.title || "Assessment Module"}</h1>
+          <div style="display: flex; flex-direction: column; gap: 10px; font-size: 16px; color: #64748b; font-weight: 500;">
+            <div>Category: ${currentTest.category || "General"}</div>
+            <div>Difficulty: ${currentTest.difficulty || "Medium"}</div>
+            <div>Duration: ${currentTest.duration || "15m"}</div>
+            <div>Total Nodes: ${questions.length}</div>
+            <div>Export Date: ${new Date().toLocaleDateString()}</div>
+            <div style="margin-top: 10px; font-weight: 800; color: ${withAnswers ? '#059669' : '#3b82f6'};">
+              Type: ${withAnswers ? "Answer Key / Đáp án" : "Questions Only / Chỉ câu hỏi"}
+            </div>
+          </div>
+        </div>
+        <div style="border-bottom: 1px solid #f1f5f9; margin-bottom: 60px;"></div>
+      `;
 
-    doc.setFontSize(24);
-    doc.setTextColor(15, 23, 42);
-    const titleLines = doc.splitTextToSize(currentTest.title || "Assessment Module", 160);
-    doc.text(titleLines, 105, 100, { align: "center" });
+      questions.forEach((q, i) => {
+        const qType = String(q.question_type || '').toLowerCase().replace(/[\s_]/g, '');
+        const options = parseRegistryArray(q.options || q.order_group);
+        const correctArr = parseRegistryArray(q.correct_answer);
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(12);
-    doc.setTextColor(100, 116, 139);
-    doc.text([
-      `Category: ${currentTest.category || "General"}`,
-      `Difficulty: ${currentTest.difficulty || "Medium"}`,
-      `Duration: ${currentTest.duration || "15m"}`,
-      `Total Nodes: ${questions.length}`,
-      `Export Date: ${dateStr}`,
-      `Type: ${withAnswers ? "Answer Key / Đáp án" : "Questions Only / Chỉ câu hỏi"}`
-    ], 105, 130, { align: "center", lineHeightFactor: 1.5 });
+        html += `
+          <div style="margin-bottom: 50px; page-break-inside: avoid; border-left: 4px solid #f1f5f9; padding-left: 24px;">
+            <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+              <span style="font-size: 18px; font-weight: 900; color: #3b82f6;">${i + 1}.</span>
+              <div style="font-size: 18px; font-weight: 700; color: #1e293b;">${q.question_text}</div>
+            </div>
+            <div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 20px;">
+              Module: ${q.question_type.replace(/_/g, ' ')}
+            </div>
+        `;
 
-    doc.setFontSize(8);
-    doc.text(`Registry ID: ${testId}`, 105, 280, { align: "center" });
-
-    // 2. Questions Generation Protocol
-    for (let i = 0; i < questions.length; i++) {
-      const q = questions[i];
-      doc.addPage();
-      
-      doc.setFontSize(8);
-      doc.setTextColor(203, 213, 225);
-      doc.text(`DNTRNG | ${currentTest.title}`, 14, 10);
-      doc.text(`Page ${doc.internal.getNumberOfPages()}`, 190, 10, { align: "right" });
-
-      let y = 30;
-      
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(14);
-      doc.setTextColor(30, 41, 59);
-      const qText = `${i + 1}. ${q.question_text}`;
-      const qLines = doc.splitTextToSize(qText, 180);
-      doc.text(qLines, 14, y);
-      y += (qLines.length * 7);
-
-      doc.setFont("helvetica", "italic");
-      doc.setFontSize(9);
-      doc.setTextColor(148, 163, 184);
-      doc.text(`Module: ${String(q.question_type || '').replace(/_/g, ' ')}`, 14, y);
-      y += 10;
-
-      if (q.image_url) {
-        y += 10;
-        doc.setFontSize(8);
-        doc.text("[Visual Asset Attached - View in online registry]", 14, y);
-        y += 5;
-      }
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(11);
-      doc.setTextColor(51, 65, 85);
-      
-      const qType = String(q.question_type || '').toLowerCase().replace(/[\s_]/g, '');
-      const correctArr = parseRegistryArray(q.correct_answer);
-
-      if (['singlechoice', 'oneanswer', 'multiplechoice', 'manyanswers', 'dropdown', 'ordering'].includes(qType)) {
-        const opts = parseRegistryArray(q.options || q.order_group);
-        opts.forEach((opt, idx) => {
-          const label = String.fromCharCode(65 + idx);
-          const isCorrect = withAnswers && correctArr.some(c => compareValues(c, opt));
-          const optText = `${label}. ${opt}${isCorrect ? " ✓" : ""}`;
-          const optLines = doc.splitTextToSize(optText, 170);
-          if (isCorrect) doc.setTextColor(5, 150, 105);
-          doc.text(optLines, 20, y);
-          doc.setTextColor(51, 65, 85);
-          y += (optLines.length * 6) + 2;
-        });
-      } 
-      else if (qType === 'matching') {
-        const pairs = parseRegistryArray(q.order_group);
-        const body = pairs.map(p => {
-          const [l, r] = String(p).split('|').map(s => s.trim());
-          return [l, withAnswers ? r : "________________"];
-        });
-        autoTable(doc, {
-          startY: y,
-          head: [['Registry Key', 'Allocation']],
-          body: body,
-          theme: 'striped',
-          headStyles: { fillColor: [59, 91, 219] },
-          margin: { left: 14 }
-        });
-        y = (doc as any).lastAutoTable.finalY + 10;
-      }
-      else if (qType === 'matrixchoice' || qType === 'multipletruefalse') {
-        const rows = parseRegistryArray(q.order_group);
-        const cols = qType === 'multipletruefalse' ? ['True', 'False'] : parseRegistryArray(q.options);
-        const body = rows.map((row, rIdx) => {
-          return [row, ...cols.map(col => {
-            if (withAnswers && compareValues(col, correctArr[rIdx])) return "[ ✓ ]";
-            return "[   ]";
-          })];
-        });
-        autoTable(doc, {
-          startY: y,
-          head: [['Node', ...cols]],
-          body: body,
-          theme: 'grid',
-          headStyles: { fillColor: [59, 91, 219] },
-          margin: { left: 14 }
-        });
-        y = (doc as any).lastAutoTable.finalY + 10;
-      }
-      else if (qType === 'shorttext' || qType === 'rating') {
-        doc.text("Response: ________________________________________________", 14, y);
-        y += 10;
-        if (withAnswers) {
-          doc.setTextColor(5, 150, 105);
-          doc.text(`Correct: ${correctArr.join(", ")}`, 14, y);
-          doc.setTextColor(51, 65, 85);
-          y += 10;
+        if (['singlechoice', 'oneanswer', 'multiplechoice', 'manyanswers', 'dropdown', 'ordering'].includes(qType)) {
+          html += '<div style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px;">';
+          options.forEach((opt, idx) => {
+            const label = String.fromCharCode(65 + idx);
+            const isCorrect = withAnswers && correctArr.some(c => compareValues(c, opt));
+            html += `
+              <div style="display: flex; align-items: flex-start; gap: 12px; font-size: 15px; ${isCorrect ? 'color: #059669; font-weight: 700;' : 'color: #475569;'}">
+                <span style="font-weight: 800; color: ${isCorrect ? '#059669' : '#cbd5e1'}; min-width: 24px;">${label}.</span>
+                <span>${opt} ${isCorrect ? '✓' : ''}</span>
+              </div>
+            `;
+          });
+          html += '</div>';
+        } else if (qType === 'matching') {
+          html += '<table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px;">';
+          html += '<tr style="background: #f8fafc;"><th style="border: 1px solid #e2e8f0; padding: 12px; text-align: left; font-weight: 800;">Key Node</th><th style="border: 1px solid #e2e8f0; padding: 12px; text-align: left; font-weight: 800;">Allocation</th></tr>';
+          const pairs = parseRegistryArray(q.order_group);
+          pairs.forEach(p => {
+            const [l, r] = String(p).split('|').map(s => s.trim());
+            html += `<tr><td style="border: 1px solid #e2e8f0; padding: 12px; font-weight: 600;">${l}</td><td style="border: 1px solid #e2e8f0; padding: 12px; color: ${withAnswers ? '#059669' : '#cbd5e1'}; font-weight: ${withAnswers ? '700' : '400'};">${withAnswers ? r : '____________________'}</td></tr>`;
+          });
+          html += '</table>';
+        } else if (qType === 'matrixchoice' || qType === 'multipletruefalse') {
+          const rows = parseRegistryArray(q.order_group);
+          const cols = qType === 'multipletruefalse' ? ['True', 'False'] : parseRegistryArray(q.options);
+          html += '<table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px;">';
+          html += `<tr style="background: #f8fafc;"><th style="border: 1px solid #e2e8f0; padding: 10px; text-align: left; font-weight: 800;">Interaction</th>${cols.map(c => `<th style="border: 1px solid #e2e8f0; padding: 10px; text-align: center; font-weight: 800;">${c}</th>`).join('')}</tr>`;
+          rows.forEach((row, rIdx) => {
+            html += `<tr><td style="border: 1px solid #e2e8f0; padding: 10px; font-weight: 600;">${row}</td>`;
+            cols.forEach(col => {
+              const isChecked = withAnswers && compareValues(col, correctArr[rIdx]);
+              html += `<td style="border: 1px solid #e2e8f0; padding: 10px; text-align: center;">${isChecked ? '<span style="color: #059669; font-weight: 900; font-size: 18px;">●</span>' : '<span style="color: #e2e8f0; font-size: 18px;">○</span>'}</td>`;
+            });
+            html += '</tr>';
+          });
+          html += '</table>';
+        } else {
+          html += '<div style="margin-bottom: 20px; padding: 20px; background: #f8fafc; border: 2px dashed #e2e8f0; border-radius: 12px; color: #94a3b8; font-size: 14px;">Response: ________________________________________________</div>';
+          if (withAnswers) {
+            html += `<div style="color: #059669; font-weight: 800; font-size: 15px; display: flex; align-items: center; gap: 8px;"><span style="background: #ecfdf5; padding: 4px 10px; border-radius: 6px;">✓ Correct Answer: ${correctArr.join(', ')}</span></div>`;
+          }
         }
-      }
-    }
 
-    const typeLabel = withAnswers ? "answerkey" : "questions";
-    doc.save(`DNTRNG_${(currentTest.title || testId).replace(/\s+/g, '_')}_${typeLabel}_${dateKey}.pdf`);
-    setIsExporting(false);
-    toast({ title: "PDF exported / Xuất PDF thành công" });
+        html += '</div>';
+      });
+
+      html += `
+        <div style="text-align: center; margin-top: 80px; padding-top: 40px; border-top: 1px solid #f1f5f9;">
+          <p style="font-size: 9px; font-weight: 900; color: #cbd5e1; text-transform: uppercase; letter-spacing: 0.8em; margin-bottom: 8px;">DNTRNG™ • INTELLIGENCE REGISTRY</p>
+          <p style="font-size: 8px; font-weight: bold; color: #e2e8f0; text-transform: uppercase;">Registry Node: ${testId}</p>
+        </div>
+      `;
+
+      element.innerHTML = html;
+      document.body.appendChild(element);
+
+      // 3. Capture with html2canvas (Supports Unicode natively via browser rendering)
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false
+      });
+
+      document.body.removeChild(element);
+
+      // 4. Generate PDF via Visual-Split Protocol
+      const imgData = canvas.toDataURL('image/png', 1.0);
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * pageWidth) / canvas.width;
+      
+      let heightLeft = imgHeight;
+      let position = 0;
+      
+      // Page 1
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+      heightLeft -= pageHeight;
+      
+      // Multi-page distribution
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+        heightLeft -= pageHeight;
+      }
+
+      const typeLabel = withAnswers ? "answerkey" : "questions";
+      const dateKey = new Date().toISOString().split('T')[0];
+      pdf.save(`DNTRNG_${(currentTest.title || testId).replace(/\s+/g, '_')}_${typeLabel}_${dateKey}.pdf`);
+      
+      toast({ title: "PDF exported / Xuất PDF thành công" });
+    } catch (error) {
+      console.error("[PDF Extraction Error]", error);
+      toast({ variant: "destructive", title: "Extraction Failed / Lỗi xuất PDF" });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleExportWord = async (withAnswers: boolean) => {
