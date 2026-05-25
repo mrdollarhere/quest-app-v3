@@ -7,10 +7,24 @@ import { QuestionsTab } from '@/components/admin/QuestionsTab';
 import { AdminDialogs } from '@/components/admin/AdminDialogs';
 import { Question } from '@/types/quiz';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  Download, 
+  FileText, 
+  FileJson, 
+  Table, 
+  ChevronDown, 
+  Loader2 
+} from 'lucide-react';
 import { AILoader } from '@/components/ui/ai-loader';
 import { logActivity } from '@/lib/activity-log';
 import { trackEvent } from '@/lib/tracker';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function AdminTestDetailPage() {
   const { id } = useParams();
@@ -18,10 +32,28 @@ export default function AdminTestDetailPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [tests, setTests] = useState<any[]>([]);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [dialogs, setDialogs] = useState({ test: false, user: false, question: false, bulk: false });
+
+  // EXPORT REGISTRY HANDLERS (Stubs)
+  const handleExportPDF = () => {
+    console.log('[Export Protocol] Initializing PDF generation...');
+  };
+
+  const handleExportWord = () => {
+    console.log('[Export Protocol] Initializing Word (.docx) generation...');
+  };
+
+  const handleExportExcel = () => {
+    console.log('[Export Protocol] Initializing Excel (.xlsx) generation...');
+  };
+
+  const handleExportJSON = () => {
+    console.log('[Export Protocol] Initializing JSON backup generation...');
+  };
 
   const fetchData = async () => {
     if (!testId) return;
@@ -65,10 +97,60 @@ export default function AdminTestDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4 mb-2">
+      <div className="flex items-center justify-between mb-2">
         <Button variant="ghost" onClick={() => router.push('/admin/tests')} disabled={loading} className="rounded-full">
           <ArrowLeft className="w-4 h-4 mr-2" /> Back to Tests
         </Button>
+
+        <div className="flex items-center gap-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="outline" 
+                disabled={loading || isExporting} 
+                className="rounded-full h-11 px-6 font-bold border-2 bg-white shadow-sm hover:bg-slate-50 transition-all"
+              >
+                {isExporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                Export
+                <ChevronDown className="w-4 h-4 ml-2 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-2xl border-none w-64 bg-white">
+              <DropdownMenuItem 
+                onClick={handleExportPDF} 
+                disabled={isExporting} 
+                className="rounded-xl p-3 font-bold cursor-pointer"
+              >
+                <FileText className="mr-3 h-4 w-4 text-rose-500" />
+                <span>📄 Export as PDF</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={handleExportWord} 
+                disabled={isExporting} 
+                className="rounded-xl p-3 font-bold cursor-pointer"
+              >
+                <FileText className="mr-3 h-4 w-4 text-blue-500" />
+                <span>📝 Export as Word (.docx)</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={handleExportExcel} 
+                disabled={isExporting} 
+                className="rounded-xl p-3 font-bold cursor-pointer"
+              >
+                <Table className="mr-3 h-4 w-4 text-emerald-500" />
+                <span>📊 Export as Excel (.xlsx)</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={handleExportJSON} 
+                disabled={isExporting} 
+                className="rounded-xl p-3 font-bold cursor-pointer"
+              >
+                <FileJson className="mr-3 h-4 w-4 text-amber-500" />
+                <span>🔧 Export as JSON (backup)</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {loading && questions.length === 0 ? (
