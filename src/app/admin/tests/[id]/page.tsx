@@ -75,7 +75,13 @@ export default function AdminTestDetailPage() {
         toast({ title: "Generating PDF... / Đang tạo PDF..." });
         await generateTestPDF(params);
       } else if (exportFormat === 'docx') {
-        await generateTestWord(params);
+        const result = await generateTestWord(params);
+        if (result?.hasWarnings) {
+          toast({ 
+            title: "Export Warning", 
+            description: "Some images could not be loaded and will appear as links. / Một số hình ảnh không tải được và sẽ hiển thị dưới dạng liên kết." 
+          });
+        }
       }
       toast({ title: "Extraction Successful" });
     } catch (e) { 

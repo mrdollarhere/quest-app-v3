@@ -83,12 +83,12 @@ export async function generateTestWord({ testId, currentTest, questions, withAns
   const exportDate = new Date();
   const dateDisplay = exportDate.toLocaleDateString();
   const dateIso = exportDate.toISOString().split('T')[0];
+  let hasWarnings = false;
 
   // PRE-FETCH PROTOCOL: Parallel image resolution for matching values
   const imageCache = new Map<string, { data: string, type: string } | null>();
   const imageUrlsToFetch: string[] = [];
 
-  // Only fetch images if we are exporting with answers for matching questions or for question-level visual assets
   questions.forEach(q => {
     // 1. Question-level assets
     if (q.image_url && isImageUrl(q.image_url)) {
@@ -108,13 +108,19 @@ export async function generateTestWord({ testId, currentTest, questions, withAns
     }
   });
 
-  if (imageUrlsToFetch.length > 0) {
-    onStatus?.('Fetching images...');
-    const uniqueUrls = Array.from(new Set(imageUrlsToFetch));
-    await Promise.all(uniqueUrls.map(async (url) => {
-      const result = await fetchImageAsBase64(url);
-      imageCache.set(url, result);
-    }));
+  try {
+    if (imageUrlsToFetch.length > 0) {
+      onStatus?.('Fetching images...');
+      const uniqueUrls = Array.from(new Set(imageUrlsToFetch));
+      await Promise.all(uniqueUrls.map(async (url) => {
+        const result = await fetchImageAsBase64(url);
+        if (!result) hasWarnings = true;
+        imageCache.set(url, result);
+      }));
+    }
+  } catch (error) {
+    console.error('[Word Export] Bulk fetch exception:', error);
+    hasWarnings = true;
   }
 
   onStatus?.('Building document...');
@@ -182,8 +188,9 @@ export async function generateTestWord({ testId, currentTest, questions, withAns
           spacing: { before: 200, after: 200 }
         }));
       } else {
+        // Fallback: Render text URL as requested
         children.push(new Paragraph({ 
-          children: [new TextRun({ text: "[Image unavailable / Hình ảnh không khả dụng]", italics: true, color: "999999", size: 16 })], 
+          text: q.image_url, 
           spacing: { after: 200 } 
         }));
       }
@@ -232,11 +239,8 @@ export async function generateTestWord({ testId, currentTest, questions, withAns
               })
             ];
           } else {
-            rightCellContent = [
-              new Paragraph({
-                children: [new TextRun({ text: "[Image unavailable / Hình ảnh không khả dụng]", italics: true, color: "999999", size: 16 })]
-              })
-            ];
+            // Fallback: render the plain text URL as-is as requested
+            rightCellContent = [new Paragraph({ text: rightValue })];
           }
         }
 
@@ -303,4 +307,6 @@ export async function generateTestWord({ testId, currentTest, questions, withAns
   link.download = `DNTRNG_${(currentTest.title || testId).replace(/\s+/g, '_')}_${withAnswers ? 'answerkey' : 'questions'}_${dateIso}.docx`;
   link.click();
   URL.revokeObjectURL(url);
+
+  return { hasWarnings };
 }
