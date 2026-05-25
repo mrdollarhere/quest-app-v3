@@ -103,7 +103,10 @@ export function QuizResults({ title, testId, score, totalQuestions, questions, r
               <User className="w-7 h-7 text-white" />
             </div>
             <div className="text-left">
-              <p className="text-[10px] font-black uppercase text-slate-400">Student / Học sinh</p>
+              <p className="text-[10px] font-black uppercase text-slate-400">
+                <span className="block">Student</span>
+                <span className="block opacity-80 mt-0.5">Học sinh</span>
+              </p>
               <h1 className="text-3xl font-black text-slate-900 uppercase">{userName}</h1>
             </div>
           </div>
@@ -132,12 +135,25 @@ export function QuizResults({ title, testId, score, totalQuestions, questions, r
             <div className="flex items-center gap-6">
               <FileBadge className="w-12 h-12 text-primary" />
               <div>
-                <h4 className="text-primary font-black uppercase text-[10px]">Certificate Ready / Chứng chỉ sẵn sàng</h4>
-                <p className="text-xl font-bold">You passed! Download your certificate. / Bạn đã qua! Tải chứng chỉ của bạn.</p>
+                <h4 className="text-primary font-black uppercase text-[10px]">
+                  <span className="block">Certificate Ready</span>
+                  <span className="block opacity-80 mt-0.5">Chứng chỉ sẵn sàng</span>
+                </h4>
+                <div className="space-y-1">
+                  <p className="text-xl font-bold">You passed! Download your certificate.</p>
+                  <p className="text-sm font-medium opacity-80 italic">Bạn đã qua! Tải chứng chỉ của bạn.</p>
+                </div>
               </div>
             </div>
             <Button onClick={handleDownload} disabled={isGenerating} className="h-14 rounded-full px-10 bg-primary font-black uppercase text-xs">
-              {isGenerating ? 'Generating...' : 'Download Certificate / Tải Chứng Chỉ'}
+              {isGenerating ? (
+                'Generating...'
+              ) : (
+                <div className="flex flex-col items-center">
+                  <span className="block">Download Certificate</span>
+                  <span className="block opacity-80 mt-0.5">Tải Chứng Chỉ</span>
+                </div>
+              )}
             </Button>
           </div>
         )}
@@ -146,18 +162,30 @@ export function QuizResults({ title, testId, score, totalQuestions, questions, r
           "grid gap-5",
           user ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-1 sm:grid-cols-2"
         )}>
-          <Button onClick={onRestart} variant="outline" className="h-16 rounded-full font-black uppercase text-xs border-2">
-            <RotateCcw className="mr-3 w-4 h-4" /> Try Again / Làm Lại
+          <Button onClick={onRestart} variant="outline" className="h-20 rounded-full border-2">
+            <RotateCcw className="mr-3 w-5 h-5 text-slate-400" />
+            <div className="flex flex-col items-start text-left">
+              <span className="block font-black uppercase text-xs">Try Again</span>
+              <span className="block font-bold uppercase text-[10px] opacity-70">Làm Lại</span>
+            </div>
           </Button>
           <Link href="/tests" className="w-full">
-            <Button className="w-full h-16 rounded-full font-black uppercase text-xs bg-primary text-white border-none">
-              All Tests / Tất Cả Bài <ArrowRight className="ml-3 w-4 h-4" />
+            <Button className="w-full h-20 rounded-full bg-primary text-white border-none shadow-xl shadow-primary/20">
+              <div className="flex flex-col items-center">
+                <span className="block font-black uppercase text-xs">All Tests</span>
+                <span className="block font-bold uppercase text-[10px] opacity-70">Tất Cả Bài</span>
+              </div>
+              <ArrowRight className="ml-3 w-5 h-5" />
             </Button>
           </Link>
           {user && (
             <Link href="/profile" className="w-full">
-              <Button variant="secondary" className="w-full h-16 rounded-full font-black uppercase text-xs shadow-sm bg-slate-900 text-white hover:bg-slate-800">
-                <User className="mr-3 w-4 h-4" /> My Profile / Hồ sơ của tôi
+              <Button variant="secondary" className="w-full h-20 rounded-full bg-slate-900 text-white hover:bg-slate-800 shadow-xl shadow-slate-900/10">
+                <User className="mr-3 w-5 h-5 text-primary" />
+                <div className="flex flex-col items-start text-left">
+                  <span className="block font-black uppercase text-xs">My Profile</span>
+                  <span className="block font-bold uppercase text-[10px] opacity-70">Hồ sơ của tôi</span>
+                </div>
               </Button>
             </Link>
           )}
@@ -169,15 +197,27 @@ export function QuizResults({ title, testId, score, totalQuestions, questions, r
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-primary animate-pulse" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Learning Path / Lộ trình học</span>
+                  <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">
+                    <span className="block">Learning Path</span>
+                    <span className="block opacity-80 mt-0.5">Lộ trình học</span>
+                  </span>
                 </div>
-                <h3 className="text-3xl font-black uppercase tracking-tight text-slate-900 leading-none">
-                  {isPass ? "Great job! Try these next: / Làm tốt lắm! Thử tiếp theo:" : "Keep practicing: / Tiếp tục luyện tập:"}
-                </h3>
+                <div className="space-y-1">
+                  <h3 className="text-3xl font-black uppercase tracking-tight text-slate-900 leading-none">
+                    {isPass ? "Great job! Try these next:" : "Keep practicing:"}
+                  </h3>
+                  <p className="text-xl font-bold text-slate-400 uppercase tracking-tight leading-none">
+                    {isPass ? "Làm tốt lắm! Thử tiếp theo:" : "Tiếp tục luyện tập:"}
+                  </p>
+                </div>
               </div>
               <Link href="/tests">
-                <Button variant="ghost" className="rounded-full font-black uppercase text-[10px] tracking-widest text-slate-400 hover:text-primary">
-                  View Full Library / Xem tất cả bài <ArrowRight className="ml-2 w-3.5 h-3.5" />
+                <Button variant="ghost" className="rounded-full h-14 px-6 hover:bg-white transition-all">
+                  <div className="flex flex-col items-end text-right mr-3">
+                    <span className="block font-black uppercase text-[10px] tracking-widest text-slate-400">View Full Library</span>
+                    <span className="block font-bold uppercase text-[9px] tracking-widest text-slate-300">Xem tất cả bài</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-primary" />
                 </Button>
               </Link>
             </div>
@@ -206,13 +246,19 @@ function StatCard({ icon: Icon, label, value, color }: any) {
     orange: "bg-orange-50 text-orange-600 border-orange-100",
     rose: "bg-rose-50 text-rose-600 border-rose-100"
   };
+
+  const [en, vi] = String(label).split(' / ');
+
   return (
     <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex items-center gap-4 group hover:shadow-md transition-all">
       <div className={cn("p-3.5 rounded-xl border-2 transition-transform group-hover:scale-110", colors[color])}>
         <Icon className="w-5 h-5" />
       </div>
       <div>
-        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{label}</p>
+        <div className="mb-1 leading-none">
+          <span className="block text-[9px] font-black uppercase tracking-widest text-slate-400">{en}</span>
+          {vi && <span className="block text-[8px] font-bold uppercase tracking-widest text-slate-400/70 mt-0.5">{vi}</span>}
+        </div>
         <p className="text-2xl font-black text-slate-900 tabular-nums leading-none">{value}</p>
       </div>
     </div>

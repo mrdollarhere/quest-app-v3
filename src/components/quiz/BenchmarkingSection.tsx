@@ -53,7 +53,10 @@ export function BenchmarkingSection({ testId, percentage, enabled = true }: Benc
     return (
       <div className="p-8 bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] border border-slate-100 dark:border-slate-800 flex items-center justify-center gap-3 mb-10">
         <Loader2 className="w-5 h-5 text-primary animate-spin" />
-        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Comparing results... / Đang so sánh kết quả...</span>
+        <div className="leading-tight">
+          <span className="block text-[10px] font-black uppercase tracking-widest text-slate-400">Comparing results...</span>
+          <span className="block text-[9px] font-bold uppercase tracking-widest text-slate-300 mt-0.5">Đang so sánh kết quả...</span>
+        </div>
       </div>
     );
   }
@@ -65,12 +68,15 @@ export function BenchmarkingSection({ testId, percentage, enabled = true }: Benc
           <TrendingUp className="w-6 h-6 text-primary" />
         </div>
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mb-0.5">Your Ranking / Xếp hạng của bạn</p>
-          <div className="space-y-0.5">
-            <p className="text-xl font-bold text-slate-700 dark:text-slate-300">
+          <div className="mb-2 leading-none">
+            <span className="block text-[10px] font-black uppercase tracking-[0.3em] text-primary">Your Ranking</span>
+            <span className="block text-[9px] font-bold uppercase tracking-[0.3em] text-primary/70 mt-0.5">Xếp hạng của bạn</span>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xl font-bold text-slate-700 dark:text-slate-300 leading-none">
               You scored higher than <span className="text-primary">{percentile}%</span> of students
             </p>
-            <p className="text-xs font-medium text-slate-400 italic">
+            <p className="text-sm font-medium text-slate-400 italic leading-none">
               Bạn đạt cao hơn {percentile}% học sinh khác
             </p>
           </div>

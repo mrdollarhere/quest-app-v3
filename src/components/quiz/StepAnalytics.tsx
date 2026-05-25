@@ -31,7 +31,10 @@ function Legend() {
         <button className="w-full flex items-center justify-between p-6 hover:bg-slate-50 transition-colors text-left group">
           <div className="flex items-center gap-3">
             <Info className="w-4 h-4 text-slate-400 group-hover:text-primary transition-colors" />
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Legend / Chú thích</span>
+            <div className="leading-none">
+              <span className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Legend</span>
+              <span className="block text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400 mt-0.5">Chú thích</span>
+            </div>
           </div>
           <ChevronDown className={cn("w-4 h-4 text-slate-300 transition-transform duration-300", isOpen && "rotate-180")} />
         </button>
@@ -115,24 +118,38 @@ export function StepAnalytics({ questions, serverReviewData = [], textSize }: St
     <div className="pt-16 border-t border-slate-200">
       <div 
         onClick={toggleCollapse}
-        className="flex flex-col md:flex-row md:items-center justify-between px-4 cursor-pointer group/header select-none hover:bg-slate-50 dark:hover:bg-slate-900/50 py-6 rounded-[2.5rem] transition-all duration-300 gap-6"
+        className="flex flex-col md:flex-row md:items-center justify-between px-4 cursor-pointer group/header select-none hover:bg-slate-50 dark:hover:bg-slate-900/50 py-8 rounded-[3rem] transition-all duration-300 gap-6"
       >
         <div className="flex items-center gap-6">
-          <div className="w-14 h-14 bg-primary/5 rounded-[1.5rem] flex items-center justify-center border border-primary/10 transition-transform group-hover/header:scale-105 group-hover/header:rotate-3 shadow-sm">
-            <History className="w-7 h-7 text-primary" />
+          <div className="w-16 h-16 bg-primary/5 rounded-[2rem] flex items-center justify-center border border-primary/10 transition-transform group-hover/header:scale-105 group-hover/header:rotate-3 shadow-sm">
+            <History className="w-8 h-8 text-primary" />
           </div>
           <div className="space-y-1">
-            <div className="flex items-center gap-4">
-              <h3 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900 dark:text-white uppercase leading-none">Review Answers / Xem Lại Đáp Án</h3>
+            <div className="flex flex-col">
+              <h3 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white uppercase leading-none">Review Answers</h3>
+              <p className="text-xl font-bold text-slate-400 uppercase tracking-tight leading-none mt-1">Xem Lại Đáp Án</p>
             </div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.4em]">See what you got right and wrong / Xem câu đúng và câu sai của bạn</p>
+            <div className="mt-2">
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.4em]">See what you got right and wrong</p>
+              <p className="text-[10px] font-medium text-slate-400/80 uppercase tracking-[0.4em] mt-0.5">Xem câu đúng và câu sai của bạn</p>
+            </div>
           </div>
         </div>
         
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200">
-            <Button variant={filterMode === 'all' ? 'default' : 'ghost'} size="sm" onClick={(e) => handleFilterChange('all', e)} className={cn("rounded-xl font-black uppercase text-[9px] tracking-widest h-9 px-4", filterMode === 'all' ? "bg-white text-primary shadow-sm" : "text-slate-400")}>All / Tất cả</Button>
-            <Button variant={filterMode === 'incorrect' ? 'default' : 'ghost'} size="sm" onClick={(e) => handleFilterChange('incorrect', e)} className={cn("rounded-xl font-black uppercase text-[9px] tracking-widest h-9 px-4", filterMode === 'incorrect' ? "bg-white text-rose-50 shadow-sm" : "text-slate-400")}>Wrong Only / Chỉ Câu Sai</Button>
+            <Button variant={filterMode === 'all' ? 'default' : 'ghost'} size="sm" onClick={(e) => handleFilterChange('all', e)} className={cn("rounded-xl h-12 px-6", filterMode === 'all' ? "bg-white text-primary shadow-sm" : "text-slate-400")}>
+              <div className="flex flex-col items-center">
+                <span className="block font-black uppercase text-[10px]">All</span>
+                <span className="block font-bold uppercase text-[9px] opacity-70">Tất cả</span>
+              </div>
+            </Button>
+            <Button variant={filterMode === 'incorrect' ? 'default' : 'ghost'} size="sm" onClick={(e) => handleFilterChange('incorrect', e)} className={cn("rounded-xl h-12 px-6", filterMode === 'incorrect' ? "bg-white text-rose-500 shadow-sm" : "text-slate-400")}>
+              <div className="flex flex-col items-center">
+                <span className="block font-black uppercase text-[10px]">Wrong Only</span>
+                <span className="block font-bold uppercase text-[9px] opacity-70">Chỉ Câu Sai</span>
+              </div>
+            </Button>
           </div>
           <div className={cn("p-4 rounded-full border transition-all duration-500", isCollapsed ? "bg-white text-slate-300" : "bg-primary text-white border-primary shadow-lg shadow-primary/20")}>
             <ChevronDown className={cn("w-6 h-6 transition-transform duration-500", !isCollapsed && "rotate-180")} />
@@ -172,12 +189,18 @@ export function StepAnalytics({ questions, serverReviewData = [], textSize }: St
                       </div>
                       <div className="flex flex-col min-w-0 flex-1">
                         <div className="flex items-center gap-4 mb-2">
-                          <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Question {idx + 1} / Câu {idx + 1}</span>
+                          <div className="leading-tight">
+                            <span className="block text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Question {idx + 1}</span>
+                            <span className="block text-[9px] font-bold uppercase tracking-[0.4em] text-slate-300 mt-0.5">Câu {idx + 1}</span>
+                          </div>
                           <div className={cn(
-                            "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest", 
+                            "px-4 py-1.5 rounded-full shadow-sm", 
                             !hasAnswer ? "bg-amber-500 text-white" : (item.isCorrect ? "bg-emerald-500 text-white" : "bg-rose-500 text-white")
                           )}>
-                            {!hasAnswer ? "Skipped / Bỏ qua" : (item.isCorrect ? "Correct ✓ / Đúng ✓" : "Wrong ✗ / Sai ✗")}
+                            <div className="leading-tight text-center">
+                              <span className="block text-[9px] font-black uppercase tracking-widest">{!hasAnswer ? "Skipped" : (item.isCorrect ? "Correct ✓" : "Wrong ✗")}</span>
+                              <span className="block text-[8px] font-bold uppercase tracking-widest opacity-80">{!hasAnswer ? "Bỏ qua" : (item.isCorrect ? "Đúng ✓" : "Sai ✗")}</span>
+                            </div>
                           </div>
                         </div>
                         <h4 className="font-semibold text-slate-900 text-xl tracking-tight line-clamp-1 group-hover:text-primary transition-colors">{item.questionText}</h4>
@@ -211,8 +234,16 @@ export function StepAnalytics({ questions, serverReviewData = [], textSize }: St
         ) : (
           <div className="py-20 text-center bg-white rounded-[3rem] border-4 border-dashed border-slate-100">
             <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto mb-6"><CheckCircle2 className="w-10 h-10 text-emerald-500" /></div>
-            <h4 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Perfect! No mistakes. / Tuyệt vời! Không có lỗi sai.</h4>
-            <Button variant="link" onClick={(e) => handleFilterChange('all', e)} className="mt-4 font-black uppercase text-[10px] text-primary">View All Questions / Xem tất cả câu hỏi</Button>
+            <div className="space-y-1">
+              <h4 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Perfect! No mistakes.</h4>
+              <p className="text-xl font-bold text-slate-400 uppercase tracking-tight">Tuyệt vời! Không có lỗi sai.</p>
+            </div>
+            <Button variant="link" onClick={(e) => handleFilterChange('all', e)} className="mt-8 h-auto p-0">
+              <div className="flex flex-col items-center">
+                <span className="block font-black uppercase text-[10px] text-primary tracking-widest">View All Questions</span>
+                <span className="block font-bold uppercase text-[9px] text-primary/70 tracking-widest mt-0.5">Xem tất cả câu hỏi</span>
+              </div>
+            </Button>
           </div>
         )}
       </div>
