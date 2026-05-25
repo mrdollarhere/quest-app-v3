@@ -10,6 +10,7 @@
 ## 2. Security Protocols
 *   **GAS Proxy**: `gas-proxy.ts` is server-only. Never import in client components.
 *   **Registry Access**: All GAS calls must go through `/api/proxy/` routes. `NEXT_PUBLIC_API_URL` has been removed. All GAS calls use `APPS_SCRIPT_URL` via `gas-proxy.ts` server-side only.
+*   **External Assets**: External images for export must be fetched via `/api/proxy/image?url=` to avoid CORS — never fetch external image URLs directly from the browser for PDF/Word embedding.
 *   **Scoring**: Assessment scores are always calculated server-side in `/api/proxy/submit`. Client-side scores are for visual feedback only and not trusted by the registry.
 *   **Auth**: Admin routes require an `auth-session` cookie with `role === admin`.
 *   **join_mode setting**: open or whitelist, stored in Settings sheet.
@@ -46,6 +47,7 @@
 
 ---
 ### INFRASTRUCTURE HARDENING - 2025-05-24 (v19.1.0)
+- **Visual Proxy Established**: Launched SSRF-protected image proxy node for secure asset extraction.
 - **Bug Registry Established**: Launched unified issue reporting terminal and admin dashboard.
 - **Zero-Public-URL**: Removed `NEXT_PUBLIC_API_URL` from client bundles.
 - **Proxy Enforced**: Transitioned all administrative and student telemetry to server-side proxy nodes.

@@ -13,7 +13,7 @@ interface ExportParams {
   currentTest: any;
   questions: Question[];
   withAnswers: boolean;
-  onProgress?: (msg: string) => void;
+  onStatus?: (status: string) => void;
 }
 
 /**
@@ -43,7 +43,10 @@ function buildOptionsHTML(q: Question, showAnswers: boolean) {
     table += '<tr style="background: #f1f5f9;"><th style="border: 1px solid #e2e8f0; padding: 12px; text-align: left; font-weight: 900; text-transform: uppercase; color: #64748b;">Key Node</th><th style="border: 1px solid #e2e8f0; padding: 12px; text-align: left; font-weight: 900; text-transform: uppercase; color: #64748b;">Allocation</th></tr>';
     parseRegistryArray(q.order_group).forEach(p => {
       const [l, r] = String(p).split('|').map(s => s.trim());
-      table += `<tr><td style="border: 1px solid #e2e8f0; padding: 12px; font-weight: 700; color: #1e293b; background: #ffffff;">${l}</td><td style="border: 1px solid #e2e8f0; padding: 12px; color: ${showAnswers ? '#059669' : '#cbd5e1'}; font-weight: ${showAnswers ? '900' : 'normal'}; background: #ffffff;">${showAnswers ? r : '____________________'}</td></tr>`;
+      // Proxy matching images too if needed, but usually these are text. If they are URLs, wrap them.
+      const displayVal = (showAnswers && r.startsWith('http')) ? `<img src="/api/proxy/image?url=${encodeURIComponent(r)}" style="max-height: 50px;" />` : (showAnswers ? r : '____________________');
+      
+      table += `<tr><td style="border: 1px solid #e2e8f0; padding: 12px; font-weight: 700; color: #1e293b; background: #ffffff;">${l}</td><td style="border: 1px solid #e2e8f0; padding: 12px; color: ${showAnswers ? '#059669' : '#cbd5e1'}; font-weight: ${showAnswers ? '900' : 'normal'}; background: #ffffff;">${displayVal}</td></tr>`;
     });
     table += '</table>';
     return table;
@@ -74,9 +77,9 @@ function buildOptionsHTML(q: Question, showAnswers: boolean) {
   `;
 }
 
-export async function generateTestPDF({ testId, currentTest, questions, withAnswers }: ExportParams) {
+export async function generateTestPDF({ testId, currentTest, questions, withAnswers, onStatus }: ExportParams) {
   console.log('[PDF] Starting high-fidelity export pulse');
-  console.log('[PDF] Registry count:', questions.length);
+  onStatus?.('Initializing renderer...');
 
   const element = document.createElement('div');
   element.id = 'pdf-render-node';
@@ -87,7 +90,7 @@ export async function generateTestPDF({ testId, currentTest, questions, withAnsw
     top: 0;
     left: 0;
     width: 794px;
-    z-index: -1;
+    z-index: -100;
     opacity: 0;
     pointer-events: none;
     background-color: #ffffff;
@@ -113,19 +116,24 @@ export async function generateTestPDF({ testId, currentTest, questions, withAnsw
     </div>
   `;
 
-  const questionsHtml = questions.map((q, i) => `
-    <div style="margin-bottom: 60px; page-break-inside: avoid; border-left: 6px solid #f1f5f9; padding-left: 30px;">
-      <div style="display: flex; gap: 15px; margin-bottom: 12px;">
-        <span style="font-size: 18px; font-weight: 900; color: #2563eb;">${i + 1}.</span>
-        <div style="font-size: 18px; font-weight: 800; color: #0f172a; line-height: 1.4;">${q.question_text}</div>
+  const questionsHtml = questions.map((q, i) => {
+    // ROUTE THROUGH PROXY: Never fetch external URLs directly from the browser
+    const proxiedImg = q.image_url ? `/api/proxy/image?url=${encodeURIComponent(q.image_url)}` : null;
+    
+    return `
+      <div style="margin-bottom: 60px; page-break-inside: avoid; border-left: 6px solid #f1f5f9; padding-left: 30px;">
+        <div style="display: flex; gap: 15px; margin-bottom: 12px;">
+          <span style="font-size: 18px; font-weight: 900; color: #2563eb;">${i + 1}.</span>
+          <div style="font-size: 18px; font-weight: 800; color: #0f172a; line-height: 1.4;">${q.question_text}</div>
+        </div>
+        <div style="font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 25px;">
+          Interaction: ${q.question_type.replace(/_/g, ' ')}
+        </div>
+        ${proxiedImg ? `<div style="margin-bottom: 25px;"><img src="${proxiedImg}" style="max-width: 100%; border: 1px solid #e2e8f0; border-radius: 0;" /></div>` : ''}
+        ${buildOptionsHTML(q, withAnswers)}
       </div>
-      <div style="font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 25px;">
-        Interaction: ${q.question_type.replace(/_/g, ' ')}
-      </div>
-      ${q.image_url ? `<div style="margin-bottom: 25px;"><img src="${q.image_url}" style="max-width: 100%; border: 1px solid #e2e8f0; border-radius: 0;" /></div>` : ''}
-      ${buildOptionsHTML(q, withAnswers)}
-    </div>
-  `).join('');
+    `;
+  }).join('');
 
   const footerHtml = `
     <div style="margin-top: 100px; text-align: center; border-top: 1px solid #f1f5f9; pt: 40px;">
@@ -137,15 +145,14 @@ export async function generateTestPDF({ testId, currentTest, questions, withAnsw
 
   element.innerHTML = headerHtml + questionsHtml + footerHtml;
   
-  console.log('[PDF] Hydrating hidden DOM node...');
   document.body.appendChild(element);
 
-  // STEP: layout delay for browser rendering & image hydration
-  await new Promise(resolve => setTimeout(resolve, 1000));
-
-  console.log('[PDF] Extraction node dimensions:', element.offsetWidth, 'x', element.offsetHeight);
+  onStatus?.('Hydrating assets...');
+  // STEP: layout delay for browser rendering & image hydration via proxy
+  await new Promise(resolve => setTimeout(resolve, 800));
 
   try {
+    onStatus?.('Capturing visual registry...');
     const canvas = await html2canvas(element, {
       scale: 2,
       useCORS: true,
@@ -156,14 +163,14 @@ export async function generateTestPDF({ testId, currentTest, questions, withAnsw
       windowWidth: 794,
       scrollX: 0,
       scrollY: 0,
-      logging: true
+      logging: false
     });
 
     if (canvas.width === 0 || canvas.height === 0) {
-      throw new Error('Canvas capture failure: Dimensions zero');
+      throw new Error('Canvas capture failure');
     }
 
-    console.log('[PDF] Visual capture complete. Initializing distribution pulse.');
+    onStatus?.('Generating PDF buffer...');
     const imgData = canvas.toDataURL('image/jpeg', 0.95);
 
     const pdf = new jsPDF({
@@ -178,7 +185,7 @@ export async function generateTestPDF({ testId, currentTest, questions, withAnsw
     const canvasHeight = canvas.height;
 
     // SCALING: Pixel-to-PDF ratio
-    const ratio = pdfWidth / (canvasWidth / 2); // Divide by 2 because scale is 2
+    const ratio = pdfWidth / (canvasWidth / 2); // Scale is 2
     const scaledHeight = (canvasHeight / 2) * ratio;
 
     let yPosition = 0;
@@ -198,10 +205,8 @@ export async function generateTestPDF({ testId, currentTest, questions, withAnsw
     const typeLabel = withAnswers ? "answerkey" : "questions";
     const dateStr = new Date().toISOString().split('T')[0];
     pdf.save(`DNTRNG_${(currentTest.title || testId).replace(/\s+/g, '_')}_${typeLabel}_${dateStr}.pdf`);
-    
-    console.log('[PDF] Extraction successful.');
   } catch (error) {
-    console.error('[PDF] Terminal protocol failure:', error);
+    console.error('[PDF] Extraction failed:', error);
     throw error;
   } finally {
     document.body.removeChild(element);

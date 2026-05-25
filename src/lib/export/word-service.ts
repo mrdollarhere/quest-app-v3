@@ -27,26 +27,33 @@ interface ExportParams {
 }
 
 /**
- * IDENTITY HANDSHAKE: Image Fetcher
- * Converts a remote asset URL into a byte array for Word embedding.
+ * IDENTITY HANDSHAKE: Proxied Image Fetcher
+ * Routes requests through internal proxy to bypass CORS and implement security audits.
  */
-async function fetchImageAsBase64(url: string): Promise<{ data: string, type: string } | null> {
+async function fetchImageAsBase64(originalUrl: string): Promise<{ data: string, type: string } | null> {
   try {
-    const response = await fetch(url);
-    if (!response.ok) return null;
+    const proxyUrl = `/api/proxy/image?url=${encodeURIComponent(originalUrl)}`;
+    const response = await fetch(proxyUrl);
+    
+    if (!response.ok) {
+      console.warn('[Word Export] Registry acquisition failure:', originalUrl);
+      return null;
+    }
+    
     const blob = await response.blob();
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64 = reader.result as string;
         const data = base64.split(',')[1];
-        const type = blob.type || 'image/png';
+        const type = blob.type || 'image/jpeg';
         resolve({ data, type });
       };
       reader.onerror = () => resolve(null);
       reader.readAsDataURL(blob);
     });
-  } catch {
+  } catch (error) {
+    console.warn('[Word Export] Handshake exception:', originalUrl);
     return null;
   }
 }
@@ -81,20 +88,25 @@ export async function generateTestWord({ testId, currentTest, questions, withAns
   const imageCache = new Map<string, { data: string, type: string } | null>();
   const imageUrlsToFetch: string[] = [];
 
-  if (withAnswers) {
-    questions.forEach(q => {
-      if (q.question_type === 'matching') {
-        const pairsArr = parseRegistryArray(q.order_group);
-        pairsArr.forEach(p => {
-          const parts = String(p).split('|');
-          const val = parts[1]?.trim();
-          if (val && isImageUrl(val)) {
-            imageUrlsToFetch.push(val);
-          }
-        });
-      }
-    });
-  }
+  // Only fetch images if we are exporting with answers for matching questions or for question-level visual assets
+  questions.forEach(q => {
+    // 1. Question-level assets
+    if (q.image_url && isImageUrl(q.image_url)) {
+      imageUrlsToFetch.push(q.image_url);
+    }
+    
+    // 2. Matching interaction assets
+    if (withAnswers && q.question_type === 'matching') {
+      const pairsArr = parseRegistryArray(q.order_group);
+      pairsArr.forEach(p => {
+        const parts = String(p).split('|');
+        const val = parts[1]?.trim();
+        if (val && isImageUrl(val)) {
+          imageUrlsToFetch.push(val);
+        }
+      });
+    }
+  });
 
   if (imageUrlsToFetch.length > 0) {
     onStatus?.('Fetching images...');
@@ -108,8 +120,23 @@ export async function generateTestWord({ testId, currentTest, questions, withAns
   onStatus?.('Building document...');
 
   const children: any[] = [
-    new Paragraph({ text: (currentTest.title || "Assessment Module").toUpperCase(), heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER, spacing: { after: 200 } }),
-    new Paragraph({ text: `${String(currentTest.category || "General").toUpperCase()} | ${String(currentTest.difficulty || "Medium").toUpperCase()}`, heading: HeadingLevel.HEADING_3, alignment: AlignmentType.CENTER, spacing: { after: 400 } }),
+    new Paragraph({ 
+      text: (currentTest.title || "Assessment Module").toUpperCase(), 
+      heading: HeadingLevel.HEADING_1, 
+      alignment: AlignmentType.CENTER, 
+      spacing: { after: 200 } 
+    }),
+    new Paragraph({ 
+      text: `${String(currentTest.category || "General").toUpperCase()} | ${String(currentTest.difficulty || "Medium").toUpperCase()}`, 
+      heading: HeadingLevel.HEADING_3, 
+      alignment: AlignmentType.CENTER, 
+      spacing: { after: 400 } 
+    }),
+    new Paragraph({ 
+      text: `Date: ${dateDisplay}`, 
+      alignment: AlignmentType.CENTER, 
+      spacing: { after: 400 } 
+    }),
     new DocxTable({
       width: { size: 100, type: WidthType.PERCENTAGE },
       rows: [
@@ -140,8 +167,26 @@ export async function generateTestWord({ testId, currentTest, questions, withAns
     children.push(new Paragraph({ text: `${i + 1}. ${q.question_text}`, heading: HeadingLevel.HEADING_2, spacing: { before: 400, after: 100 } }));
     children.push(new Paragraph({ children: [new TextRun({ text: `Interaction: ${q.question_type.replace(/_/g, ' ')}`, italics: true, color: "94a3b8", size: 18 })], spacing: { after: 200 } }));
 
+    // Question Image Handling
     if (q.image_url) {
-      children.push(new Paragraph({ children: [new TextRun({ text: "[Visual asset included in online version]", italics: true, color: "cbd5e1", size: 16 })], spacing: { after: 200 } }));
+      const imgData = imageCache.get(q.image_url);
+      if (imgData) {
+        children.push(new Paragraph({
+          children: [
+            new ImageRun({
+              data: Buffer.from(imgData.data, 'base64'),
+              transformation: { width: 400, height: 225 },
+              type: imgData.type.replace('image/', '') as any
+            })
+          ],
+          spacing: { before: 200, after: 200 }
+        }));
+      } else {
+        children.push(new Paragraph({ 
+          children: [new TextRun({ text: "[Image unavailable / Hình ảnh không khả dụng]", italics: true, color: "999999", size: 16 })], 
+          spacing: { after: 200 } 
+        }));
+      }
     }
 
     if (['singlechoice', 'oneanswer', 'multiplechoice', 'manyanswers', 'dropdown', 'ordering'].includes(qType)) {
@@ -189,7 +234,7 @@ export async function generateTestWord({ testId, currentTest, questions, withAns
           } else {
             rightCellContent = [
               new Paragraph({
-                children: [new TextRun({ text: `[Image: ${rightValue}]`, italics: true, color: "999999", size: 16 })]
+                children: [new TextRun({ text: "[Image unavailable / Hình ảnh không khả dụng]", italics: true, color: "999999", size: 16 })]
               })
             ];
           }
