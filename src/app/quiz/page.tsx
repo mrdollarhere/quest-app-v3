@@ -3,7 +3,7 @@
  * 
  * Route: /quiz
  * Purpose: Primary interaction terminal for all assessment modules.
- * Refactored: v19.2.2 - Integrated client-side Spam Guard Protocol.
+ * Refactored: v19.2.3 - Implemented Registry Reset Protocol for testId transitions.
  */
 
 "use client";
@@ -65,6 +65,36 @@ function QuizContent() {
   });
 
   const quizStartTimeRef = useRef<number | null>(null);
+
+  // REGISTRY RESET PROTOCOL: Triggered when the mission target (testId) changes
+  // Ensures stale data from previous missions is purged from the terminal state.
+  useEffect(() => {
+    // 1. Reset lifecycle states
+    setIsStarted(false);
+    setIsInitialVisuallyLoading(true);
+    setIsInitialDataReady(false);
+    
+    // 2. Clear performance data
+    setGeneratedCertificateId(null);
+    setServerReviewData([]);
+    setIsWrongInRace(false);
+    
+    // 3. Reset core quiz state to initial configuration
+    setQuiz({
+      questions: [],
+      currentQuestionIndex: 0,
+      responses: [],
+      isSubmitted: false,
+      score: 0,
+      startTime: Date.now(),
+      mode: 'test',
+      highestStepReached: 0,
+      flaggedQuestionIds: []
+    });
+
+    // 4. Force telemetry node to clear cached start times
+    quizStartTimeRef.current = null;
+  }, [testId]);
 
   // INTEGRITY AUDIT: Initial ban check and admin bypass
   useEffect(() => {
