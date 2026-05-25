@@ -1,27 +1,23 @@
+/**
+ * QuizActive.tsx
+ * 
+ * Purpose: Primary interaction terminal for active assessment missions.
+ * Refactored v19.6: Extracted header UI and keyboard logic for compliance.
+ */
+
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { QuizState } from '@/types/quiz';
 import { QuestionRenderer } from '@/components/quiz/QuestionRenderer';
 import { Button } from "@/components/ui/button";
-import { 
-  ChevronRight, 
-  ChevronLeft, 
-  RotateCcw,
-  Flag,
-  Save,
-  LayoutGrid,
-  CheckCircle2,
-  XCircle,
-  ArrowRight,
-  Maximize,
-  Minimize
-} from "lucide-react";
+import { RotateCcw, CheckCircle2, XCircle, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { QuizTimer } from './QuizTimer';
 import { QuizSidebar } from './QuizSidebar';
 import { SubmissionDialog } from './SubmissionDialog';
 import { calculateScoreForQuestion } from '@/lib/quiz-utils';
+import { QuizHeader } from './QuizHeader';
+import { useQuizShortcuts } from '@/hooks/useQuizShortcuts';
 
 interface QuizActiveProps {
   quiz: QuizState;
@@ -37,370 +33,76 @@ interface QuizActiveProps {
   onToggleFlag: (id: string) => void;
 }
 
-const QuizProgressBar = React.memo(({ progress }: { progress: number }) => (
-  <div className="w-full h-1.5 bg-slate-100 relative overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)}>
-    <div className="absolute top-0 left-0 h-full bg-primary transition-all duration-500 ease-out" style={{ width: `${progress}%` }} />
-  </div>
-));
-QuizProgressBar.displayName = 'QuizProgressBar';
-
 export function QuizActive({
-  quiz,
-  quizTitle,
-  timeLeft,
-  isWrongInRace,
-  onResponseChange,
-  onConfirmResponse,
-  onNext,
-  onPrev,
-  onSubmit,
-  onJump,
-  onToggleFlag
+  quiz, quizTitle, timeLeft, onResponseChange, onConfirmResponse,
+  onNext, onPrev, onSubmit, onJump, onToggleFlag
 }: QuizActiveProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [textSize, setTextSize] = useState<'normal' | 'large' | 'small'>('normal');
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [activeShortcut, setActiveShortcut] = useState<string | null>(null);
   
   useEffect(() => {
-    const saved = localStorage.getItem('dntrng_text_size') as 'normal' | 'large' | 'small';
-    if (saved && ['normal', 'large', 'small'].includes(saved)) {
-      setTextSize(saved);
-    }
-
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    const saved = localStorage.getItem('dntrng_text_size') as any;
+    if (saved) setTextSize(saved);
+    const cb = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', cb);
+    return () => document.removeEventListener('fullscreenchange', cb);
   }, []);
 
-  const triggerVisualFeedback = (key: string) => {
-    setActiveShortcut(key);
-    setTimeout(() => setActiveShortcut(null), 150) ;
-  };
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // INPUT PROTECTION PROTOCOL
-      const target = e.target as HTMLElement;
-      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
-      if (isInput) return;
-
-      const currentQuestion = quiz.questions[quiz.currentQuestionIndex];
-      const isTrainingMode = quiz.mode === 'training';
-      const isRaceMode = quiz.mode === 'race';
-      const response = quiz.responses.find(r => r.questionId === currentQuestion?.id);
-      const isConfirmed = !!response?.isConfirmed;
-
-      switch (e.key) {
-        case 'ArrowRight':
-        case 'Enter':
-          e.preventDefault();
-          if (quiz.currentQuestionIndex < quiz.questions.length - 1) {
-            if (!isTrainingMode || isConfirmed) {
-              triggerVisualFeedback('next');
-              onNext();
-            }
-          } else if (!isTrainingMode || isConfirmed) {
-            setIsConfirmOpen(true);
-          }
-          break;
-        case 'ArrowLeft':
-          e.preventDefault();
-          if (quiz.currentQuestionIndex > 0 && !isRaceMode && !isConfirmed) {
-            triggerVisualFeedback('prev');
-            onPrev();
-          }
-          break;
-        case 'm':
-        case 'M':
-          if (currentQuestion) {
-            triggerVisualFeedback('flag');
-            onToggleFlag(currentQuestion.id);
-          }
-          break;
-        case 'g':
-        case 'G':
-          if (!isRaceMode) {
-            triggerVisualFeedback('grid');
-            setIsSidebarOpen(true);
-          }
-          break;
-        case '+':
-        case '=':
-          triggerVisualFeedback('font-plus');
-          setTextSize('large');
-          localStorage.setItem('dntrng_text_size', 'large');
-          break;
-        case '-':
-        case '_':
-          triggerVisualFeedback('font-minus');
-          setTextSize('small');
-          localStorage.setItem('dntrng_text_size', 'small');
-          break;
-        case ' ':
-          e.preventDefault(); // Scroll Prevention
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [quiz, onNext, onPrev, onToggleFlag]);
-
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch((err) => {
-        console.warn(`Fullscreen alignment failed: ${err.message}`);
-      });
-    } else {
-      document.exitFullscreen();
-    }
-  };
-
   const currentQuestion = quiz.questions[quiz.currentQuestionIndex];
-  const progress = useMemo(() => quiz.questions.length > 0 ? ((quiz.currentQuestionIndex + 1) / quiz.questions.length) * 100 : 0, [quiz.currentQuestionIndex, quiz.questions.length]);
-  
-  const currentResponseObj = quiz.responses.find(r => r.questionId === currentQuestion?.id);
-  const currentResponse = currentResponseObj?.answer;
-  const isAnswerConfirmed = !!currentResponseObj?.isConfirmed;
-  
-  const isFlagged = quiz.flaggedQuestionIds?.includes(currentQuestion?.id);
-
-  const isAnswered = (questionId: string) => {
-    const resp = quiz.responses.find(r => r.questionId === questionId)?.answer;
-    if (resp === undefined || resp === null) return false;
-    if (typeof resp === 'string') return resp.trim().length > 0;
-    if (Array.isArray(resp)) return resp.length > 0;
-    if (typeof resp === 'object') return Object.keys(resp).length > 0;
-    return true;
-  };
-
-  const answeredCount = quiz.questions.filter(q => isAnswered(q.id)).length;
-  
+  const response = quiz.responses.find(r => r.questionId === currentQuestion?.id);
+  const isAnswerConfirmed = !!response?.isConfirmed;
   const isTrainingMode = quiz.mode === 'training';
   const isRaceMode = quiz.mode === 'race';
-  const isCorrect = isAnswerConfirmed && isTrainingMode && calculateScoreForQuestion(currentQuestion, currentResponse);
+  const isCorrect = isAnswerConfirmed && isTrainingMode && calculateScoreForQuestion(currentQuestion, response?.answer);
+
+  const activeShortcut = useQuizShortcuts({
+    onNext: () => (quiz.currentQuestionIndex === quiz.questions.length - 1) ? setIsConfirmOpen(true) : onNext(),
+    onPrev, onToggleSidebar: () => setIsSidebarOpen(true),
+    onSetTextSize: (s) => { setTextSize(s); localStorage.setItem('dntrng_text_size', s); },
+    isRaceMode, isAnswerConfirmed,
+    canNext: !isTrainingMode || isAnswerConfirmed
+  });
+
+  const isAnswered = (qid: string) => {
+    const r = quiz.responses.find(r => r.questionId === qid)?.answer;
+    return r !== undefined && r !== null && (typeof r === 'string' ? r.length > 0 : true);
+  };
 
   return (
-    <div className="min-h-screen bg-[#F4F5F7] flex flex-col items-center transition-colors duration-300">
-      <header className="w-full bg-white border-b border-slate-100 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto h-20 px-4 md:px-8 flex items-center justify-between">
-          <div className="flex items-center gap-2 md:gap-6">
-            <Button 
-              variant="ghost" 
-              onClick={onPrev} 
-              disabled={quiz.currentQuestionIndex === 0 || isRaceMode || isAnswerConfirmed} 
-              className={cn(
-                "rounded-xl h-12 px-2 md:px-4 text-slate-400 font-bold hover:bg-slate-50 disabled:opacity-30 transition-all",
-                activeShortcut === 'prev' && "bg-primary/10 scale-95"
-              )}
-            >
-              <ChevronLeft className="w-5 h-5 mr-1" /> <span className="hidden sm:inline">Trước</span>
-            </Button>
-            <div className="h-6 w-px bg-slate-100 hidden md:block" />
-            <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
-              <span className="text-sm md:text-base font-black text-primary">{quiz.currentQuestionIndex + 1}/{quiz.questions.length}</span>
-            </div>
-          </div>
+    <div className="min-h-screen bg-[#F4F5F7] flex flex-col items-center">
+      <QuizHeader 
+        current={quiz.currentQuestionIndex + 1} total={quiz.questions.length} title={quizTitle}
+        timeLeft={timeLeft} isRaceMode={isRaceMode} isAnswerConfirmed={!isTrainingMode || isAnswerConfirmed}
+        isFullscreen={isFullscreen} textSize={textSize} onPrev={onPrev} onNext={onNext}
+        onToggleSidebar={() => setIsSidebarOpen(true)} onToggleFullscreen={() => document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()}
+        onSetTextSize={(s) => { setTextSize(s); localStorage.setItem('dntrng_text_size', s); }}
+        onSubmit={() => setIsConfirmOpen(true)} activeShortcut={activeShortcut}
+      />
 
-          <div className="hidden xl:flex flex-1 items-center justify-center px-8">
-            <h1 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 truncate max-w-sm text-center" title={quizTitle}>
-              {quizTitle}
-            </h1>
-          </div>
-
-          <div className="flex items-center gap-2 md:gap-8">
-            <div className="flex items-center gap-1 md:gap-4 text-slate-400">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => !isRaceMode && setIsSidebarOpen(true)} 
-                disabled={isRaceMode}
-                className={cn(
-                  "rounded-full h-10 w-10 hover:bg-slate-50 transition-all",
-                  activeShortcut === 'grid' && "bg-primary/10 scale-95",
-                  isRaceMode && "opacity-30 cursor-not-allowed"
-                )}
-                title={isRaceMode ? 'Navigation disabled in Race Mode' : 'Navigation Grid (G)'}
-              >
-                <LayoutGrid className="w-5 h-5" />
-              </Button>
-              
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={toggleFullscreen} 
-                className="rounded-full h-10 w-10 hover:bg-slate-50 hidden sm:flex"
-                title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-              >
-                {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
-              </Button>
-
-              <div className="hidden sm:flex gap-1">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => { setTextSize('small'); localStorage.setItem('dntrng_text_size', 'small'); }}
-                  className={cn(
-                    "rounded-full h-10 w-10 hover:bg-slate-50 transition-all", 
-                    textSize === 'small' && "text-primary bg-primary/5",
-                    activeShortcut === 'font-minus' && "bg-primary/10 scale-95"
-                  )}
-                  title="Smaller Text (-)"
-                >
-                  <span className="text-xs font-black">A-</span>
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => { setTextSize('normal'); localStorage.setItem('dntrng_text_size', 'normal'); }}
-                  className={cn("rounded-full h-10 w-10 hover:bg-slate-50", textSize === 'normal' && "text-primary bg-primary/5")}
-                >
-                  <span className="text-sm font-black">A</span>
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => { setTextSize('large'); localStorage.setItem('dntrng_text_size', 'large'); }}
-                  className={cn(
-                    "rounded-full h-10 w-10 hover:bg-slate-50 transition-all", 
-                    textSize === 'large' && "text-primary bg-primary/5",
-                    activeShortcut === 'font-plus' && "bg-primary/10 scale-95"
-                  )}
-                  title="Larger Text (+)"
-                >
-                  <span className="text-base font-black">A+</span>
-                </Button>
-              </div>
-            </div>
-            <QuizTimer timeLeft={timeLeft} />
-            <div className="h-6 w-px bg-slate-100 hidden md:block" />
-            <Button 
-              variant="ghost" 
-              onClick={() => currentQuestion && onToggleFlag(currentQuestion.id)} 
-              title={isFlagged ? 'Unmark (M)' : 'Mark for Later (M)'}
-              className={cn(
-                "rounded-xl h-12 w-12 flex items-center justify-center font-bold border-none hidden lg:flex transition-all", 
-                isFlagged ? "bg-orange-500 text-white hover:bg-orange-600" : "text-slate-500 bg-[#F1F5F9] hover:bg-slate-200",
-                activeShortcut === 'flag' && "scale-95"
-              )}
-            >
-              <Flag className={cn("w-4 h-4", isFlagged && "fill-current")} />
-            </Button>
-            {quiz.currentQuestionIndex === quiz.questions.length - 1 && (!isTrainingMode || isAnswerConfirmed) ? (
-              <Button 
-                onClick={() => setIsConfirmOpen(true)} 
-                className={cn(
-                  "bg-primary hover:bg-primary/90 text-white rounded-xl h-12 px-8 font-black shadow-xl shadow-primary/20 transition-all hover:scale-[1.05] border-none",
-                  activeShortcut === 'next' && "scale-95"
-                )}
-              >
-                COMMIT
-              </Button>
-            ) : (
-              <Button 
-                onClick={onNext} 
-                disabled={isTrainingMode && !isAnswerConfirmed}
-                className={cn(
-                  "bg-[#366DC7] hover:bg-[#2D5AB0] text-white rounded-xl h-12 px-4 md:px-8 font-black gap-3 transition-all border-none disabled:opacity-30",
-                  activeShortcut === 'next' && "scale-95"
-                )}
-              >
-                Tiếp <ChevronRight className="w-5 h-5" />
-              </Button>
-            )}
-          </div>
-        </div>
-        <QuizProgressBar progress={progress} />
-      </header>
-
-      <main className="flex-1 w-full max-w-5xl py-12 md:py-20 px-6 md:px-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <main className="flex-1 w-full max-w-5xl py-12 md:py-20 px-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
         {isTrainingMode && !isAnswerConfirmed && (
-          <div className="mb-8 p-6 bg-blue-50/50 border-2 border-blue-100 rounded-[2.5rem] flex items-center justify-between max-w-4xl mx-auto animate-in slide-in-from-top-2 duration-500">
-            <div className="flex items-center gap-6">
-              <div className="bg-white p-3 rounded-2xl shadow-sm"><RotateCcw className="w-6 h-6 text-primary" /></div>
-              <div>
-                <h4 className="text-lg font-black text-slate-900 uppercase tracking-tight">Practice Mode</h4>
-                <p className="text-sm font-medium text-slate-500">Select your alignment nodes then check accuracy.</p>
-              </div>
-            </div>
-            {isAnswered(currentQuestion.id) && (
-              <Button 
-                onClick={onConfirmResponse} 
-                className="h-14 px-8 rounded-full bg-primary text-white font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20 transition-all hover:scale-[1.05] border-none"
-              >
-                Check Answer <CheckCircle2 className="w-4 h-4 ml-2" />
-              </Button>
-            )}
+          <div className="mb-8 p-6 bg-blue-50/50 border-2 border-blue-100 rounded-[2.5rem] flex items-center justify-between max-w-4xl mx-auto animate-in slide-in-from-top-2">
+            <div className="flex items-center gap-6"><div className="bg-white p-3 rounded-2xl shadow-sm"><RotateCcw className="w-6 h-6 text-primary" /></div><div><h4 className="text-lg font-black uppercase">Practice Mode</h4><p className="text-sm font-medium text-slate-500">Select nodes then check accuracy.</p></div></div>
+            {isAnswered(currentQuestion.id) && <Button onClick={onConfirmResponse} className="h-14 px-8 rounded-full bg-primary font-black shadow-lg">Check Answer <CheckCircle2 className="w-4 h-4 ml-2" /></Button>}
           </div>
         )}
 
         {isAnswerConfirmed && isTrainingMode && (
-          <div className={cn(
-            "mb-8 p-8 rounded-[2.5rem] border-2 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-6 max-w-4xl mx-auto animate-in zoom-in-95 duration-500",
-            isCorrect ? "bg-emerald-50 border-emerald-100" : "bg-rose-50 border-rose-100"
-          )}>
-            <div className="flex items-center gap-6">
-              <div className={cn(
-                "w-16 h-16 rounded-full flex items-center justify-center shadow-lg shrink-0",
-                isCorrect ? "bg-emerald-500 text-white" : "bg-rose-500 text-white"
-              )}>
-                {isCorrect ? <CheckCircle2 className="w-8 h-8" /> : <XCircle className="w-8 h-8" />}
-              </div>
-              <div className="text-center sm:text-left">
-                <h4 className={cn("text-2xl font-black uppercase tracking-tight leading-none mb-1", isCorrect ? "text-emerald-700" : "text-rose-700")}>
-                  {isCorrect ? "Alignment Correct" : "Alignment Error"}
-                </h4>
-                <p className={cn("text-sm font-bold uppercase tracking-widest", isCorrect ? "text-emerald-600/60" : "text-rose-600/60")}>
-                  {isCorrect ? "Knowledge Node Synchronized" : "Correct Registry Value Revealed"}
-                </p>
-              </div>
-            </div>
-            {quiz.currentQuestionIndex < quiz.questions.length - 1 ? (
-              <Button onClick={onNext} className={cn("h-14 px-8 rounded-full font-black uppercase text-xs tracking-widest border-none shadow-lg", isCorrect ? "bg-emerald-600 hover:bg-emerald-700" : "bg-rose-600 hover:bg-rose-700")}>
-                Next Question <ArrowRight className="ml-2 w-4 h-4" />
-              </Button>
-            ) : (
-              <Button onClick={() => setIsConfirmOpen(true)} className="h-14 px-8 rounded-full font-black uppercase text-xs tracking-widest bg-slate-900 text-white border-none shadow-lg">
-                View Final Audit
-              </Button>
-            )}
+          <div className={cn("mb-8 p-8 rounded-[2.5rem] border-2 shadow-xl flex items-center justify-between gap-6 max-w-4xl mx-auto animate-in zoom-in-95", isCorrect ? "bg-emerald-50 border-emerald-100" : "bg-rose-50 border-rose-100")}>
+            <div className="flex items-center gap-6"><div className={cn("w-16 h-16 rounded-full flex items-center justify-center shadow-lg", isCorrect ? "bg-emerald-500 text-white" : "bg-rose-500 text-white")}>{isCorrect ? <CheckCircle2 className="w-8 h-8" /> : <XCircle className="w-8 h-8" />}</div><div className="text-left"><h4 className={cn("text-2xl font-black uppercase leading-none", isCorrect ? "text-emerald-700" : "text-rose-700")}>{isCorrect ? "Alignment Correct" : "Alignment Error"}</h4><p className="text-sm font-bold opacity-60">Knowledge Node Synchronized</p></div></div>
+            {quiz.currentQuestionIndex < quiz.questions.length - 1 ? <Button onClick={onNext} className={cn("h-14 px-8 rounded-full font-black uppercase text-xs", isCorrect ? "bg-emerald-600" : "bg-rose-600")}>Next <ArrowRight className="ml-2 w-4 h-4" /></Button> : <Button onClick={() => setIsConfirmOpen(true)} className="h-14 px-8 rounded-full font-black uppercase text-xs bg-slate-900 text-white">Final Audit</Button>}
           </div>
         )}
 
-        <div className="max-w-4xl mx-auto bg-white shadow-[0_2px_12px_rgba(0,0,0,0.08)] rounded-[16px] p-8 md:p-12" data-textsize={textSize}>
-          {currentQuestion?.id && (
-            <div className="flex justify-start mb-6">
-              <span className="text-[9px] font-mono font-black text-slate-300 uppercase tracking-[0.2em] bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100 select-none">
-                Node ID: {currentQuestion.id}
-              </span>
-            </div>
-          )}
-          {currentQuestion && (
-            <QuestionRenderer 
-              question={currentQuestion} 
-              value={currentResponse} 
-              onChange={onResponseChange} 
-              reviewMode={isAnswerConfirmed} 
-            />
-          )}
+        <div className="max-w-4xl mx-auto bg-white shadow-sm rounded-[16px] p-8 md:p-12" data-textsize={textSize}>
+          {currentQuestion && <QuestionRenderer question={currentQuestion} value={response?.answer} onChange={onResponseChange} reviewMode={isAnswerConfirmed} />}
         </div>
       </main>
 
       <QuizSidebar quiz={quiz} isOpen={isSidebarOpen} onOpenChange={setIsSidebarOpen} onJump={onJump} isAnswered={isAnswered} />
-      <SubmissionDialog 
-        isOpen={isConfirmOpen} 
-        onOpenChange={setIsConfirmOpen} 
-        onSubmit={onSubmit} 
-        answeredCount={answeredCount} 
-        totalCount={quiz.questions.length}
-        questions={quiz.questions}
-        isAnswered={isAnswered}
-        onJump={onJump}
-      />
+      <SubmissionDialog isOpen={isConfirmOpen} onOpenChange={setIsConfirmOpen} onSubmit={onSubmit} answeredCount={quiz.questions.filter(q => isAnswered(q.id)).length} totalCount={quiz.questions.length} questions={quiz.questions} isAnswered={isAnswered} onJump={onJump} />
     </div>
   );
 }

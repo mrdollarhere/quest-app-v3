@@ -1,9 +1,8 @@
 /**
  * @fileOverview Plain-Text Word Document Extraction Service.
  * 
- * Re-engineered for maximum performance and stability by utilizing a 
- * text-only extraction protocol. All visual assets are rendered as 
- * plain-text URLs to ensure zero-failure document assembly.
+ * Re-engineered for maximum performance and stability.
+ * Updated v19.6: Corrected Footer and PageNumber implementation to prevent assembly crashes.
  */
 
 import { 
@@ -17,7 +16,9 @@ import {
   HeadingLevel, 
   AlignmentType, 
   WidthType,
-  Header
+  Header,
+  Footer,
+  PageNumber
 } from "docx";
 import { parseRegistryArray, compareValues } from '@/lib/quiz-utils';
 import { Question } from '@/types/quiz';
@@ -39,7 +40,6 @@ interface ExportParams {
 export async function generateTestWord({ testId, currentTest, questions, withAnswers, onStatus, returnOutput, watermark }: ExportParams) {
   const exportDate = new Date();
   const dateDisplay = exportDate.toLocaleDateString();
-  const dateIso = exportDate.toISOString().split('T')[0];
 
   onStatus?.('Assembling document nodes...');
 
@@ -168,48 +168,51 @@ export async function generateTestWord({ testId, currentTest, questions, withAns
     }
   });
 
-  // WATERMARK CALIBRATION: Setup section configuration
-  const sectionConfig: any = {
-    children,
-    footers: {
-      default: new Paragraph({
-        alignment: AlignmentType.CENTER,
-        children: [
-          new TextRun({ text: `DNTRNG | Intelligence Extraction | Page `, size: 16 }),
-          new TextRun({ children: ["PAGE_NUMBER"], size: 16 })
-        ]
-      })
-    }
-  };
-
-  // Only apply headers if a watermark is enabled
+  // SECTION CALIBRATION
+  const sectionHeaders: any = {};
   if (watermark?.enabled && watermark.text) {
-    let color = "EEEEEE";
-    if (watermark.opacity >= 30) color = "AAAAAA";
-    else if (watermark.opacity >= 20) color = "CCCCCC";
+    let color = "DDDDDD";
+    if (watermark.opacity >= 0.3) color = "999999";
+    else if (watermark.opacity >= 0.2) color = "BBBBBB";
 
-    sectionConfig.headers = {
-      default: new Header({
-        children: [
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            children: [
-              new TextRun({
-                text: watermark.text,
-                color: color,
-                size: 144, // Approx 72pt
-                bold: true,
-              })
-            ],
-            spacing: { before: 2000 }
-          })
-        ]
-      })
-    };
+    sectionHeaders.default = new Header({
+      children: [
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [
+            new TextRun({
+              text: watermark.text,
+              color: color,
+              size: 144, 
+              bold: true,
+            })
+          ],
+          spacing: { before: 2000 }
+        })
+      ]
+    });
   }
 
+  const sectionFooters = {
+    default: new Footer({
+      children: [
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [
+            new TextRun({ text: `DNTRNG | Intelligence Extraction | Page `, size: 16 }),
+            new TextRun({ children: [PageNumber.CURRENT], size: 16 })
+          ]
+        })
+      ]
+    })
+  };
+
   const doc = new Document({ 
-    sections: [sectionConfig] 
+    sections: [{
+      headers: sectionHeaders,
+      footers: sectionFooters,
+      children
+    }] 
   });
   
   const blob = await Packer.toBlob(doc);
@@ -222,8 +225,7 @@ export async function generateTestWord({ testId, currentTest, questions, withAns
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  const dateStr = dateIso;
-  link.download = `DNTRNG_${(currentTest.title || testId).replace(/\s+/g, '_')}_${withAnswers ? 'answerkey' : 'questions'}_${dateStr}.docx`;
+  link.download = `DNTRNG_${(currentTest.title || testId).replace(/\s+/g, '_')}_${withAnswers ? 'answerkey' : 'questions'}_${new Date().toISOString().split('T')[0]}.docx`;
   link.click();
   URL.revokeObjectURL(url);
   onStatus?.('');
