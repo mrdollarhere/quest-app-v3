@@ -45,7 +45,7 @@ function toAscii(text: string): string {
     'Ă':'A','Ắ':'A','Ặ':'A','Ằ':'A','Ẳ':'A','Ẵ':'A',
     'Â':'A','Ấ':'A','Ầ':'A','Ẩ':'A','Ẫ':'A','Ậ':'A',
     'È':'E','É':'E','Ẻ':'E','Ẽ':'E','Ẹ':'E',
-    'Ê':'E','Ế':'E','Ề':'E','Ể':'E','Ễ':'E','Ệ':'E',
+    'Ê':'E','Ề':'E','Ể':'E','Ễ':'E','Ệ':'E',
     'Ì':'I','Í':'I','Ỉ':'I','Ĩ':'I','Ị':'I',
     'Ò':'O','Ó':'O','Ỏ':'O','Õ':'O','Ọ':'O',
     'Ô':'O','Ố':'O','Ồ':'O','Ổ':'O','Ỗ':'O','Ộ':'O',
@@ -103,14 +103,12 @@ export async function generateTestPDF({ testId, currentTest, questions, withAnsw
     const options = parseRegistryArray(q.options || q.order_group);
     const correctArr = parseRegistryArray(q.correct_answer);
 
-    // Calculate required height for this question block estimate to trigger early page breaks
     const estHeight = 40 + (options.length * 7);
     if (y + estHeight > 280) {
       pdf.addPage();
       y = 20;
     }
 
-    // Question Number + Text
     pdf.setFontSize(11);
     pdf.setFont('helvetica', 'bold');
     const qLabel = `${i + 1}. `;
@@ -121,7 +119,6 @@ export async function generateTestPDF({ testId, currentTest, questions, withAnsw
     pdf.text(splitQ, margin + 12, y);
     y += (splitQ.length * 6) + 2;
 
-    // Type Descriptor
     pdf.setFontSize(9);
     pdf.setFont('helvetica', 'italic');
     pdf.setTextColor(150, 150, 150);
@@ -132,7 +129,6 @@ export async function generateTestPDF({ testId, currentTest, questions, withAnsw
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'normal');
 
-    // Layout by interaction type
     if (['singlechoice', 'oneanswer', 'multiplechoice', 'manyanswers', 'dropdown'].includes(qTypeNormalized)) {
       options.forEach((opt, optIdx) => {
         const letter = String.fromCharCode(65 + optIdx);
@@ -196,19 +192,25 @@ export async function generateTestPDF({ testId, currentTest, questions, withAnsw
     y += 12;
   });
 
-  // FINALIZATION: PAGE NUMBERS & SAVING
+  // FINALIZATION: PAGE NUMBERS & WATERMARKS
   const totalPages = pdf.internal.getNumberOfPages();
   const testTitleNormalized = toAscii(currentTest.title || "Test");
   
   for (let i = 1; i <= totalPages; i++) {
     pdf.setPage(i);
     
-    // Add Watermark if enabled
-    if (watermark?.enabled) {
+    // WATERMARK PROTOCOL: Render behind text using transparency
+    if (watermark?.enabled && watermark.text) {
       pdf.saveGraphicsState();
-      pdf.setGState(new (pdf as any).GState({ opacity: watermark.opacity / 100 }));
-      pdf.setFontSize(40);
-      pdf.setTextColor(150, 150, 150);
+      // Normalize opacity from 10/20/30 to 0.1/0.2/0.3
+      const opacityValue = (watermark.opacity > 1) ? watermark.opacity / 100 : watermark.opacity;
+      
+      // @ts-ignore - GState exists in jsPDF but might missing type definition
+      pdf.setGState(new (pdf as any).GState({ opacity: opacityValue }));
+      pdf.setFontSize(60);
+      pdf.setTextColor(180, 180, 180);
+      pdf.setFont('helvetica', 'bold');
+      
       pdf.text(toAscii(watermark.text), pageWidth / 2, pageHeight / 2, {
         align: 'center',
         angle: 45
@@ -216,6 +218,7 @@ export async function generateTestPDF({ testId, currentTest, questions, withAnsw
       pdf.restoreGraphicsState();
     }
 
+    // Footer Nodes
     pdf.setFontSize(8);
     pdf.setTextColor(180, 180, 180);
     pdf.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - 12, { align: 'right' });

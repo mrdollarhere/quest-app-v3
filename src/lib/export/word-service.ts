@@ -16,7 +16,8 @@ import {
   TableCell as DocxTableCell, 
   HeadingLevel, 
   AlignmentType, 
-  WidthType
+  WidthType,
+  Header
 } from "docx";
 import { parseRegistryArray, compareValues } from '@/lib/quiz-utils';
 import { Question } from '@/types/quiz';
@@ -28,12 +29,14 @@ interface ExportParams {
   withAnswers: boolean;
   onStatus?: (status: string) => void;
   returnOutput?: boolean;
+  watermark?: {
+    enabled: boolean;
+    text: string;
+    opacity: number;
+  };
 }
 
-/**
- * GENERATES PLAIN-TEXT DOCX
- */
-export async function generateTestWord({ testId, currentTest, questions, withAnswers, onStatus, returnOutput }: ExportParams) {
+export async function generateTestWord({ testId, currentTest, questions, withAnswers, onStatus, returnOutput, watermark }: ExportParams) {
   const exportDate = new Date();
   const dateDisplay = exportDate.toLocaleDateString();
   const dateIso = exportDate.toISOString().split('T')[0];
@@ -88,7 +91,6 @@ export async function generateTestWord({ testId, currentTest, questions, withAns
     children.push(new Paragraph({ text: `${i + 1}. ${q.question_text}`, heading: HeadingLevel.HEADING_2, spacing: { before: 400, after: 100 } }));
     children.push(new Paragraph({ children: [new TextRun({ text: `Interaction: ${q.question_type.replace(/_/g, ' ')}`, italics: true, color: "94a3b8", size: 18 })], spacing: { after: 200 } }));
 
-    // Visual Asset Node -> Plain Text URL
     if (q.image_url) {
       children.push(new Paragraph({ 
         children: [
@@ -166,8 +168,38 @@ export async function generateTestWord({ testId, currentTest, questions, withAns
     }
   });
 
+  // WATERMARK CALIBRATION: Add watermark to the header of the section
+  let header = undefined;
+  if (watermark?.enabled && watermark.text) {
+    // Calibrate color based on opacity tiers (Light, Medium, Dark)
+    // 10% -> #EEEEEE, 20% -> #CCCCCC, 30% -> #AAAAAA
+    let color = "EEEEEE";
+    if (watermark.opacity >= 30) color = "AAAAAA";
+    else if (watermark.opacity >= 20) color = "CCCCCC";
+
+    header = new Header({
+      children: [
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [
+            new TextRun({
+              text: watermark.text,
+              color: color,
+              size: 144, // Approx 72pt
+              bold: true,
+            })
+          ],
+          spacing: { before: 2000 } // Position down the page to simulate center
+        })
+      ]
+    });
+  }
+
   const doc = new Document({ 
     sections: [{ 
+      headers: {
+        default: header as any
+      },
       children,
       footers: {
         default: new Paragraph({
