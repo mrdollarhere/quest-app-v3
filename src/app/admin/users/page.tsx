@@ -7,6 +7,8 @@ import { AILoader } from '@/components/ui/ai-loader';
 import { useAdminData } from '@/hooks/useAdminData';
 import { useToastHelper } from '@/hooks/useToastHelper';
 import { logActivity } from '@/lib/activity-log';
+import { AlertCircle, ShieldAlert, RefreshCcw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 /**
  * DNTRNG™ USERS TERMINAL
@@ -31,30 +33,15 @@ export default function AdminUsersPage() {
 
   // TACTICAL DIAGNOSTIC NODE
   useEffect(() => {
-    console.log('[Registry Audit] Admin User Terminal State Update:', {
-      timestamp: new Date().toISOString(),
-      status: {
-        users: usersLoading ? 'LOADING' : usersError ? 'ERROR' : 'READY',
-        responses: responsesLoading ? 'LOADING' : responsesError ? 'ERROR' : 'READY'
-      },
-      payload: {
-        usersCount: Array.isArray(users) ? users.length : 'NOT_AN_ARRAY',
-        responsesCount: Array.isArray(responses) ? responses.length : 'NOT_AN_ARRAY'
-      },
-      diagnostics: {
-        usersError: usersError?.message || null,
-        responsesError: responsesError?.message || null,
-        rawUsers: users
-      }
-    });
-
     if (usersError || responsesError) {
-      console.error('[Registry Audit] Critical Handshake Failure detected in Admin Terminal.');
+      console.error('[Registry Audit] Critical Handshake Failure detected in Admin Terminal:', {
+        usersError: usersError?.message,
+        responsesError: responsesError?.message
+      });
     }
-  }, [users, responses, usersLoading, responsesLoading, usersError, responsesError]);
+  }, [usersError, responsesError]);
 
   const handleRefreshAll = () => {
-    console.log('[Registry Audit] Initializing Manual Force Sync...');
     refreshUsers();
     refreshResponses();
   };
@@ -79,6 +66,35 @@ export default function AdminUsersPage() {
   };
 
   const loading = usersLoading || (responsesLoading && (!responses || responses.length === 0));
+
+  // ERROR TERMINAL RENDER
+  if (usersError || responsesError) {
+    return (
+      <div className="py-20 flex flex-col items-center justify-center text-center space-y-6 animate-in fade-in duration-500">
+        <div className="w-20 h-20 bg-rose-50 rounded-[2rem] flex items-center justify-center shadow-xl shadow-rose-500/10">
+          <ShieldAlert className="w-10 h-10 text-rose-500" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight">Handshake Failure</h2>
+          <p className="text-slate-500 font-medium max-w-md mx-auto">
+            The registry bridge rejected the request. This usually indicates an outdated GAS script or API key mismatch.
+          </p>
+        </div>
+        <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 font-mono text-xs text-rose-600 max-w-lg w-full overflow-hidden">
+          <p className="font-bold mb-2 uppercase tracking-widest text-[10px] text-slate-400">Error Registry Trace:</p>
+          {usersError?.message || responsesError?.message || "Unknown Exception"}
+        </div>
+        <div className="flex gap-4">
+          <Button onClick={handleRefreshAll} className="rounded-full h-12 px-8 font-black uppercase text-xs tracking-widest bg-slate-900">
+            <RefreshCcw className="w-4 h-4 mr-2" /> Retry Handshake
+          </Button>
+          <Button variant="outline" onClick={() => window.location.href='/setup-guide'} className="rounded-full h-12 px-8 font-black uppercase text-xs tracking-widest border-2">
+            View Setup Guide
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (usersLoading && (!users || users.length === 0)) {
     return <div className="py-20"><AILoader messages={["Accessing Identity Registry..."]} /></div>;
