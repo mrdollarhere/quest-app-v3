@@ -1,4 +1,6 @@
+'use client';
 
+import React from 'react';
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
@@ -9,48 +11,22 @@ import { ThemeColorManager } from '@/components/ThemeColorManager';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SWRProvider } from '@/components/SWRProvider';
 
-export const metadata: Metadata = {
-  metadataBase: new URL('https://quest-dntrng.vercel.app'),
-  title: {
-    default: 'DNTRNG — Precision Assessment Platform',
-    template: '%s | DNTRNG'
-  },
-  description: 'Take quizzes, discover your strengths and weaknesses instantly. Free, no account needed.',
-  keywords: ['assessment', 'quiz', 'google sheets', 'education', 'testing'],
-  authors: [{ name: 'DNTRNG Team' }],
-  creator: 'DNTRNG',
-  openGraph: {
-    type: 'website',
-    locale: 'en_US',
-    url: 'https://quest-dntrng.vercel.app',
-    siteName: 'DNTRNG',
-    title: 'DNTRNG — Precision Assessment Platform',
-    description: 'Take quizzes, discover your strengths and weaknesses instantly. Free, no account needed.',
-    images: [{
-      url: '/brand/logo-dark.png',
-      width: 1200,
-      height: 630,
-      alt: 'DNTRNG Platform'
-    }]
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'DNTRNG — Precision Assessment Platform',
-    description: 'Take quizzes, discover your strengths and weaknesses instantly. Free, no account needed.',
-    images: ['/brand/logo-dark.png'],
-  },
-  manifest: '/manifest.json',
-  icons: {
-    icon: '/brand/favicon.png',
-    apple: '/brand/app-icon.png',
-  }
-};
+/**
+ * DNTRNG™ FORENSIC ERROR BUFFER
+ * Captures recent console errors to assist in bug triage.
+ */
+const errorBuffer: string[] = [];
+if (typeof window !== 'undefined') {
+  const originalError = console.error;
+  console.error = (...args) => {
+    const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ').slice(0, 200);
+    errorBuffer.push(msg);
+    if (errorBuffer.length > 3) errorBuffer.shift();
+    originalError(...args);
+  };
+}
 
-export const viewport: Viewport = {
-  themeColor: '#2563EB',
-  width: 'device-width',
-  initialScale: 1,
-};
+export const getRecentErrors = () => [...errorBuffer];
 
 export default function RootLayout({
   children,

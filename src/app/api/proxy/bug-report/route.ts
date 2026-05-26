@@ -1,21 +1,20 @@
 import { NextResponse } from 'next/server';
 import { gasPost } from '@/lib/server/gas-proxy';
+import { validateReportContent } from '@/lib/report-validator';
 
 /**
  * POST /api/proxy/bug-report
  * Public route: Allows any student to submit technical discrepancies.
- * Protocol v19.2.1: Hardened payload integrity.
+ * Protocol v19.2.1: Hardened payload integrity and content validation.
  */
 export async function POST(request: Request) {
   try {
     const payload = await request.json();
     
-    if (!payload.description || payload.description.trim().length === 0) {
-      return NextResponse.json({ error: 'Description is required' }, { status: 400 });
-    }
-
-    if (payload.description.length > 500) {
-      return NextResponse.json({ error: 'Description too long (max 500 chars)' }, { status: 400 });
+    // SERVER-SIDE ENFORCEMENT PROTOCOL
+    const validation = validateReportContent(payload.description || "");
+    if (!validation.valid) {
+      return NextResponse.json({ error: validation.reason }, { status: 400 });
     }
 
     const reportId = "br_" + Date.now();

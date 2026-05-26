@@ -41,38 +41,18 @@ export function QuizResults({ title, testId, score, totalQuestions, questions, r
 
   const recommendations = useMemo(() => {
     if (!allTests.length) return [];
-
-    const difficultyMap: Record<string, number> = { 
-      'easy': 1, 'beginner': 1, 
-      'medium': 2, 'intermediate': 2, 
-      'hard': 3, 'advanced': 3 
-    };
-
+    const difficultyMap: Record<string, number> = { 'easy': 1, 'beginner': 1, 'medium': 2, 'intermediate': 2, 'hard': 3, 'advanced': 3 };
     const currentDiff = difficultyMap[String(testMetadata?.difficulty || '').toLowerCase()] || 2;
     const currentCat = testMetadata?.category || 'General';
-
     let pool = allTests.filter(t => String(t.id) !== String(testId));
-
     if (isPass) {
-      let suggestions = pool.filter(t => 
-        t.category === currentCat && 
-        (difficultyMap[String(t.difficulty || '').toLowerCase()] || 2) >= currentDiff
-      );
-
-      if (suggestions.length < 2) {
-        suggestions = pool.filter(t => t.category === currentCat);
-      }
-
-      if (suggestions.length < 2) {
-        suggestions = pool;
-      }
-
+      let suggestions = pool.filter(t => t.category === currentCat && (difficultyMap[String(t.difficulty || '').toLowerCase()] || 2) >= currentDiff);
+      if (suggestions.length < 2) suggestions = pool.filter(t => t.category === currentCat);
+      if (suggestions.length < 2) suggestions = pool;
       return suggestions.slice(0, 3);
     } else {
       let suggestions = pool.filter(t => t.category === currentCat);
-      if (suggestions.length < 2) {
-        suggestions = pool;
-      }
+      if (suggestions.length < 2) suggestions = pool;
       return suggestions.slice(0, 3);
     }
   }, [allTests, testId, testMetadata, isPass]);
@@ -146,47 +126,22 @@ export function QuizResults({ title, testId, score, totalQuestions, questions, r
               </div>
             </div>
             <Button onClick={handleDownload} disabled={isGenerating} className="h-14 rounded-full px-10 bg-primary font-black uppercase text-xs">
-              {isGenerating ? (
-                'Generating...'
-              ) : (
-                <div className="flex flex-col items-center">
-                  <span className="block">Download Certificate</span>
-                  <span className="block opacity-80 mt-0.5">Tải Chứng Chỉ</span>
-                </div>
-              )}
+              {isGenerating ? 'Generating...' : <div className="flex flex-col items-center"><span className="block">Download Certificate</span><span className="block opacity-80 mt-0.5">Tải Chứng Chỉ</span></div>}
             </Button>
           </div>
         )}
 
-        <div className={cn(
-          "grid gap-5",
-          user ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-1 sm:grid-cols-2"
-        )}>
+        <div className={cn("grid gap-5", user ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-1 sm:grid-cols-2")}>
           <Button onClick={onRestart} variant="outline" className="h-20 rounded-full border-2">
             <RotateCcw className="mr-3 w-5 h-5 text-slate-400" />
-            <div className="flex flex-col items-start text-left">
-              <span className="block font-black uppercase text-xs">Try Again</span>
-              <span className="block font-bold uppercase text-[10px] opacity-70">Làm Lại</span>
-            </div>
+            <div className="flex items-start text-left flex-col"><span className="block font-black uppercase text-xs">Try Again</span><span className="block font-bold uppercase text-[10px] opacity-70">Làm Lại</span></div>
           </Button>
           <Link href="/tests" className="w-full">
-            <Button className="w-full h-20 rounded-full bg-primary text-white border-none shadow-xl shadow-primary/20">
-              <div className="flex flex-col items-center">
-                <span className="block font-black uppercase text-xs">All Tests</span>
-                <span className="block font-bold uppercase text-[10px] opacity-70">Tất Cả Bài</span>
-              </div>
-              <ArrowRight className="ml-3 w-5 h-5" />
-            </Button>
+            <Button className="w-full h-20 rounded-full bg-primary text-white border-none shadow-xl shadow-primary/20"><div className="flex flex-col items-center"><span className="block font-black uppercase text-xs">All Tests</span><span className="block font-bold uppercase text-[10px] opacity-70">Tất Cả Bài</span></div><ArrowRight className="ml-3 w-5 h-5" /></Button>
           </Link>
           {user && (
             <Link href="/profile" className="w-full">
-              <Button variant="secondary" className="w-full h-20 rounded-full bg-slate-900 text-white hover:bg-slate-800 shadow-xl shadow-slate-900/10">
-                <User className="mr-3 w-5 h-5 text-primary" />
-                <div className="flex flex-col items-start text-left">
-                  <span className="block font-black uppercase text-xs">My Profile</span>
-                  <span className="block font-bold uppercase text-[10px] opacity-70">Hồ sơ của tôi</span>
-                </div>
-              </Button>
+              <Button variant="secondary" className="w-full h-20 rounded-full bg-slate-900 text-white hover:bg-slate-800 shadow-xl shadow-slate-900/10"><User className="mr-3 w-5 h-5 text-primary" /><div className="flex items-start text-left flex-col"><span className="block font-black uppercase text-xs">My Profile</span><span className="block font-bold uppercase text-[10px] opacity-70">Hồ sơ của tôi</span></div></Button>
             </Link>
           )}
         </div>
@@ -195,36 +150,12 @@ export function QuizResults({ title, testId, score, totalQuestions, questions, r
           <div className="space-y-8 pt-12 pb-8 border-t border-slate-200">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-primary animate-pulse" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">
-                    <span className="block">Learning Path</span>
-                    <span className="block opacity-80 mt-0.5">Lộ trình học</span>
-                  </span>
-                </div>
-                <div className="space-y-1">
-                  <h3 className="text-3xl font-black uppercase tracking-tight text-slate-900 leading-none">
-                    {isPass ? "Great job! Try these next:" : "Keep practicing:"}
-                  </h3>
-                  <p className="text-xl font-bold text-slate-400 uppercase tracking-tight leading-none">
-                    {isPass ? "Làm tốt lắm! Thử tiếp theo:" : "Tiếp tục luyện tập:"}
-                  </p>
-                </div>
+                <div className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-primary animate-pulse" /><span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary"><span className="block">Learning Path</span><span className="block opacity-80 mt-0.5">Lộ trình học</span></span></div>
+                <div className="space-y-1"><h3 className="text-3xl font-black uppercase tracking-tight text-slate-900 leading-none">{isPass ? "Great job! Try these next:" : "Keep practicing:"}</h3><p className="text-xl font-bold text-slate-400 uppercase tracking-tight leading-none">{isPass ? "Làm tốt lắm! Thử tiếp theo:" : "Tiếp tục luyện tập:"}</p></div>
               </div>
-              <Link href="/tests">
-                <Button variant="ghost" className="rounded-full h-14 px-6 hover:bg-white transition-all">
-                  <div className="flex flex-col items-end text-right mr-3">
-                    <span className="block font-black uppercase text-[10px] tracking-widest text-slate-400">View Full Library</span>
-                    <span className="block font-bold uppercase text-[9px] tracking-widest text-slate-300">Xem tất cả bài</span>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-primary" />
-                </Button>
-              </Link>
+              <Link href="/tests"><Button variant="ghost" className="rounded-full h-14 px-6 hover:bg-white transition-all"><div className="flex flex-col items-end text-right mr-3"><span className="block font-black uppercase text-[10px] tracking-widest text-slate-400">View Full Library</span><span className="block font-bold uppercase text-[9px] tracking-widest text-slate-300">Xem tất cả bài</span></div><ArrowRight className="w-4 h-4 text-primary" /></Button></Link>
             </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              <CardView tests={recommendations} />
-            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"><CardView tests={recommendations} /></div>
           </div>
         )}
 
@@ -233,34 +164,21 @@ export function QuizResults({ title, testId, score, totalQuestions, questions, r
       
       <SiteFooter className="w-full" />
       <BackToTop />
-      <BugReportButton testId={testId} />
+      <BugReportButton 
+        testId={testId} 
+        context={{ score, total: totalQuestions }}
+      />
     </div>
   );
 }
 
 function StatCard({ icon: Icon, label, value, color }: any) {
-  const colors: Record<string, string> = {
-    blue: "bg-blue-50 text-blue-600 border-blue-100",
-    green: "bg-emerald-50 text-emerald-600 border-emerald-100",
-    purple: "bg-purple-50 text-purple-600 border-purple-100",
-    orange: "bg-orange-50 text-orange-600 border-orange-100",
-    rose: "bg-rose-50 text-rose-600 border-rose-100"
-  };
-
+  const colors: Record<string, string> = { blue: "bg-blue-50 text-blue-600 border-blue-100", green: "bg-emerald-50 text-emerald-600 border-emerald-100", purple: "bg-purple-50 text-purple-600 border-purple-100", orange: "bg-orange-50 text-orange-600 border-orange-100", rose: "bg-rose-50 text-rose-600 border-rose-100" };
   const [en, vi] = String(label).split(' / ');
-
   return (
     <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex items-center gap-4 group hover:shadow-md transition-all">
-      <div className={cn("p-3.5 rounded-xl border-2 transition-transform group-hover:scale-110", colors[color])}>
-        <Icon className="w-5 h-5" />
-      </div>
-      <div>
-        <div className="mb-1 leading-none">
-          <span className="block text-[9px] font-black uppercase tracking-widest text-slate-400">{en}</span>
-          {vi && <span className="block text-[8px] font-bold uppercase tracking-widest text-slate-400/70 mt-0.5">{vi}</span>}
-        </div>
-        <p className="text-2xl font-black text-slate-900 tabular-nums leading-none">{value}</p>
-      </div>
+      <div className={cn("p-3.5 rounded-xl border-2 transition-transform group-hover:scale-110", colors[color])}><Icon className="w-5 h-5" /></div>
+      <div><div className="mb-1 leading-none"><span className="block text-[9px] font-black uppercase tracking-widest text-slate-400">{en}</span>{vi && <span className="block text-[8px] font-bold uppercase tracking-widest text-slate-400/70 mt-0.5">{vi}</span>}</div><p className="text-2xl font-black text-slate-900 tabular-nums leading-none">{value}</p></div>
     </div>
   );
 }

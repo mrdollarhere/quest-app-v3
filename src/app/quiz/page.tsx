@@ -280,6 +280,8 @@ function QuizContent() {
     );
   }
 
+  const currentQuestion = quiz.questions[quiz.currentQuestionIndex];
+
   if (qError || (questionsData && questionsData.length === 0)) return <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center"><AlertCircle className="w-16 h-16 text-rose-500 mb-6" /><h2 className="text-3xl font-black text-slate-900">Module Empty</h2><Button onClick={() => router.push('/tests')} className="mt-8 rounded-full">Return to Library</Button></div>;
 
   if (isInitialVisuallyLoading || isSyncingTraining || isSubmittingVisually) {
@@ -303,7 +305,14 @@ function QuizContent() {
       ) : (
         <QuizActive quiz={quiz} quizTitle={currentTestMetadata?.title || 'Assessment'} timeLeft={timeLeft} isWrongInRace={isWrongInRace} onResponseChange={(val) => { const q = quiz.questions[quiz.currentQuestionIndex]; const updated = [...quiz.responses]; const idx = updated.findIndex(r => r.questionId === q.id); if (idx > -1) updated[idx].answer = val; else updated.push({ questionId: q.id, answer: val }); setQuiz({ ...quiz, responses: updated }); }} onConfirmResponse={() => { const q = quiz.questions[quiz.currentQuestionIndex]; const updated = [...quiz.responses]; const idx = updated.findIndex(r => r.questionId === q.id); if (idx > -1) { updated[idx].isConfirmed = true; setQuiz({ ...quiz, responses: updated }); } }} onNext={handleNext} onPrev={() => setQuiz({ ...quiz, currentQuestionIndex: Math.max(0, quiz.currentQuestionIndex - 1) })} onSubmit={submit} onJump={(idx) => setQuiz(prev => ({ ...prev, currentQuestionIndex: idx }))} onToggleFlag={(id) => { setQuiz(prev => ({ ...prev, flaggedQuestionIds: prev.flaggedQuestionIds?.includes(id) ? prev.flaggedQuestionIds.filter(f => f !== id) : [...(prev.flaggedQuestionIds || []), id] })); }} />
       )}
-      <BugReportButton testId={testId || undefined} />
+      <BugReportButton 
+        testId={testId || undefined} 
+        questionId={currentQuestion?.id}
+        questionIndex={quiz.currentQuestionIndex}
+        questionType={currentQuestion?.question_type}
+        quizMode={quiz.mode}
+        totalQuestions={quiz.questions.length}
+      />
     </>
   );
 }
