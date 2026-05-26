@@ -59,6 +59,7 @@ export function BugReportButton({
   totalQuestions,
   className 
 }: BugReportButtonProps) {
+  const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [category, setCategory] = useState<string>('other');
@@ -69,7 +70,10 @@ export function BugReportButton({
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const isBanned = isReportBanned();
+  // HYDRATION PROTOCOL
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // DEBOUNCED VALIDATION PULSE
   useEffect(() => {
@@ -191,7 +195,13 @@ Extra: ${JSON.stringify(context || {})}
     }
   };
 
-  if (isBanned) return null;
+  // BAN PROTOCOL: Only applies after mount to prevent SSR mismatch
+  // ADMIN EXEMPTION: Administrators are never banned from reporting
+  if (mounted && isReportBanned() && user?.role !== 'admin') {
+    return null;
+  }
+
+  if (!mounted) return null;
 
   return (
     <>
@@ -200,7 +210,7 @@ Extra: ${JSON.stringify(context || {})}
         variant="outline"
         size="icon"
         className={cn(
-          "fixed bottom-4 right-4 z-[90] h-10 w-10 rounded-full border-2 border-slate-100 bg-white/80 backdrop-blur-md text-slate-400 hover:text-primary hover:border-primary/20 shadow-lg group transition-all",
+          "fixed bottom-4 right-4 z-[95] h-10 w-10 rounded-full border-2 border-slate-100 bg-white/80 backdrop-blur-md text-slate-400 hover:text-primary hover:border-primary/20 shadow-lg group transition-all",
           className
         )}
         title="Report Issue / Báo Lỗi"

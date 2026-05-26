@@ -20,6 +20,7 @@ import { trackEvent } from '@/lib/tracker';
 import { SiteFooter } from '@/components/SiteFooter';
 import { useAuth } from '@/context/auth-context';
 import { ChatBot } from '@/components/shared/ChatBot';
+import { BugReportButton } from '@/components/shared/BugReportButton';
 
 // Extracted Sub-components
 import { HeroSection } from '@/components/landing/HeroSection';
@@ -108,6 +109,7 @@ export default function LandingPage() {
 
       <SiteFooter />
       <ChatBot />
+      <BugReportButton />
     </div>
   );
 }
