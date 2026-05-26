@@ -19,31 +19,45 @@ export default function AdminUsersPage() {
   const [editingItem, setEditingItem] = useState<any>(null);
   const [dialogs, setDialogs] = useState({ test: false, user: false, question: false, bulk: false });
 
-  const { data: users, loading, refresh } = useAdminData({
+  const { data: users, loading: usersLoading, error: usersError, refresh: refreshUsers } = useAdminData({
     url: '/api/proxy/admin/users',
     initialData: []
   });
 
-  const { data: responses } = useAdminData({
+  const { data: responses, loading: responsesLoading, error: responsesError, refresh: refreshResponses } = useAdminData({
     url: '/api/proxy/admin/responses',
     initialData: []
   });
 
   // TACTICAL DIAGNOSTIC NODE
   useEffect(() => {
-    console.log('[Registry Audit] Admin User Terminal Data Update:', {
+    console.log('[Registry Audit] Admin User Terminal State Update:', {
       timestamp: new Date().toISOString(),
-      loadingState: loading,
-      isUsersArray: Array.isArray(users),
-      usersPayload: users,
-      isResponsesArray: Array.isArray(responses),
-      responsesCount: Array.isArray(responses) ? responses.length : 'N/A'
+      status: {
+        users: usersLoading ? 'LOADING' : usersError ? 'ERROR' : 'READY',
+        responses: responsesLoading ? 'LOADING' : responsesError ? 'ERROR' : 'READY'
+      },
+      payload: {
+        usersCount: Array.isArray(users) ? users.length : 'NOT_AN_ARRAY',
+        responsesCount: Array.isArray(responses) ? responses.length : 'NOT_AN_ARRAY'
+      },
+      diagnostics: {
+        usersError: usersError?.message || null,
+        responsesError: responsesError?.message || null,
+        rawUsers: users
+      }
     });
 
-    if (users && (users as any).error) {
-      console.error('[Registry Audit] Critical error detected in users payload:', (users as any).error);
+    if (usersError || responsesError) {
+      console.error('[Registry Audit] Critical Handshake Failure detected in Admin Terminal.');
     }
-  }, [users, responses, loading]);
+  }, [users, responses, usersLoading, responsesLoading, usersError, responsesError]);
+
+  const handleRefreshAll = () => {
+    console.log('[Registry Audit] Initializing Manual Force Sync...');
+    refreshUsers();
+    refreshResponses();
+  };
 
   const handleAction = async (url: string, payload: any, activityLabel: string) => {
     try {
@@ -58,13 +72,15 @@ export default function AdminUsersPage() {
       showSuccess("Registry Updated");
       setDialogs(prev => ({ ...prev, user: false }));
       logActivity(activityLabel, payload.email || "Batch Operation");
-      setTimeout(refresh, 1000);
+      setTimeout(handleRefreshAll, 1000);
     } catch (err) {
       showError("Action Failed");
     }
   };
 
-  if (loading && (!users || users.length === 0)) {
+  const loading = usersLoading || (responsesLoading && (!responses || responses.length === 0));
+
+  if (usersLoading && (!users || users.length === 0)) {
     return <div className="py-20"><AILoader messages={["Accessing Identity Registry..."]} /></div>;
   }
 
@@ -77,7 +93,7 @@ export default function AdminUsersPage() {
         onEdit={(item: any) => { setEditingItem(item); setDialogs(prev => ({ ...prev, user: true })); }}
         onDelete={(email: string) => handleAction('/api/proxy/admin/delete-user', { email }, "Student deleted")}
         onAdd={() => { setEditingItem(null); setDialogs(prev => ({ ...prev, user: true })); }}
-        onRefresh={refresh}
+        onRefresh={handleRefreshAll}
       />
 
       <AdminDialogs 
