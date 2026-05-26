@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UsersTab } from '@/components/admin/UsersTab';
 import { AdminDialogs } from '@/components/admin/AdminDialogs';
 import { AILoader } from '@/components/ui/ai-loader';
@@ -29,6 +29,22 @@ export default function AdminUsersPage() {
     initialData: []
   });
 
+  // TACTICAL DIAGNOSTIC NODE
+  useEffect(() => {
+    console.log('[Registry Audit] Admin User Terminal Data Update:', {
+      timestamp: new Date().toISOString(),
+      loadingState: loading,
+      isUsersArray: Array.isArray(users),
+      usersPayload: users,
+      isResponsesArray: Array.isArray(responses),
+      responsesCount: Array.isArray(responses) ? responses.length : 'N/A'
+    });
+
+    if (users && (users as any).error) {
+      console.error('[Registry Audit] Critical error detected in users payload:', (users as any).error);
+    }
+  }, [users, responses, loading]);
+
   const handleAction = async (url: string, payload: any, activityLabel: string) => {
     try {
       const res = await fetch(url, {
@@ -48,7 +64,7 @@ export default function AdminUsersPage() {
     }
   };
 
-  if (loading && users.length === 0) {
+  if (loading && (!users || users.length === 0)) {
     return <div className="py-20"><AILoader messages={["Accessing Identity Registry..."]} /></div>;
   }
 
