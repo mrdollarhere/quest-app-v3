@@ -4,6 +4,7 @@
  * Route: /quiz
  * Purpose: Primary interaction terminal for all assessment modules.
  * Refactored: v19.2.3 - Implemented Registry Reset Protocol for testId transitions.
+ * Updated: v19.8.0 - Added Anti-Cheat Integrity Protocol.
  */
 
 "use client";
@@ -14,6 +15,7 @@ import { QuizState, QuizMode } from '@/types/quiz';
 import { QuizStart } from '@/components/quiz/QuizStart';
 import { QuizResults } from '@/components/quiz/QuizResults';
 import { QuizActive } from '@/components/quiz/QuizActive';
+import { AntiCheatModal } from '@/components/quiz/AntiCheatModal';
 import { useToast } from '@/hooks/use-toast';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
@@ -24,6 +26,7 @@ import { QuizLoadingManager } from '@/components/quiz/lifecycle/QuizLoadingManag
 import { BugReportButton } from '@/components/shared/BugReportButton';
 import { calculateScoreForQuestion } from '@/lib/quiz-utils';
 import { isBanned, getSpamRecord, recordOffense, clearRecord, SpamRecord } from '@/lib/spam-guard';
+import { recordViolation, resetViolations, getViolationCount } from '@/lib/anti-cheat';
 import { cn } from '@/lib/utils';
 import { MaintenanceView } from '@/components/quiz/MaintenanceView';
 
@@ -44,6 +47,13 @@ function QuizContent() {
   const [serverReviewData, setServerReviewData] = useState<any[]>([]);
   const [finalDuration, setFinalDuration] = useState<number>(0);
   const [spamResult, setSpamResult] = useState<SpamRecord | null>(null);
+
+  // ANTI-CHEAT STATE
+  const [isCheatWarningOpen, setIsCheatWarningOpen] = useState(false);
+  const [antiCheatViolation, setAntiCheatViolation] = useState({
+    flagged: false,
+    count: 0
+  });
 
   // REDUCED LATENCY LIFECYCLE STATES
   const [isInitialVisuallyLoading, setIsInitialVisuallyLoading] = useState(true);
@@ -74,6 +84,8 @@ function QuizContent() {
     setGeneratedCertificateId(null);
     setServerReviewData([]);
     setIsWrongInRace(false);
+    resetViolations();
+    setAntiCheatViolation({ flagged: false, count: 0 });
     setQuiz({
       questions: [],
       currentQuestionIndex: 0,
@@ -87,6 +99,37 @@ function QuizContent() {
     });
     quizStartTimeRef.current = null;
   }, [testId]);
+
+  // ANTI-CHEAT MONITORING PROTOCOL
+  useEffect(() => {
+    if (!isStarted || quiz.isSubmitted || quiz.mode === 'training' || isCheatWarningOpen) return;
+
+    const handleViolationTrigger = (type: string) => {
+      const result = recordViolation(type);
+      setAntiCheatViolation({
+        count: result.count,
+        flagged: result.action === 'flag' || antiCheatViolation.flagged
+      });
+      setIsCheatWarningOpen(true);
+      trackEvent('integrity_violation', { type, details: { count: result.count } });
+    };
+
+    const handleVisibility = () => {
+      if (document.hidden) handleViolationTrigger('tab_switch');
+    };
+
+    const handleBlur = () => {
+      handleViolationTrigger('window_blur');
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('blur', handleBlur);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, [isStarted, quiz.isSubmitted, quiz.mode, isCheatWarningOpen, antiCheatViolation.flagged]);
 
   useEffect(() => {
     if (clearBanParam === 'true' && user?.role === 'admin') {
@@ -106,6 +149,24 @@ function QuizContent() {
       }
     }
   }, [user]);
+
+  // TIMER PROTOCOL: Pauses during Anti-Cheat acknowledgement
+  useEffect(() => {
+    if (!isStarted || quiz.isSubmitted || isCheatWarningOpen) return;
+
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 0) {
+          clearInterval(timer);
+          submit();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isStarted, quiz.isSubmitted, isCheatWarningOpen]);
 
   const { data: questionsData, isLoading: qLoading, error: qError } = useSWR(
     testId ? `/api/proxy/questions?id=${testId}` : null
@@ -183,7 +244,19 @@ function QuizContent() {
       const res = await fetch('/api/proxy/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ testId, responses: quiz.responses, userName: user?.displayName || guestName || 'Guest User', userEmail: user?.email || 'Anonymous', duration, mode: quiz.mode, certificateId: `CRT-${testId}-${now.toString().slice(-6)}`.toUpperCase() })
+        body: JSON.stringify({ 
+          testId, 
+          responses: quiz.responses, 
+          userName: user?.displayName || guestName || 'Guest User', 
+          userEmail: user?.email || 'Anonymous', 
+          duration, 
+          mode: quiz.mode, 
+          certificateId: `CRT-${testId}-${now.toString().slice(-6)}`.toUpperCase(),
+          // PASS ANTI-CHEAT TELEMETRY
+          flagged: antiCheatViolation.flagged,
+          violationCount: antiCheatViolation.count,
+          flagReason: antiCheatViolation.flagged ? 'tab_switch_x3' : ''
+        })
       });
       const data = await res.json();
       if (res.ok) { setPendingSubmissionResult(data); setIsSubmissionDataReady(true); }
@@ -298,6 +371,13 @@ function QuizContent() {
 
   return (
     <>
+      <AntiCheatModal 
+        isOpen={isCheatWarningOpen}
+        violationCount={antiCheatViolation.count}
+        isFlagged={antiCheatViolation.flagged}
+        onAcknowledge={() => setIsCheatWarningOpen(false)}
+      />
+
       {!isStarted ? (
         <QuizStart title={currentTestMetadata?.title || 'Assessment'} questionsCount={questionsData?.length || 0} user={user} guestName={guestName} setGuestName={setGuestName} protocolSalt={globalData?.salt} isProtectionEnabled={globalData?.protection} guestAccessAllowed={globalData?.guest} onStart={handleStart} testId={testId || undefined} />
       ) : quiz.isSubmitted ? (

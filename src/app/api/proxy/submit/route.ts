@@ -9,11 +9,16 @@ import { parseRegistryArray } from '@/lib/quiz-utils';
  * 
  * Evaluates student responses and commits results to the registry.
  * Refactored v19.6: Evaluation logic extracted to grading-engine.ts.
+ * Updated v19.8: Supports Anti-Cheat flagging metadata.
  */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { testId, responses, userName, userEmail, duration, certificateId, mode } = body;
+    const { 
+      testId, responses, userName, userEmail, 
+      duration, certificateId, mode, 
+      flagged, violationCount, flagReason 
+    } = body;
 
     if (!testId || !responses) {
       return NextResponse.json({ error: 'Missing submission data' }, { status: 400 });
@@ -53,6 +58,7 @@ export async function POST(request: Request) {
 
     const totalQuestions = masterQuestions.length;
 
+    // Registry Append Protocol: Include flagging metadata in the submission
     await gasPost('submitResponse', {
       userName,
       userEmail,
@@ -62,7 +68,11 @@ export async function POST(request: Request) {
       duration,
       responses: reviewData,
       mode,
-      certificateId
+      certificateId,
+      // ANTI-CHEAT METADATA
+      flagged: !!flagged,
+      violationCount: violationCount || 0,
+      flagReason: flagReason || ''
     });
 
     return NextResponse.json({ 
@@ -71,7 +81,8 @@ export async function POST(request: Request) {
       success: true,
       certificateId,
       mode,
-      reviewData
+      reviewData,
+      flagged
     });
   } catch (error) {
     console.error('[Submit Proxy Error]', error);
