@@ -289,8 +289,8 @@ function QuizContent() {
       if (result.status === 'warned') {
         toast({
           variant: "destructive",
-          title: "Empty Submission / Bài nộp trống",
-          description: "Please answer at least one question. Repeated empty submissions will result in a ban. / Vui lòng trả lời ít nhất một câu hỏi."
+          title: "Insufficient assessment data / Dữ liệu chưa đủ",
+          description: "Please complete the mission with meaningful responses. Repeated empty submissions will result in a ban. / Vui lòng hoàn thành bài thi một cách nghiêm túc để được ghi nhận."
         });
       }
       
