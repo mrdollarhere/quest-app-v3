@@ -2,7 +2,7 @@
  * UsersTab.tsx
  * 
  * Purpose: Main container for student node management.
- * Refactored: v18.9.8 - Extracted table logic to UsersTable.tsx.
+ * Refactored: v19.0.1 - Implementation of Defensive Registry Shield.
  */
 
 "use client";
@@ -29,18 +29,21 @@ export function UsersTab({ users, responses, loading, onEdit, onDelete, onAdd, o
 
   const userStats = useMemo(() => {
     const stats: Record<string, { count: number, avg: number }> = {};
-    responses.forEach((r: any) => {
+    const safeResponses = Array.isArray(responses) ? responses : [];
+    
+    safeResponses.forEach((r: any) => {
       const email = String(r['User Email'] || '').toLowerCase();
       if (!stats[email]) stats[email] = { count: 0, avg: 0 };
       stats[email].count++;
       stats[email].avg += (Number(r.Score) / (Number(r.Total) || 1)) * 100;
     });
+    
     Object.keys(stats).forEach(e => stats[e].avg = Math.round(stats[e].avg / stats[e].count));
     return stats;
   }, [responses]);
 
   const { searchTerm, setSearchTerm, sortConfig, handleSort, currentPage, setCurrentPage, paginatedData, totalItems, pageSize } = useRegistryFilter({
-    data: users,
+    data: Array.isArray(users) ? users : [],
     searchFields: (u: any) => [u.name, u.email, u.role],
     pageSize: 10,
     initialSort: { key: 'name', direction: 'asc' }

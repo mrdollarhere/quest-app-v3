@@ -19,6 +19,7 @@ interface UseRegistryFilterOptions<T> {
 /**
  * Standardized hook for managing registry data views.
  * Handles searching, sorting, and client-side pagination.
+ * Implementation: Defensive Iteration Protocol v1.1
  */
 export function useRegistryFilter<T>({
   data,
@@ -31,24 +32,28 @@ export function useRegistryFilter<T>({
   const [sortConfig, setSortConfig] = useState<SortConfig>(initialSort);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // REGISTRY SHIELD: Ensure data is always iterable
+  const safeData = useMemo(() => Array.isArray(data) ? data : [], [data]);
+
   // Auto-reset to page 1 when searching
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
 
   const filteredData = useMemo(() => {
-    if (!searchTerm) return data;
+    if (!searchTerm) return safeData;
     const term = searchTerm.toLowerCase();
-    return data.filter(item => 
+    return safeData.filter(item => 
       searchFields(item).some(field => 
         String(field || "").toLowerCase().includes(term)
       )
     );
-  }, [data, searchTerm, searchFields]);
+  }, [safeData, searchTerm, searchFields]);
 
   const sortedData = useMemo(() => {
     if (!sortConfig.key || !sortConfig.direction) return filteredData;
     
+    // Spread protocol for iteration safety
     return [...filteredData].sort((a, b) => {
       if (customSort) {
         return customSort(a, b, sortConfig.key, sortConfig.direction as 'asc' | 'desc');
@@ -56,6 +61,10 @@ export function useRegistryFilter<T>({
 
       let valA = (a as any)[sortConfig.key];
       let valB = (b as any)[sortConfig.key];
+
+      // Semantic conversion for comparison
+      if (typeof valA === 'string') valA = valA.toLowerCase();
+      if (typeof valB === 'string') valB = valB.toLowerCase();
 
       if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
       if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;

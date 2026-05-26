@@ -54,7 +54,7 @@ export default function TestsLibrary() {
     }
   );
 
-  const tests = data || [];
+  const tests = useMemo(() => Array.isArray(data) ? data : [], [data]);
 
   useEffect(() => {
     const savedView = localStorage.getItem('dntrng_test_view') as 'card' | 'list';

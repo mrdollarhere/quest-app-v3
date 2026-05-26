@@ -4,6 +4,7 @@
  * Purpose: Renders the assessment library as a grid of interactive cards.
  * Features "LIVE" badge for active real-time sessions (v18.9).
  * Design: Images maintain strictly rectangular geometry (rounded-none).
+ * Resiliency: Defensive Iteration Protocol v1.1.
  */
 
 "use client";
@@ -24,6 +25,9 @@ interface CardViewProps {
 
 export function CardView({ tests }: CardViewProps) {
   const [liveTests, setLiveTests] = useState<string[]>([]);
+  
+  // REGISTRY SHIELD: Ensure iterable node
+  const safeTests = Array.isArray(tests) ? tests : [];
 
   useEffect(() => {
     const checkLive = async () => {
@@ -56,7 +60,7 @@ export function CardView({ tests }: CardViewProps) {
 
   return (
     <>
-      {tests.map((test, index) => {
+      {safeTests.map((test, index) => {
         const isLive = liveTests.includes(test.id);
         
         return (
