@@ -126,6 +126,7 @@ export function BugReportButton({
     if (!description.trim() || loading || validationError) return;
 
     setLoading(true);
+    let res: Response | undefined;
     try {
       const contextAppendix = `
 ---AUTO CONTEXT---
@@ -139,7 +140,7 @@ User: ${autoContext?.identity}
 Extra: ${JSON.stringify(context || {})}
 `;
 
-      const res = await fetch('/api/proxy/bug-report', {
+      res = await fetch('/api/proxy/bug-report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -182,7 +183,7 @@ Extra: ${JSON.stringify(context || {})}
         throw new Error(errorData.error || 'Submission Failed');
       }
     } catch (e: any) {
-      if (!res.status === 400) {
+      if (res?.status !== 400) {
         toast({ variant: "destructive", title: "Gửi thất bại", description: e.message });
       }
     } finally {
