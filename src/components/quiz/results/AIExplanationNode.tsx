@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Sparkles, Loader2, Lightbulb, AlertCircle } from "lucide-react";
+import { Sparkles, Loader2, Lightbulb, AlertCircle, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AIExplanationNodeProps {
@@ -31,14 +31,17 @@ export function AIExplanationNode({
   const [explanation, setExplanation] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isConfigError, setIsConfigError] = useState(false);
+  const [isRateLimited, setIsRateLimited] = useState(false);
 
   // GROUNDING RULE: Show only for incorrect responses
-  if (isCorrect) return null;
+  // CONFIG GUARD: Hide entirely if AI features are disabled
+  if (isCorrect || isConfigError) return null;
 
   const isLimitReached = usageCount >= limit;
 
   const handleExplain = async () => {
-    if (loading || explanation || isLimitReached) return;
+    if (loading || explanation || isLimitReached || isRateLimited) return;
 
     setLoading(true);
     setError(null);
@@ -61,10 +64,27 @@ export function AIExplanationNode({
         setExplanation(data.explanation);
         onSuccess();
       } else {
+        // TACTICAL ERROR REGISTRY
+        if (res.status === 503) {
+          setIsConfigError(true);
+          setError("AI features not available. Tính năng AI chưa được cấu hình.");
+        } else if (res.status === 429) {
+          setIsRateLimited(true);
+          setError("Too many requests. Please wait a moment. Quá nhiều yêu cầu. Vui lòng đợi một lúc.");
+          setTimeout(() => setIsRateLimited(false), 30000); // 30s cooldown
+        } else if (res.status === 408) {
+          setError("Request timed out. Please try again. Yêu cầu hết thời gian. Vui lòng thử lại.");
+        } else {
+          setError("Could not generate explanation. Please try again. Không thể tạo giải thích. Vui lòng thử lại.");
+        }
         throw new Error(data.error || 'Failed to generate explanation');
       }
     } catch (e: any) {
-      setError(e.message || 'Registry handshake failed');
+      console.error('[AI Explanation Client Error]', e);
+      // OFFLINE GUARD
+      if (typeof window !== 'undefined' && !window.navigator.onLine) {
+        setError("No internet connection. Không có kết nối mạng.");
+      }
     } finally {
       setLoading(false);
     }
@@ -77,16 +97,17 @@ export function AIExplanationNode({
           variant="outline" 
           size="sm" 
           onClick={handleExplain}
-          disabled={isLimitReached}
+          disabled={isLimitReached || isRateLimited}
           className={cn(
             "h-8 px-4 rounded-full font-black uppercase text-[9px] tracking-widest gap-2 transition-all",
-            isLimitReached 
+            (isLimitReached || isRateLimited)
               ? "border-slate-100 text-slate-300 opacity-50 cursor-not-allowed" 
               : "border-primary/20 text-primary hover:bg-primary/5 shadow-sm"
           )}
         >
           <Sparkles className="w-3 h-3" />
-          {isLimitReached ? "Limit reached (3/3) / Hết lượt (3/3)" : "Explain / Giải thích"}
+          {isLimitReached ? "Limit reached (3/3) / Hết lượt (3/3)" : 
+           isRateLimited ? "Wait 30s / Vui lòng chờ" : "Explain / Giải thích"}
         </Button>
       )}
 
@@ -97,9 +118,10 @@ export function AIExplanationNode({
         </div>
       )}
 
-      {error && (
-        <div className="text-[9px] font-bold text-rose-500 flex items-center gap-2">
-          <AlertCircle className="w-3 h-3" /> {error}
+      {error && !loading && (
+        <div className="text-[9px] font-bold text-rose-500 flex items-center gap-2 bg-rose-50 p-3 rounded-xl border border-rose-100 animate-in shake-in">
+          {error.includes("internet") ? <WifiOff className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+          {error}
         </div>
       )}
 
