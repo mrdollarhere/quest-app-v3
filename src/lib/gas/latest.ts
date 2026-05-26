@@ -1,12 +1,12 @@
 export const GAS_CODE = `/**
- * QUESTFLOW BACKEND v19.2.2 - RESILIENT REGISTRY PROTOCOL
+ * QUESTFLOW BACKEND v19.2.3 - RESILIENT REGISTRY PROTOCOL
  * 
  * ACTIONS SUPPORTED:
  * - GET: login, getTests, getUsers, getResponses, getQuestions, getSettings, getVersion, getActivity, getBugReports
  * - POST: submitResponse, saveTest, deleteTest, saveUser, deleteUser, saveQuestion, saveQuestions, saveUsers, saveSetting, deleteResponse, logEvent, logActivity, saveBugReport, updateBugStatus
  */
 
-const GAS_VERSION = "19.2.2";
+const GAS_VERSION = "19.2.3";
 const ACTIVITY_SHEET_NAME = "System_Activity";
 const BUG_REPORTS_SHEET = "BugReports";
 
@@ -119,6 +119,12 @@ function doGet(e) {
         return createResponse(obj);
       }
       return createResponse({ error: 'Invalid credentials' }, 401);
+    }
+
+    if (action === 'getUsers') {
+      const sheet = ss.getSheetByName('Users');
+      if (!sheet) return createResponse([]);
+      return createResponse(getRowsAsObjects(sheet));
     }
 
     if (action === 'getTests') {
