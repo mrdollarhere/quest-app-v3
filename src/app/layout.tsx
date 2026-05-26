@@ -1,6 +1,7 @@
+
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
@@ -33,6 +34,22 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // MEASURE 6: Console warning for deterring casual inspection
+  useEffect(() => {
+    console.log(
+      '%c⚠️ STOP!',
+      'color: red; font-size: 48px; font-weight: bold; text-shadow: 2px 2px black;'
+    );
+    console.log(
+      '%cThis browser feature is for developers. Using the console during a quiz may result in disqualification.',
+      'font-size: 16px; font-family: sans-serif;'
+    );
+    console.log(
+      '%cNếu bạn không phải developer, hãy đóng cửa sổ này lại.',
+      'font-size: 14px; color: gray; font-family: sans-serif; font-style: italic;'
+    );
+  }, []);
+
   return (
     <html lang="en">
       <head>

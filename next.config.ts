@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // MEASURE 5: Disable source maps in production to deter code inspection
+  productionBrowserSourceMaps: false,
   images: {
     remotePatterns: [
       {

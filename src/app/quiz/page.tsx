@@ -1,3 +1,4 @@
+
 /**
  * page.tsx (Quiz)
  * 
@@ -5,6 +6,7 @@
  * Purpose: Primary interaction terminal for all assessment modules.
  * Refactored: v19.2.3 - Implemented Registry Reset Protocol for testId transitions.
  * Updated: v19.8.5 - Added Navigation Protection and Leave Confirmation.
+ * Updated: v19.9.0 - Added Anti-Inspection Deterrence Measures (Shortcuts, Context Menu, DevTools).
  */
 
 "use client";
@@ -29,6 +31,7 @@ import { calculateScoreForQuestion } from '@/lib/quiz-utils';
 import { isBanned, getSpamRecord, recordOffense, clearRecord, SpamRecord } from '@/lib/spam-guard';
 import { recordViolation, resetViolations } from '@/lib/anti-cheat';
 import { MaintenanceView } from '@/components/quiz/MaintenanceView';
+import { cn } from '@/lib/utils';
 
 function QuizContent() {
   const searchParams = useSearchParams();
@@ -149,11 +152,41 @@ function QuizContent() {
     const handleVisibility = () => { if (document.hidden) handleViolationTrigger('tab_switch'); };
     const handleBlur = () => { handleViolationTrigger('window_blur'); };
 
+    // MEASURE 1: Disable right-click context menu
+    const preventContext = (e: MouseEvent) => { e.preventDefault(); return false; };
+
+    // MEASURE 4: Disable common developer shortcuts
+    const blockShortcuts = (e: KeyboardEvent) => {
+      if (e.key === 'F12' || 
+         (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J')) ||
+         (e.ctrlKey && (e.key === 'u' || e.key === 'U')) ||
+         (e.ctrlKey && (e.key === 's' || e.key === 'S'))) {
+        e.preventDefault();
+        return false;
+      }
+    };
+
+    // MEASURE 3: Detect Docked DevTools
+    const devToolsInterval = setInterval(() => {
+      const threshold = 160;
+      const widthDiff = window.outerWidth - window.innerWidth;
+      const heightDiff = window.outerHeight - window.innerHeight;
+      if (widthDiff > threshold || heightDiff > threshold) {
+        handleViolationTrigger('devtools');
+      }
+    }, 3000);
+
     document.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('blur', handleBlur);
+    document.addEventListener('contextmenu', preventContext);
+    window.addEventListener('keydown', blockShortcuts);
+
     return () => {
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('blur', handleBlur);
+      document.removeEventListener('contextmenu', preventContext);
+      window.removeEventListener('keydown', blockShortcuts);
+      clearInterval(devToolsInterval);
     };
   }, [isStarted, quiz.isSubmitted, quiz.mode, isCheatWarningOpen, isLeaveModalOpen, antiCheatViolation.flagged]);
 
@@ -355,7 +388,10 @@ function QuizContent() {
       ) : quiz.isSubmitted ? (
         <QuizResults title={currentTestMetadata?.title || 'Assessment'} testId={testId} score={quiz.score} totalQuestions={quiz.questions.length} questions={quiz.questions} responses={quiz.responses} serverReviewData={serverReviewData} userName={user?.displayName || guestName || 'Guest User'} onRestart={() => { setIsStarted(false); setQuiz(prev => ({...prev, isSubmitted: false, responses: []})); }} certificateId={generatedCertificateId || undefined} duration={finalDuration} allTests={globalData?.tests} testMetadata={currentTestMetadata} />
       ) : (
-        <QuizActive quiz={quiz} quizTitle={currentTestMetadata?.title || 'Assessment'} timeLeft={timeLeft} isWrongInRace={isWrongInRace} onResponseChange={(val) => { const q = quiz.questions[quiz.currentQuestionIndex]; const updated = [...quiz.responses]; const idx = updated.findIndex(r => r.questionId === q.id); if (idx > -1) updated[idx].answer = val; else updated.push({ questionId: q.id, answer: val }); setQuiz({ ...quiz, responses: updated }); }} onConfirmResponse={() => { const q = quiz.questions[quiz.currentQuestionIndex]; const updated = [...quiz.responses]; const idx = updated.findIndex(r => r.questionId === q.id); if (idx > -1) { updated[idx].isConfirmed = true; setQuiz({ ...quiz, responses: updated }); } }} onNext={() => { if (quiz.currentQuestionIndex < quiz.questions.length - 1) setQuiz(prev => ({ ...prev, currentQuestionIndex: prev.currentQuestionIndex + 1 })); }} onPrev={() => setQuiz({ ...quiz, currentQuestionIndex: Math.max(0, quiz.currentQuestionIndex - 1) })} onSubmit={submit} onJump={(idx) => setQuiz(prev => ({ ...prev, currentQuestionIndex: idx }))} onToggleFlag={(id) => { setQuiz(prev => ({ ...prev, flaggedQuestionIds: prev.flaggedQuestionIds?.includes(id) ? prev.flaggedQuestionIds.filter(f => f !== id) : [...(prev.flaggedQuestionIds || []), id] })); }} />
+        // MEASURE 2: Disable text selection during active quiz
+        <div className={cn(isStarted && !quiz.isSubmitted && "select-none")}>
+          <QuizActive quiz={quiz} quizTitle={currentTestMetadata?.title || 'Assessment'} timeLeft={timeLeft} isWrongInRace={isWrongInRace} onResponseChange={(val) => { const q = quiz.questions[quiz.currentQuestionIndex]; const updated = [...quiz.responses]; const idx = updated.findIndex(r => r.questionId === q.id); if (idx > -1) updated[idx].answer = val; else updated.push({ questionId: q.id, answer: val }); setQuiz({ ...quiz, responses: updated }); }} onConfirmResponse={() => { const q = quiz.questions[quiz.currentQuestionIndex]; const updated = [...quiz.responses]; const idx = updated.findIndex(r => r.questionId === q.id); if (idx > -1) { updated[idx].isConfirmed = true; setQuiz({ ...quiz, responses: updated }); } }} onNext={() => { if (quiz.currentQuestionIndex < quiz.questions.length - 1) setQuiz(prev => ({ ...prev, currentQuestionIndex: prev.currentQuestionIndex + 1 })); }} onPrev={() => setQuiz({ ...quiz, currentQuestionIndex: Math.max(0, quiz.currentQuestionIndex - 1) })} onSubmit={submit} onJump={(idx) => setQuiz(prev => ({ ...prev, currentQuestionIndex: idx }))} onToggleFlag={(id) => { setQuiz(prev => ({ ...prev, flaggedQuestionIds: prev.flaggedQuestionIds?.includes(id) ? prev.flaggedQuestionIds.filter(f => f !== id) : [...(prev.flaggedQuestionIds || []), id] })); }} />
+        </div>
       )}
       
       <BugReportButton testId={testId || undefined} questionId={quiz.questions[quiz.currentQuestionIndex]?.id} questionIndex={quiz.currentQuestionIndex} quizMode={quiz.mode} totalQuestions={quiz.questions.length} />
