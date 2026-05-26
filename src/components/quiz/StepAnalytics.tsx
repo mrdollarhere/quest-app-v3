@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { History, CheckCircle2, X, AlertCircle, ChevronDown, Info, Lightbulb, CircleOff } from "lucide-react";
+import { History, CheckCircle2, X, AlertCircle, ChevronDown, Info, Lightbulb, CircleOff, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { QuestionRenderer } from './QuestionRenderer';
 import { Button } from "@/components/ui/button";
@@ -72,6 +72,10 @@ function LegendItem({ icon, label, subLabel, color, dashed = false }: any) {
 export function StepAnalytics({ questions, serverReviewData = [], textSize }: StepAnalyticsProps) {
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
+  
+  // QUOTA PROTOCOL: Session-level usage limit
+  const [explanationsUsed, setExplanationsUsed] = useState(0);
+  const EXPLAIN_LIMIT = 3;
 
   useEffect(() => {
     const savedCollapse = sessionStorage.getItem('dntrng_review_collapsed');
@@ -113,8 +117,6 @@ export function StepAnalytics({ questions, serverReviewData = [], textSize }: St
     return reviewItems.filter(item => !item.isCorrect);
   }, [reviewItems, filterMode]);
 
-  const incorrectCount = reviewItems.filter(item => !item.isCorrect).length;
-
   return (
     <div className="pt-16 border-t border-slate-200">
       <div 
@@ -134,6 +136,31 @@ export function StepAnalytics({ questions, serverReviewData = [], textSize }: St
               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.4em]">See what you got right and wrong</p>
               <p className="text-[10px] font-medium text-slate-400/80 uppercase tracking-[0.4em] mt-0.5">Xem câu đúng và câu sai của bạn</p>
             </div>
+            
+            {/* QUOTA TELEMETRY */}
+            {explanationsUsed > 0 && (
+              <div className="flex items-center gap-2 mt-4 animate-in slide-in-from-left-2">
+                <div className={cn("p-1.5 rounded-lg transition-colors", explanationsUsed >= EXPLAIN_LIMIT ? "bg-amber-50" : "bg-primary/5")}>
+                  <Sparkles className={cn("w-3.5 h-3.5", explanationsUsed >= EXPLAIN_LIMIT ? "text-amber-500" : "text-primary")} />
+                </div>
+                <div className="leading-tight">
+                  <p className={cn(
+                    "text-[10px] font-black uppercase tracking-widest transition-colors",
+                    explanationsUsed >= EXPLAIN_LIMIT ? "text-amber-600" : "text-primary"
+                  )}>
+                    {explanationsUsed >= EXPLAIN_LIMIT 
+                      ? "No explanations remaining" 
+                      : `Explanations: ${explanationsUsed}/${EXPLAIN_LIMIT}`
+                    }
+                  </p>
+                  {explanationsUsed >= EXPLAIN_LIMIT && (
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-amber-500/80">
+                      Đã dùng hết lượt giải thích
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
         
@@ -234,6 +261,9 @@ export function StepAnalytics({ questions, serverReviewData = [], textSize }: St
                         correctAnswer={item.correctAnswer}
                         studentAnswer={item.submittedAnswer}
                         isCorrect={item.isCorrect}
+                        usageCount={explanationsUsed}
+                        limit={EXPLAIN_LIMIT}
+                        onSuccess={() => setExplanationsUsed(prev => prev + 1)}
                       />
                     </div>
                   </AccordionContent>

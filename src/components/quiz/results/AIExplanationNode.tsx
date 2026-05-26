@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Sparkles, Loader2, Lightbulb, AlertCircle, Info } from "lucide-react";
+import { Sparkles, Loader2, Lightbulb, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AIExplanationNodeProps {
@@ -12,10 +12,10 @@ interface AIExplanationNodeProps {
   correctAnswer: any;
   studentAnswer: any;
   isCorrect: boolean;
+  usageCount: number;
+  limit: number;
+  onSuccess: () => void;
 }
-
-const MAX_EXPLANATIONS_PER_SESSION = 10;
-const STORAGE_KEY = 'dntrng_ai_exp_count';
 
 export function AIExplanationNode({ 
   questionId, 
@@ -23,25 +23,22 @@ export function AIExplanationNode({
   questionType, 
   correctAnswer, 
   studentAnswer, 
-  isCorrect 
+  isCorrect,
+  usageCount,
+  limit,
+  onSuccess
 }: AIExplanationNodeProps) {
   const [explanation, setExplanation] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [limitReached, setLimitReached] = useState(false);
 
-  // Skip rendering for correct responses
+  // GROUNDING RULE: Show only for incorrect responses
   if (isCorrect) return null;
 
-  const handleExplain = async () => {
-    if (loading || explanation) return;
+  const isLimitReached = usageCount >= limit;
 
-    // 1. Quota Check
-    const currentCount = parseInt(localStorage.getItem(STORAGE_KEY) || '0');
-    if (currentCount >= MAX_EXPLANATIONS_PER_SESSION) {
-      setLimitReached(true);
-      return;
-    }
+  const handleExplain = async () => {
+    if (loading || explanation || isLimitReached) return;
 
     setLoading(true);
     setError(null);
@@ -62,8 +59,7 @@ export function AIExplanationNode({
 
       if (res.ok && data.success) {
         setExplanation(data.explanation);
-        // Increment global session counter
-        localStorage.setItem(STORAGE_KEY, (currentCount + 1).toString());
+        onSuccess();
       } else {
         throw new Error(data.error || 'Failed to generate explanation');
       }
@@ -76,14 +72,21 @@ export function AIExplanationNode({
 
   return (
     <div className="mt-6 space-y-4 animate-in fade-in slide-in-from-top-2 duration-500">
-      {!explanation && !loading && !limitReached && (
+      {!explanation && !loading && (
         <Button 
           variant="outline" 
           size="sm" 
           onClick={handleExplain}
-          className="h-8 px-4 rounded-full border-primary/20 text-primary hover:bg-primary/5 font-black uppercase text-[9px] tracking-widest gap-2"
+          disabled={isLimitReached}
+          className={cn(
+            "h-8 px-4 rounded-full font-black uppercase text-[9px] tracking-widest gap-2 transition-all",
+            isLimitReached 
+              ? "border-slate-100 text-slate-300 opacity-50 cursor-not-allowed" 
+              : "border-primary/20 text-primary hover:bg-primary/5 shadow-sm"
+          )}
         >
-          <Sparkles className="w-3 h-3" /> Explain / Giải thích
+          <Sparkles className="w-3 h-3" />
+          {isLimitReached ? "Limit reached (3/3) / Hết lượt (3/3)" : "Explain / Giải thích"}
         </Button>
       )}
 
@@ -94,15 +97,6 @@ export function AIExplanationNode({
         </div>
       )}
 
-      {limitReached && (
-        <div className="flex items-center gap-2 text-amber-500 bg-amber-50 p-3 rounded-xl border border-amber-100">
-          <AlertCircle className="w-3.5 h-3.5" />
-          <p className="text-[9px] font-black uppercase tracking-tight">
-            Session Limit Reached / Hết lượt giải thích cho phiên này.
-          </p>
-        </div>
-      )}
-
       {error && (
         <div className="text-[9px] font-bold text-rose-500 flex items-center gap-2">
           <AlertCircle className="w-3 h-3" /> {error}
@@ -110,7 +104,7 @@ export function AIExplanationNode({
       )}
 
       {explanation && (
-        <div className="p-5 bg-blue-50/50 border border-blue-100 rounded-2xl relative overflow-hidden group">
+        <div className="p-5 bg-blue-50/50 border border-blue-100 rounded-2xl relative overflow-hidden group animate-in zoom-in-95 duration-500">
           <div className="absolute top-0 right-0 p-4 opacity-10">
             <Lightbulb className="w-12 h-12 text-blue-500" />
           </div>
