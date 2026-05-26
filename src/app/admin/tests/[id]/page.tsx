@@ -2,7 +2,7 @@
  * AdminTestDetailPage.tsx
  * 
  * Purpose: Diagnostic detail terminal for assessment modules.
- * Refactored: v19.3.0 - Implemented Advanced Export Modal with versioning and random selection.
+ * Refactored: v19.6.0 - Integrated AI Question Generator node.
  */
 
 "use client";
@@ -13,9 +13,10 @@ import { useToast } from '@/hooks/use-toast';
 import { QuestionsTab } from '@/components/admin/QuestionsTab';
 import { AdminDialogs } from '@/components/admin/AdminDialogs';
 import { AdvancedExportModal } from '@/components/admin/tests/AdvancedExportModal';
+import { AIQuestionGenerator } from '@/components/admin/ai/AIQuestionGenerator';
 import { Question } from '@/types/quiz';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Download, Loader2, Sparkles } from 'lucide-react';
+import { ArrowLeft, Download, Loader2, Sparkles, Plus } from 'lucide-react';
 import { AILoader } from '@/components/ui/ai-loader';
 import { useSettings } from '@/context/settings-context';
 import { generateTestPDF } from '@/lib/export/pdf-service';
@@ -35,6 +36,7 @@ export default function AdminTestDetailPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [exportStatus, setExportStatus] = useState("");
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showAIModal, setShowAIModal] = useState(false);
   
   const [questions, setQuestions] = useState<Question[]>([]);
   const [tests, setTests] = useState<any[]>([]);
@@ -61,119 +63,53 @@ export default function AdminTestDetailPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  /**
-   * ADVANCED EXPORT HANDLER
-   * Orchestrates the document assembly based on the provided configuration.
-   */
   const handleBeginExport = async (config: any) => {
     setIsExporting(true);
     setShowExportModal(false);
     setExportStatus("Initializing...");
     
-    toast({ 
-      title: "Generating export... / Đang tạo file...", 
-      description: "Assembling document nodes. This may take a moment."
-    });
+    toast({ title: "Generating export... / Đang tạo file...", description: "Assembling document nodes." });
 
     try {
-      // 1. REGISTRY FILTERING & SELECTION
       const filtered = filterQuestions(questions, config.difficulties);
       const selectedPool = selectQuestions(filtered, config.questionCount);
 
       if (config.versions > 1) {
-        // 2. BULK VERSION PROTOCOL (ZIP)
         const zip = new JSZip();
         const allVersions = generateAllVersions(selectedPool, config.versions, config.shuffleQuestions, config.shuffleOptions);
         
         for (const v of allVersions) {
           setExportStatus(`Generating ${v.label}...`);
-          
           if (config.format === 'pdf') {
-            const blob = await generateTestPDF({ 
-              testId: String(testId), 
-              currentTest, 
-              questions: v.questions, 
-              withAnswers: config.contentType === 'answers',
-              returnOutput: true,
-              watermark: config.watermark
-            }) as Blob;
+            const blob = await generateTestPDF({ testId: String(testId), currentTest, questions: v.questions, withAnswers: config.contentType === 'answers', returnOutput: true, watermark: config.watermark }) as Blob;
             zip.file(`DNTRNG_${testId}_${v.label.replace(' ', '_')}.pdf`, blob);
           } else if (config.format === 'word') {
-            const blob = await generateTestWord({ 
-              testId: String(testId), 
-              currentTest, 
-              questions: v.questions, 
-              withAnswers: config.contentType === 'answers',
-              returnOutput: true
-            }) as Blob;
+            const blob = await generateTestWord({ testId: String(testId), currentTest, questions: v.questions, withAnswers: config.contentType === 'answers', returnOutput: true, watermark: config.watermark }) as Blob;
             zip.file(`DNTRNG_${testId}_${v.label.replace(' ', '_')}.docx`, blob);
           }
         }
 
-        // 3. ARCHIVE METADATA
-        const readmeContent = `DNTRNG Export Package
------------------------
-Assessment: ${currentTest.title || testId}
-Generated: ${new Date().toLocaleString()}
-Source Count: ${questions.length}
-Items Per Version: ${selectedPool.length}
-Total Versions: ${config.versions}
-
-Randomization Pulse:
-- Shuffled Questions: ${config.shuffleQuestions ? 'Yes' : 'No'}
-- Shuffled Options: ${config.shuffleOptions ? 'Yes' : 'No'}
-
-Note: This package contains ${config.contentType === 'answers' ? 'Answer Keys' : 'Question Sets'}.`;
-        
+        const readmeContent = `DNTRNG Export Package\n-----------------------\nAssessment: ${currentTest.title || testId}\nVersions: ${config.versions}\nItems: ${selectedPool.length}`;
         zip.file("README.txt", readmeContent);
-
-        setExportStatus("Packaging ZIP...");
-        const zipBlob = await zip.generateAsync({ 
-          type: "blob",
-          compression: "DEFLATE",
-          compressionOptions: { level: 6 }
-        });
-
-        // 4. NATIVE DOWNLOAD TRIGGER
+        const zipBlob = await zip.generateAsync({ type: "blob" });
         const url = URL.createObjectURL(zipBlob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `DNTRNG_${String(currentTest.title || testId).replace(/\s+/g, '_')}_${config.versions}versions.zip`;
+        link.download = `DNTRNG_${String(currentTest.title || testId).replace(/\s+/g, '_')}_ZIP.zip`;
         link.click();
-        URL.revokeObjectURL(url);
       } else {
-        // 5. SINGLE VERSION PROTOCOL (Direct Download)
-        setExportStatus("Assembling Document...");
         const version = generateVersion(selectedPool, "A", config.shuffleQuestions, config.shuffleOptions);
-        
         if (config.format === 'pdf') {
-          await generateTestPDF({ 
-            testId: String(testId), 
-            currentTest, 
-            questions: version.questions, 
-            withAnswers: config.contentType === 'answers',
-            watermark: config.watermark
-          });
+          await generateTestPDF({ testId: String(testId), currentTest, questions: version.questions, withAnswers: config.contentType === 'answers', watermark: config.watermark });
         } else if (config.format === 'word') {
-          await generateTestWord({ 
-            testId: String(testId), 
-            currentTest, 
-            questions: version.questions, 
-            withAnswers: config.contentType === 'answers'
-          });
+          await generateTestWord({ testId: String(testId), currentTest, questions: version.questions, withAnswers: config.contentType === 'answers', watermark: config.watermark });
         } else if (config.format === 'json') {
-          await generateTestJSON({ 
-            testId: String(testId), 
-            currentTest, 
-            questions: selectedPool 
-          });
+          await generateTestJSON({ testId: String(testId), currentTest, questions: selectedPool });
         }
       }
-      
-      toast({ title: "Extraction Successful / Xuất thành công" });
+      toast({ title: "Extraction Successful" });
     } catch (e) {
-      console.error('[Export Error]', e);
-      toast({ variant: "destructive", title: "Export Failed / Xuất thất bại" });
+      toast({ variant: "destructive", title: "Export Failed" });
     } finally {
       setIsExporting(false);
       setExportStatus("");
@@ -187,26 +123,26 @@ Note: This package contains ${config.contentType === 'answers' ? 'Answer Keys' :
           <ArrowLeft className="w-4 h-4 mr-2" /> Back to Tests
         </Button>
 
-        <Button 
-          onClick={() => setShowExportModal(true)} 
-          disabled={loading || isExporting || questions.length === 0}
-          className={cn(
-            "rounded-full h-12 px-10 font-black uppercase text-xs tracking-[0.2em] shadow-xl transition-all border-none",
-            isExporting ? "bg-slate-100 text-slate-400" : "bg-primary text-white hover:scale-105 shadow-primary/20"
-          )}
-        >
-          {isExporting ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-3 animate-spin" />
-              {exportStatus || 'Working...'}
-            </>
-          ) : (
-            <>
-              <Download className="w-4 h-4 mr-3" />
-              Export / Xuất
-            </>
-          )}
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button 
+            onClick={() => setShowAIModal(true)}
+            className="rounded-full h-12 px-6 font-black uppercase text-[10px] tracking-widest bg-violet-600 hover:bg-violet-700 text-white shadow-xl shadow-violet-500/20 border-none transition-all hover:scale-105"
+          >
+            <Sparkles className="w-4 h-4 mr-2" /> AI Generate
+          </Button>
+
+          <Button 
+            onClick={() => setShowExportModal(true)} 
+            disabled={loading || isExporting || questions.length === 0}
+            className={cn(
+              "rounded-full h-12 px-8 font-black uppercase text-[10px] tracking-widest shadow-xl transition-all border-none",
+              isExporting ? "bg-slate-100 text-slate-400" : "bg-primary text-white hover:scale-105 shadow-primary/20"
+            )}
+          >
+            {isExporting ? <Loader2 className="w-4 h-4 mr-3 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+            Export / Xuất
+          </Button>
+        </div>
       </div>
 
       {loading && questions.length === 0 ? <div className="py-20"><AILoader /></div> : (
@@ -247,12 +183,12 @@ Note: This package contains ${config.contentType === 'answers' ? 'Answer Keys' :
       />
 
       <AdvancedExportModal 
-        open={showExportModal}
-        onOpenChange={setShowExportModal}
-        questions={questions}
-        testTitle={String(currentTest.title || "Module")}
-        platformName={String(settings.platform_name || "DNTRNG")}
-        onExport={handleBeginExport}
+        open={showExportModal} onOpenChange={setShowExportModal} questions={questions} testTitle={String(currentTest.title || "Module")} 
+        platformName={String(settings.platform_name || "DNTRNG")} onExport={handleBeginExport}
+      />
+
+      <AIQuestionGenerator 
+        open={showAIModal} onOpenChange={setShowAIModal} testId={String(testId)} onComplete={fetchData} 
       />
     </div>
   );
