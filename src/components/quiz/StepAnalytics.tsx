@@ -12,6 +12,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { AIExplanationNode } from './results/AIExplanationNode';
 
 interface StepAnalyticsProps {
   questions: any[];
@@ -224,6 +225,15 @@ export function StepAnalytics({ questions, serverReviewData = [], textSize }: St
                         value={item.submittedAnswer} 
                         onChange={() => {}} 
                         reviewMode={true} 
+                      />
+
+                      <AIExplanationNode 
+                        questionId={item.questionId}
+                        questionText={item.questionText}
+                        questionType={item.questionType}
+                        correctAnswer={item.correctAnswer}
+                        studentAnswer={item.submittedAnswer}
+                        isCorrect={item.isCorrect}
                       />
                     </div>
                   </AccordionContent>
