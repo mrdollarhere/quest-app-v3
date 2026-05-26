@@ -157,13 +157,18 @@ function QuizContent() {
     };
   }, [isStarted, quiz.isSubmitted, quiz.mode, isCheatWarningOpen, isLeaveModalOpen, antiCheatViolation.flagged]);
 
+  // SPAM GUARD REGISTRY SYNC
   useEffect(() => {
     if (clearBanParam === 'true' && user?.role === 'admin') {
       clearRecord();
       toast({ title: "Ban record cleared" });
+      setSpamResult(null);
     }
-    if (isBanned()) setSpamResult(getSpamRecord());
-  }, [clearBanParam, user, toast]);
+    
+    if (isBanned()) {
+      setSpamResult(getSpamRecord());
+    }
+  }, [clearBanParam, user, toast, testId]);
 
   useEffect(() => {
     if (!user) {
@@ -233,6 +238,7 @@ function QuizContent() {
 
   const submit = async () => {
     if (isSubmittingVisually) return;
+    
     const answeredCount = quiz.responses.filter(r => {
       const a = r.answer;
       if (a === null || a === undefined) return false;
@@ -241,11 +247,24 @@ function QuizContent() {
       if (typeof a === 'object') return Object.keys(a).length > 0;
       return false;
     }).length;
+
+    // SPAM GUARD ENFORCEMENT
     if (answeredCount === 0) {
-      setSpamResult(recordOffense());
+      const result = recordOffense();
+      setSpamResult(result);
+      
+      if (result.status === 'warned') {
+        toast({
+          variant: "destructive",
+          title: "Empty Submission / Bài nộp trống",
+          description: "Please answer at least one question. Repeated empty submissions will result in a ban. / Vui lòng trả lời ít nhất một câu hỏi."
+        });
+      }
+      
       trackEvent('quiz_spam_blocked', { test_id: testId as string });
       return;
     }
+
     const duration = Date.now() - (quizStartTimeRef.current || Date.now());
     setFinalDuration(duration);
     setIsSubmittingVisually(true);
@@ -273,7 +292,11 @@ function QuizContent() {
   };
 
   const handleStart = async (mode: QuizMode) => {
-    if (isBanned()) { setSpamResult(getSpamRecord()); return; }
+    if (isBanned()) { 
+      setSpamResult(getSpamRecord()); 
+      return; 
+    }
+    
     let q = questionsData || [];
     if (mode === 'training') {
       setIsSyncingTraining(true);
@@ -289,13 +312,18 @@ function QuizContent() {
     setQuiz(prev => ({ ...prev, questions: q, mode, currentQuestionIndex: 0, responses: [] }));
   };
 
+  // BAN TERMINAL RENDER NODE
   if (spamResult && (spamResult.status === 'softban' || spamResult.status === 'banned') && isBanned()) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
          <div className="max-w-md w-full bg-white rounded-[3rem] shadow-2xl p-12 border border-slate-100 animate-in zoom-in-95 duration-500">
            <XCircle className="w-20 h-20 text-rose-500 mx-auto mb-8" />
            <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight mb-2">Access Suspended</h2>
-           <p className="text-xl font-black text-slate-900 tabular-nums mb-10">{new Date(spamResult.expiresAt!).toLocaleString()}</p>
+           <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">Security Quarantine Protocol</p>
+           <div className="p-6 bg-rose-50 rounded-2xl border border-rose-100 mb-10">
+              <p className="text-[10px] font-black uppercase text-rose-500 mb-1">Unlocks at / Mở khóa lúc</p>
+              <p className="text-xl font-black text-rose-700 tabular-nums">{new Date(spamResult.expiresAt!).toLocaleString()}</p>
+           </div>
            <Button onClick={() => router.push('/tests')} className="w-full h-14 rounded-full bg-slate-900 text-white font-black uppercase text-xs">Back to Tests</Button>
          </div>
       </div>
