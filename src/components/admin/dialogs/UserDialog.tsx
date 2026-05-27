@@ -12,9 +12,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users as UsersIcon, UserPlus, Mail, Lock, Eye, EyeOff, User, Loader2 } from "lucide-react";
+import { Users as UsersIcon, UserPlus, Mail, Lock, Eye, EyeOff, User, Loader2, Sparkles, Brain, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useToast } from '@/hooks/use-toast';
 
 interface UserDialogProps {
   open: boolean;
@@ -26,9 +28,15 @@ interface UserDialogProps {
 }
 
 export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatch, loading }: UserDialogProps) {
-  const [activeTab, setActiveTab] = useState<"single" | "batch">("single");
+  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState<"single" | "batch" | "ai">("single");
   const [showPassword, setShowPassword] = useState(false);
   const [showBatchPassword, setShowBatchPassword] = useState(false);
+  
+  // AI State Nodes
+  const [aiText, setAiText] = useState('');
+  const [isAiProcessing, setIsAiProcessing] = useState(false);
+  const [aiResults, setAiResults] = useState<any[]>([]);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -39,6 +47,8 @@ export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatc
 
   useEffect(() => {
     if (open) {
+      setAiResults([]);
+      setAiText('');
       if (editingItem) {
         setFormData({
           name: editingItem.name || '',
@@ -47,247 +57,158 @@ export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatc
           role: editingItem.role || 'user'
         });
       } else {
-        setFormData({
-          name: '',
-          email: '',
-          password: '',
-          role: 'user'
-        });
+        setFormData({ name: '', email: '', password: '', role: 'user' });
       }
     }
   }, [open, editingItem]);
 
-  const isSaveDisabled = loading || (editingItem ? (
-    formData.name === (editingItem.name || '') &&
-    formData.email === (editingItem.email || '') &&
-    formData.password === (editingItem.password || '') &&
-    formData.role === (editingItem.role || 'user')
-  ) : (
-    !formData.name.trim() || !formData.email.trim()
-  ));
-
-  const handleSingleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (loading) return;
-    
-    const payload: any = { ...formData };
-    if (editingItem && !formData.password.trim()) {
-      delete payload.password;
+  const handleAiProcess = async () => {
+    if (!aiText.trim() || isAiProcessing) return;
+    setIsAiProcessing(true);
+    try {
+      const res = await fetch('/api/ai/generate-users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rawText: aiText })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAiResults(data.users || []);
+        toast({ title: "Intelligence Extracted", description: `Found ${data.count} student identities.` });
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "AI Error", description: e.message });
+    } finally {
+      setIsAiProcessing(false);
     }
-    
-    onSave(payload);
+  };
+
+  const handleAiSave = () => {
+    if (onSaveBatch && aiResults.length > 0) {
+      onSaveBatch(aiResults);
+    }
+  };
+
+  const handleSingleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(formData);
   };
 
   const handleBatchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (loading) return;
     const batchFormData = new FormData(e.currentTarget);
     const data = Object.fromEntries(batchFormData.entries());
-    
-    const prefix = String(data.namePrefix || "");
-    const emailPattern = String(data.emailPattern || "");
+    const batch: any[] = [];
     const start = parseInt(String(data.rangeStart || "1"));
     const end = parseInt(String(data.rangeEnd || "10"));
-    const password = String(data.password || "admin123");
-    const role = String(data.role || "user");
-
-    const batch: any[] = [];
     for (let i = start; i <= end; i++) {
       const numStr = i.toString().padStart(2, '0');
       batch.push({
         id: `batch_${Date.now()}_${i}`,
-        name: prefix + numStr,
-        email: emailPattern.replace('{{n}}', numStr).replace('[n]', numStr),
-        password: password,
-        role: role
+        name: String(data.namePrefix || "") + numStr,
+        email: String(data.emailPattern || "").replace('{{n}}', numStr).replace('[n]', numStr),
+        password: String(data.password || "admin123"),
+        role: String(data.role || "user")
       });
     }
-
-    if (onSaveBatch) {
-      onSaveBatch(batch);
-    }
+    if (onSaveBatch) onSaveBatch(batch);
   };
 
   return (
     <Dialog open={open} onOpenChange={(val) => !loading && onOpenChange(val)}>
-      <DialogContent className={cn(
-        "sm:max-w-[500px] rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl bg-white dark:bg-slate-900",
-        loading && "cursor-wait"
-      )}>
-        {loading && <div className="absolute inset-0 z-[100] bg-white/10 backdrop-blur-[0.5px] cursor-wait" />}
+      <DialogContent className="sm:max-w-[550px] rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl bg-white dark:bg-slate-900 max-h-[95vh] flex flex-col">
+        {loading && <div className="absolute inset-0 z-[100] bg-white/10 backdrop-blur-[0.5px]" />}
         
-        <DialogHeader className="p-10 pb-0">
+        <DialogHeader className="p-10 pb-4 shrink-0">
           <div className="flex items-center gap-4">
             <div className="bg-primary/10 p-3 rounded-2xl">
               <UserPlus className="w-6 h-6 text-primary" />
             </div>
             <DialogTitle className="text-3xl font-black uppercase tracking-tight text-slate-900 dark:text-white">
-              {editingItem ? 'Edit User' : 'Add User'}
+              {editingItem ? 'Edit Identity' : 'Add Identity'}
             </DialogTitle>
           </div>
         </DialogHeader>
 
-        <Tabs defaultValue="single" className="w-full" onValueChange={(v) => setActiveTab(v as any)}>
-          {!editingItem && (
-            <div className="px-10 pt-6">
-              <TabsList className="grid w-full grid-cols-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl h-12">
-                <TabsTrigger value="single" disabled={loading} className="rounded-xl font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-sm">
-                  Add One
-                </TabsTrigger>
-                <TabsTrigger value="batch" disabled={loading} className="rounded-xl font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-sm">
-                  Add Many
-                </TabsTrigger>
+        {!editingItem && (
+          <div className="px-10 shrink-0">
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+              <TabsList className="grid w-full grid-cols-3 bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl h-12">
+                <TabsTrigger value="single" className="rounded-xl font-black uppercase text-[9px] tracking-widest">Manual</TabsTrigger>
+                <TabsTrigger value="batch" className="rounded-xl font-black uppercase text-[9px] tracking-widest">Sequence</TabsTrigger>
+                <TabsTrigger value="ai" className="rounded-xl font-black uppercase text-[9px] tracking-widest gap-1.5"><Sparkles className="w-3 h-3" /> AI Import</TabsTrigger>
               </TabsList>
-            </div>
-          )}
+            </Tabs>
+          </div>
+        )}
 
-          <TabsContent value="single">
-            <form onSubmit={handleSingleSubmit} className="p-10 space-y-6">
-              <div className="space-y-2">
-                <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">Full Name</Label>
-                <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                  <Input 
-                    name="name" 
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    disabled={loading}
-                    required 
-                    placeholder="Enter full name" 
-                    className="h-14 pl-11 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold focus:ring-primary/40" 
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                  <Input 
-                    name="email" 
-                    type="email" 
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    disabled={loading || !!editingItem}
-                    required 
-                    readOnly={!!editingItem} 
-                    placeholder="Enter email address" 
-                    className={cn(
-                      "h-14 pl-11 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold focus:ring-primary/40",
-                      (!!editingItem || loading) && "opacity-60 cursor-not-allowed"
-                    )} 
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                  <Input 
-                    name="password" 
-                    type={showPassword ? "text" : "password"} 
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    disabled={loading}
-                    placeholder="Enter password" 
-                    className="h-14 pl-11 pr-12 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold focus:ring-primary/40" 
-                  />
-                  <button
-                    type="button"
-                    disabled={loading}
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1"
-                  >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">Role</Label>
-                <select 
-                  name="role" 
-                  value={formData.role}
-                  disabled={loading}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
-                  className="w-full h-14 px-4 rounded-2xl border-none ring-1 ring-slate-200 dark:ring-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-black text-sm outline-none focus:ring-primary/40 cursor-pointer disabled:opacity-50"
-                >
-                  <option value="user">Student</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-              <DialogFooter className="pt-6">
-                <Button 
-                  type="submit" 
-                  disabled={isSaveDisabled}
-                  className="rounded-full w-full h-16 font-black text-lg bg-primary text-white disabled:opacity-50 disabled:cursor-not-allowed shadow-2xl transition-all hover:scale-[1.02] border-none"
-                >
-                  {loading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : null}
-                  {editingItem ? 'Save Changes' : 'Add User'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </TabsContent>
-
-          <TabsContent value="batch">
-            <form onSubmit={handleBatchSubmit} className="p-10 space-y-6">
-              <div className="p-6 bg-primary/5 dark:bg-primary/10 rounded-[2rem] border-2 border-dashed border-primary/20 mb-4 text-center">
-                <p className="text-[10px] font-black text-primary/60 uppercase tracking-widest leading-relaxed">
-                  Bulk Provisioning Registry. Use <code className="font-bold">{"{{n}}"}</code> for sequence.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+          <Tabs value={editingItem ? "single" : activeTab} className="w-full">
+            <TabsContent value="single">
+              <form onSubmit={handleSingleSubmit} className="p-10 pt-6 space-y-6">
                 <div className="space-y-2">
-                  <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">Name Prefix</Label>
-                  <Input name="namePrefix" disabled={loading} placeholder="Student " className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold" />
+                  <Label className="font-black text-[10px] uppercase text-slate-400 ml-1">Full Name</Label>
+                  <div className="relative"><User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" /><Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} disabled={loading} required className="h-14 pl-11 rounded-2xl bg-slate-50 border-none ring-1 ring-slate-100 font-bold" /></div>
                 </div>
                 <div className="space-y-2">
-                  <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">Number Range</Label>
-                  <div className="flex items-center gap-2">
-                    <Input name="rangeStart" type="number" defaultValue="1" disabled={loading} className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold text-center" />
-                    <span className="text-slate-300 font-black">to</span>
-                    <Input name="rangeEnd" type="number" defaultValue="10" disabled={loading} className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold text-center" />
+                  <Label className="font-black text-[10px] uppercase text-slate-400 ml-1">Email</Label>
+                  <div className="relative"><Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" /><Input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} disabled={loading || !!editingItem} required className="h-14 pl-11 rounded-2xl bg-slate-50 border-none ring-1 ring-slate-100 font-bold" /></div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-black text-[10px] uppercase text-slate-400 ml-1">Secret Key</Label>
+                  <div className="relative"><Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" /><Input type={showPassword ? "text" : "password"} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} disabled={loading} className="h-14 pl-11 pr-12 rounded-2xl bg-slate-50 border-none ring-1 ring-slate-100 font-bold" /><button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">{showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}</button></div>
+                </div>
+                <Button type="submit" disabled={loading || !formData.name || !formData.email} className="w-full h-16 rounded-full bg-primary font-black uppercase shadow-xl">{loading ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2" />} Commit Identity</Button>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="batch">
+              <form onSubmit={handleBatchSubmit} className="p-10 pt-6 space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2"><Label className="font-black text-[10px] uppercase text-slate-400">Prefix</Label><Input name="namePrefix" placeholder="Student " className="h-12 rounded-xl bg-slate-50 border-none ring-1 ring-slate-100" /></div>
+                  <div className="space-y-2"><Label className="font-black text-[10px] uppercase text-slate-400">Range</Label><div className="flex items-center gap-2"><Input name="rangeStart" type="number" defaultValue="1" className="h-12 text-center" /><span>-</span><Input name="rangeEnd" type="number" defaultValue="10" className="h-12 text-center" /></div></div>
+                </div>
+                <div className="space-y-2"><Label className="font-black text-[10px] uppercase text-slate-400">Pattern</Label><Input name="emailPattern" required placeholder="student{{n}}@dntrng.com" className="h-12 rounded-xl bg-slate-50 border-none ring-1 ring-slate-100 font-mono" /></div>
+                <Button type="submit" disabled={loading} className="w-full h-16 rounded-full bg-primary font-black uppercase shadow-xl">Initialize Sequence</Button>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="ai">
+              <div className="p-10 pt-6 space-y-8">
+                <div className="p-6 bg-violet-50 rounded-[2.5rem] border-2 border-dashed border-violet-200 text-center space-y-4">
+                  <div className="mx-auto w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-lg"><Brain className="w-6 h-6 text-violet-600" /></div>
+                  <div className="space-y-1"><p className="text-sm font-black uppercase text-violet-700">AI Identity Parsing</p><p className="text-[10px] font-bold text-violet-400 uppercase tracking-widest leading-relaxed">Paste a list of full names below. Gemini will extract identities and generate email nodes.</p></div>
+                </div>
+
+                <div className="space-y-4">
+                  <Label className="font-black text-[10px] uppercase text-slate-400 ml-1">Raw Roster Data</Label>
+                  <Textarea value={aiText} onChange={(e) => setAiText(e.target.value)} placeholder="e.g. 1. Nguyen Van An, 2. Tran Thi Binh..." className="min-h-[150px] rounded-[2rem] bg-slate-50 border-none ring-1 ring-slate-100 p-6 font-medium" />
+                  <Button onClick={handleAiProcess} disabled={isAiProcessing || !aiText.trim()} className="w-full h-14 rounded-full bg-violet-600 hover:bg-violet-700 text-white font-black uppercase shadow-xl transition-all hover:scale-[1.02]">
+                    {isAiProcessing ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                    Parse Identities
+                  </Button>
+                </div>
+
+                {aiResults.length > 0 && (
+                  <div className="space-y-4 animate-in slide-in-from-top-4 duration-500">
+                    <div className="flex items-center justify-between px-2"><Label className="font-black text-[10px] uppercase text-slate-400">Preview Registry ({aiResults.length} Nodes)</Label></div>
+                    <div className="bg-slate-50 rounded-[2rem] border overflow-hidden divide-y">
+                      {aiResults.map((u, i) => (
+                        <div key={i} className="p-4 flex items-center justify-between bg-white/50">
+                          <div className="min-w-0"><p className="text-xs font-black uppercase text-slate-700 truncate">{u.name}</p><p className="text-[9px] font-mono text-slate-400 truncate">{u.email}</p></div>
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                        </div>
+                      ))}
+                    </div>
+                    <Button onClick={handleAiSave} disabled={loading} className="w-full h-16 rounded-full bg-primary font-black uppercase shadow-2xl border-none shadow-primary/20">Commit AI Registry</Button>
                   </div>
-                </div>
+                )}
               </div>
-
-              <div className="space-y-2">
-                <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">Email Pattern</Label>
-                <Input name="emailPattern" required disabled={loading} placeholder="student{{n}}@dntrng.com" className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-mono text-xs" />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">Initial Password</Label>
-                <div className="relative">
-                  <Input 
-                    name="password" 
-                    type={showBatchPassword ? "text" : "password"} 
-                    required 
-                    disabled={loading}
-                    defaultValue="admin123" 
-                    className="h-12 pr-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 font-bold" 
-                  />
-                  <button
-                    type="button"
-                    disabled={loading}
-                    onClick={() => setShowBatchPassword(!showBatchPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1"
-                  >
-                    {showBatchPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
-                </div>
-              </div>
-
-              <DialogFooter className="pt-6">
-                <Button type="submit" disabled={loading} className="rounded-full w-full h-16 font-black text-lg bg-primary text-white shadow-xl hover:scale-[1.02] transition-all border-none">
-                  {loading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : null}
-                  Initialize Batch Provisioning
-                </Button>
-              </DialogFooter>
-            </form>
-          </TabsContent>
-        </Tabs>
+            </TabsContent>
+          </Tabs>
+        </div>
       </DialogContent>
     </Dialog>
   );
