@@ -2,6 +2,7 @@
  * DNTRNG™ REPORT INTEGRITY PROTOCOL
  * 
  * Validates bug report content for quality, respectfulness, and authenticity.
+ * Refactored v19.3: Removed length restriction to support One-Click Reporting.
  */
 
 import { BANNED_TERMS } from './name-validator';
@@ -19,31 +20,28 @@ const LEET_MAP: Record<string, string> = {
 export function validateReportContent(text: string): { valid: boolean; reason?: string } {
   const trimmed = text.trim();
   
-  // 1. Length Protocol
-  if (trimmed.length < 20) {
-    return { 
-      valid: false, 
-      reason: "Please describe the issue in more detail (at least 20 characters). Vui lòng mô tả chi tiết hơn (ít nhất 20 ký tự)." 
-    };
+  // 1. Length Protocol (Relaxed for One-Click)
+  if (trimmed.length === 0) {
+    return { valid: true };
   }
 
   // 2. Case Spam Protocol
   const letters = trimmed.replace(/[^a-zA-Z]/g, '');
-  if (letters.length > 5) {
+  if (letters.length > 10) {
     const caps = letters.split('').filter(l => l === l.toUpperCase()).length;
-    if (caps / letters.length > 0.7) {
+    if (caps / letters.length > 0.8) {
       return { 
         valid: false, 
-        reason: "Please write your report normally. Vui lòng viết báo cáo bình thường." 
+        reason: "Please write your report normally (Too many capitals). Vui lòng viết báo cáo bình thường." 
       };
     }
   }
 
   // 3. Character Repetition Protocol
-  if (/(.)\1{3,}/.test(trimmed)) {
+  if (/(.)\1{4,}/.test(trimmed)) {
     return { 
       valid: false, 
-      reason: "Report contains invalid characters. Báo cáo chứa ký tự không hợp lệ." 
+      reason: "Report contains invalid character strings. Báo cáo chứa ký tự không hợp lệ." 
     };
   }
 
@@ -58,15 +56,6 @@ export function validateReportContent(text: string): { valid: boolean; reason?: 
     return { 
       valid: false, 
       reason: "Please keep your report respectful. Vui lòng giữ báo cáo lịch sự." 
-    };
-  }
-
-  // 5. Gibberish Protocol (Consonant Streak)
-  const consonantStreak = /[^aeiouyàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹ\s\d]{6,}/i;
-  if (consonantStreak.test(trimmed.toLowerCase())) {
-    return { 
-      valid: false, 
-      reason: "Report appears to be gibberish. Báo cáo không hợp lệ." 
     };
   }
 

@@ -5,25 +5,29 @@ import { validateReportContent } from '@/lib/report-validator';
 /**
  * POST /api/proxy/bug-report
  * Public route: Allows any student to submit technical discrepancies.
- * Protocol v19.2.1: Hardened payload integrity and content validation.
+ * Protocol v19.3: Relaxed validation to support automated diagnostic snapshots.
  */
 export async function POST(request: Request) {
   try {
     const payload = await request.json();
     
-    // SERVER-SIDE ENFORCEMENT PROTOCOL
-    const validation = validateReportContent(payload.description || "");
-    if (!validation.valid) {
-      return NextResponse.json({ error: validation.reason }, { status: 400 });
+    // 1. CONTENT VALIDATION
+    // If description exists, enforce respect protocol. 
+    // If empty, it's considered an automated snapshot.
+    const result = validateReportContent(payload.description || "");
+    if (!result.valid) {
+      return NextResponse.json({ error: result.reason }, { status: 400 });
     }
 
     const reportId = "br_" + Date.now();
     const enrichedPayload = {
       ...payload,
-      id: reportId
+      id: reportId,
+      timestamp: new Date().toISOString(),
+      status: 'new'
     };
 
-    // Registry Handshake: Call saveBugReport with explicit action
+    // 2. REGISTRY HANDSHAKE
     await gasPost('saveBugReport', enrichedPayload);
     
     return NextResponse.json({ success: true, id: reportId });
