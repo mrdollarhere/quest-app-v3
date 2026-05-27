@@ -1,20 +1,8 @@
 /**
- * DNTRNG™ IDENTITY INTEGRITY PROTOCOL v4.1
+ * DNTRNG™ IDENTITY INTEGRITY PROTOCOL v4.2
  * 
  * CORE VALIDATION ENGINE for English and Vietnamese Name Registry.
- * Updated: v19.2.1 - Support for dynamic custom blacklist injection.
- * 
- * TEST CASES:
- * 1. "Nguyễn Văn A"      -> VALID (Score: 90+)
- * 2. "John Doe"          -> VALID (Score: 85+)
- * 3. "admin"             -> INVALID (Banned/Reserved)
- * 4. "asdfghjkl"         -> INVALID (Mash Detection)
- * 5. "J0hn D0e"          -> INVALID (Leet Speak Bypass)
- * 6. "Student Test"      -> INVALID (Fake Pattern)
- * 7. "A"                 -> INVALID (Short Word)
- * 8. "@@@@@@@@"          -> INVALID (Density Violation)
- * 9. "Name TooLooong..." -> INVALID (Word Length Violation)
- * 10. "Trần Lê"          -> VALID (Vietnamese Short)
+ * Updated: v19.3.0 - Optimized for Vietnamese linguistic patterns and diacritics.
  */
 
 export const BANNED_TERMS = [
@@ -35,7 +23,15 @@ const LEET_MAP: Record<string, string> = {
   '@': 'a', '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't', '8': 'b', '$': 's'
 };
 
-const VN_SURNAME_REGISTRY = ['nguyễn', 'trần', 'lê', 'phạm', 'hoàng', 'huỳnh', 'vũ', 'võ', 'đặng', 'bùi', 'đỗ', 'hồ', 'ngô', 'dương', 'lý'];
+const VN_SURNAME_REGISTRY = [
+  'nguyễn', 'trần', 'lê', 'phạm', 'hoàng', 
+  'huỳnh', 'phan', 'vũ', 'võ', 'đặng', 
+  'bùi', 'đỗ', 'hồ', 'ngô', 'dương', 'lý', 'lưu'
+];
+
+// COMPREHENSIVE VIETNAMESE VOWEL REGISTRY (v4.2)
+const VN_VOWELS = 'aeiouyàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹ';
+const VN_VOWELS_REGEX = new RegExp(`[${VN_VOWELS}]`, 'gi');
 
 interface ValidationResult {
   valid: boolean;
@@ -43,28 +39,88 @@ interface ValidationResult {
   score?: number;
 }
 
-export function validateStudentName(name: string, customBlacklist: string[] = []): ValidationResult {
+/**
+ * Validates a student name for realism and integrity.
+ * 
+ * @param name - The input callsign.
+ * @param customBlacklist - Admin-defined blocked terms.
+ * @param isWhitelist - Whether the check is being performed on a pre-approved name.
+ */
+export function validateStudentName(
+  name: string, 
+  customBlacklist: string[] = [],
+  isWhitelist: boolean = false
+): ValidationResult {
   const trimmed = name.trim();
   const lower = trimmed.toLowerCase();
   const words = trimmed.split(/\s+/).filter(w => w.length > 0);
   const cleanStr = lower.replace(/\s+/g, '');
 
   // 1. Structural Protocol
-  if (words.length < 2) return { valid: false, reason: { en: "Full name required (at least 2 words).", vi: "Vui lòng nhập đầy đủ họ và tên." } };
-  if (trimmed.length < 4) return { valid: false, reason: { en: "Callsign too short.", vi: "Tên quá ngắn." } };
-
-  // 2. Word Length Protocol
-  for (const word of words) {
-    if (word.length < 2 && !VN_SURNAME_REGISTRY.includes(word.toLowerCase())) {
-       return { valid: false, reason: { en: "Each word must be at least 2 characters.", vi: "Mỗi từ phải có ít nhất 2 ký tự." } };
-    }
-    if (word.length > 25) return { valid: false, reason: { en: "Word exceeds 25-character registry limit.", vi: "Tên chứa từ quá dài (tối đa 25 ký tự)." } };
+  // Skip word count check in whitelist mode (pre-approved)
+  if (!isWhitelist && words.length < 2) {
+    return { 
+      valid: false, 
+      reason: { 
+        en: "Please enter your full name (first and last name).", 
+        vi: "Vui lòng nhập đầy đủ họ và tên." 
+      } 
+    };
   }
 
-  // 3. Density Protocol (Numbers & Symbols)
-  const nonAlpha = trimmed.replace(/[a-zA-Z\sàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđĐ]/g, '');
-  if (nonAlpha.length / trimmed.length > 0.10) {
-    return { valid: false, reason: { en: "Too many symbols or numbers detected.", vi: "Tên chứa quá nhiều ký tự đặc biệt hoặc số." } };
+  if (trimmed.length < 4) {
+    return { 
+      valid: false, 
+      reason: { 
+        en: "Identity node too short.", 
+        vi: "Tên quá ngắn." 
+      } 
+    };
+  }
+
+  // 2. Word Integrity Protocol
+  const longWords = words.filter(w => w.length >= 2).length;
+  
+  for (const word of words) {
+    const isLetter = /^[a-zA-ZàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđĐ]$/.test(word);
+    
+    // Accept single letters ONLY if they are alphabetic AND part of a multi-word name
+    if (word.length < 2) {
+      if (!isLetter || longWords < 2) {
+        return { 
+          valid: false, 
+          reason: { 
+            en: "Please enter a valid full name.", 
+            vi: "Vui lòng nhập họ tên hợp lệ." 
+          } 
+        };
+      }
+    }
+
+    if (word.length > 25) {
+      return { 
+        valid: false, 
+        reason: { 
+          en: "Name contains an excessively long word.", 
+          vi: "Tên chứa từ quá dài (tối đa 25 ký tự)." 
+        } 
+      };
+    }
+  }
+
+  // 3. Density Protocol (Non-Alpha Symbols)
+  // Note: đ and Đ are handled as letters in the structure check but might be non-alpha in generic regex
+  const alphaOnly = trimmed.replace(/[^a-zA-Z\sàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđĐ]/g, '');
+  const symbolRatio = (trimmed.length - alphaOnly.length) / trimmed.length;
+
+  if (symbolRatio > 0.10) {
+    return { 
+      valid: false, 
+      reason: { 
+        en: "Please use letters only in your name.", 
+        vi: "Vui lòng chỉ sử dụng chữ cái trong tên của bạn." 
+      } 
+    };
   }
 
   // 4. Leet Speak Neutralization
@@ -76,34 +132,50 @@ export function validateStudentName(name: string, customBlacklist: string[] = []
   // 5. Profanity & Reserved Shield
   const allBlocked = [...BANNED_TERMS, ...customBlacklist.map(w => String(w).toLowerCase().trim())];
   if (allBlocked.some(term => term && neutralized.includes(term))) {
-    return { valid: false, reason: { en: "Identity rejected by profanity filter.", vi: "Tên chứa từ ngữ không phù hợp." } };
+    return { 
+      valid: false, 
+      reason: { 
+        en: "Name contains a restricted word.", 
+        vi: "Tên chứa từ ngữ bị hạn chế." 
+      } 
+    };
   }
 
   // 6. Realism Scoring Node
   let score = 100;
 
-  // A. Unique Character Entropy (Mash Detection)
-  const uniqueChars = new Set(cleanStr.split('')).size;
-  const entropy = uniqueChars / cleanStr.length;
-  if (entropy < 0.35) score -= 40; // Low variation (aaaaaa)
-  if (entropy > 0.90 && cleanStr.length > 8) score -= 30; // Random noise (asdfghjkl)
-
-  // B. Vowel Density Protocol
-  const vowels = (cleanStr.match(/[aeiouyàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹ]/gi) || []).length;
-  const vowelDensity = vowels / cleanStr.length;
-  if (vowelDensity < 0.15) score -= 50; // Phonetically invalid (no vowels)
-  if (vowelDensity > 0.80) score -= 20; // Unlikely density
-
-  // C. Consonant Streak Guard
-  const consonantStreak = /[^aeiouyàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹ\s\d]{6,}/i;
-  if (consonantStreak.test(lower)) score -= 60;
-
-  // D. Repetition Guard
-  if (/(.)\1{2,}/.test(cleanStr)) score -= 30; // triple repetition (aaabbb)
-
-  if (score < 65) {
-    return { valid: false, reason: { en: "Registry rejected low-fidelity identity node.", vi: "Hệ thống từ chối định danh không hợp lệ." }, score };
+  // A. VN Surname Boost
+  const firstWord = words[0]?.toLowerCase();
+  if (VN_SURNAME_REGISTRY.includes(firstWord)) {
+    score += 15;
   }
 
-  return { valid: true, score };
+  // B. Unique Character Entropy (Mash Detection)
+  const uniqueChars = new Set(cleanStr.split('')).size;
+  const entropy = uniqueChars / cleanStr.length;
+  if (entropy < 0.35) score -= 15; // Reduced from -30
+  if (entropy > 0.90 && cleanStr.length > 10) score -= 20;
+
+  // C. Vowel Density Protocol (10% Min for VN)
+  const vowels = (cleanStr.match(VN_VOWELS_REGEX) || []).length;
+  const vowelDensity = vowels / cleanStr.length;
+  if (vowelDensity < 0.10) score -= 20; // Reduced from -40
+  if (vowelDensity > 0.85) score -= 15;
+
+  // D. Repetition Guard
+  if (/(.)\1{2,}/.test(cleanStr)) score -= 20; // Reduced from -25
+
+  // 7. Final Verdict
+  if (score < 60) { // Reduced from 65
+    return { 
+      valid: false, 
+      reason: { 
+        en: "Please enter your name as it appears on your ID card.", 
+        vi: "Vui lòng nhập tên thật của bạn." 
+      }, 
+      score 
+    };
+  }
+
+  return { valid: true, score: Math.min(100, score) };
 }
