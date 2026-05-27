@@ -9,16 +9,8 @@ import {
   DialogDescription,
   DialogFooter 
 } from "@/components/ui/dialog";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { 
   Bug, 
   Send, 
@@ -26,19 +18,16 @@ import {
   AlertCircle, 
   ChevronDown, 
   Info,
-  Monitor,
-  Clock,
-  Layout,
   Zap,
   CheckCircle2,
   Image as ImageIcon,
-  AlertTriangle,
-  UserX
+  UserX,
+  Check,
+  Clock
 } from "lucide-react";
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { validateReportContent } from '@/lib/report-validator';
 import { isReportBanned, recordReportOffense } from '@/lib/spam-guard';
 import { getRecentErrors } from '@/app/layout';
 
@@ -65,11 +54,10 @@ export function BugReportButton({
 }: BugReportButtonProps) {
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [category, setCategory] = useState<string>('other');
-  const [description, setDescription] = useState('');
-  const [validationError, setValidationError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<string | null>(null); // Stores ID of currently submitting action
   const [showContext, setShowContext] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const [submittedActions, setSubmittedActions] = useState<Set<string>>(new Set());
   
   const { user } = useAuth();
   const { toast } = useToast();
@@ -78,17 +66,12 @@ export function BugReportButton({
     setMounted(true);
   }, []);
 
+  // COOLDOWN PROTOCOL
   useEffect(() => {
-    if (!description) {
-      setValidationError(null);
-      return;
-    }
-    const handler = setTimeout(() => {
-      const result = validateReportContent(description);
-      setValidationError(result.valid ? null : result.reason || null);
-    }, 500);
-    return () => clearTimeout(handler);
-  }, [description]);
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => setCooldown(prev => prev - 1), 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
 
   const autoContext = useMemo(() => {
     if (typeof window === 'undefined') return null;
@@ -125,17 +108,17 @@ export function BugReportButton({
     };
   }, [testId, questionId, questionIndex, totalQuestions, questionType, quizMode, user, open]);
 
-  const handleSubmit = async (quickCategory?: string) => {
-    const activeCategory = quickCategory || category;
-    const reportDesc = description.trim() || `Automated Diagnostic Snapshot: ${activeCategory.toUpperCase().replace(/_/g, ' ')}`;
-    
-    if (loading || validationError) return;
+  const handleSubmit = async (actionId: string, actionLabel: string) => {
+    if (loading || cooldown > 0 || submittedActions.has(actionId)) return;
 
-    setLoading(true);
-    let res: Response | undefined;
+    setLoading(actionId);
     try {
+      const timestamp = new Date().toLocaleString();
+      const reportDesc = `AUTOMATED SNAPSHOT: ${actionLabel.toUpperCase()} at ${timestamp}`;
+      
       const contextAppendix = `
 ---AUTO CONTEXT---
+Action: ${actionLabel}
 Page: ${autoContext?.url} (${autoContext?.page})
 Question: ${autoContext?.question || 'N/A'}
 Mode: ${autoContext?.mode || 'N/A'}
@@ -146,11 +129,11 @@ User: ${autoContext?.identity}
 Extra: ${JSON.stringify(context || {})}
 `;
 
-      res = await fetch('/api/proxy/bug-report', {
+      const res = await fetch('/api/proxy/bug-report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          category: activeCategory,
+          category: actionId,
           description: `${reportDesc}\n\n${contextAppendix}`,
           page_url: window.location.href,
           test_id: testId || 'N/A',
@@ -162,29 +145,24 @@ Extra: ${JSON.stringify(context || {})}
       });
 
       if (res.ok) {
-        toast({ title: "Report Submitted", description: "The registry has been updated." });
-        setOpen(false);
-        setDescription('');
-        setCategory('other');
+        toast({ title: "Snapshot Transmitted", description: "The intelligence registry has been updated." });
+        setSubmittedActions(prev => new Set(prev).add(actionId));
+        setCooldown(30); // 30s Cooldown to prevent spam
+        
+        // Auto-close after a short delay
+        setTimeout(() => setOpen(false), 1500);
       } else {
         const errorData = await res.json();
         if (res.status === 400) {
           const record = recordReportOffense();
-          if (record.status === 'warned') {
-            toast({ variant: "destructive", title: "Validation Warning", description: "Please keep reports respectful." });
-          } else {
-            toast({ variant: "destructive", title: "Access Suspended", description: "Report access locked for 24 hours." });
-            setOpen(false);
-          }
+          toast({ variant: "destructive", title: "Rate Limit Exceeded", description: "Too many requests. Please wait." });
         }
         throw new Error(errorData.error || 'Submission Failed');
       }
     } catch (e: any) {
-      if (res?.status !== 400) {
-        toast({ variant: "destructive", title: "Gửi thất bại", description: e.message });
-      }
+      toast({ variant: "destructive", title: "Transmission Failed", description: e.message });
     } finally {
-      setLoading(false);
+      setLoading(null);
     }
   };
 
@@ -192,10 +170,10 @@ Extra: ${JSON.stringify(context || {})}
   if (!mounted) return null;
 
   const quickActions = [
-    { id: 'wrong_answer', label: 'Wrong Answer', icon: CheckCircle2, color: 'bg-emerald-50 text-emerald-600' },
-    { id: 'image_broken', label: 'Image Broken', icon: ImageIcon, color: 'bg-blue-50 text-blue-600' },
-    { id: 'score_wrong', label: 'Score Error', icon: Zap, color: 'bg-amber-50 text-amber-600' },
-    { id: 'cant_join', label: 'Access Issue', icon: UserX, color: 'bg-rose-50 text-rose-600' }
+    { id: 'wrong_answer', label: 'Wrong Answer', icon: CheckCircle2, color: 'bg-emerald-50 text-emerald-600 border-emerald-100' },
+    { id: 'image_broken', label: 'Image Broken', icon: ImageIcon, color: 'bg-blue-50 text-blue-600 border-blue-100' },
+    { id: 'score_wrong', label: 'Score Error', icon: Zap, color: 'bg-amber-50 text-amber-600 border-amber-100' },
+    { id: 'cant_join', label: 'Access Issue', icon: UserX, color: 'bg-rose-50 text-rose-600 border-rose-100' }
   ];
 
   return (
@@ -213,68 +191,69 @@ Extra: ${JSON.stringify(context || {})}
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[500px] rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl bg-white max-h-[90vh] flex flex-col">
+        <DialogContent className="sm:max-w-[450px] rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl bg-white max-h-[90vh] flex flex-col">
           <DialogHeader className="p-10 pb-6 shrink-0 bg-slate-50/50">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-primary/10 rounded-2xl shadow-sm"><Bug className="w-6 h-6 text-primary" /></div>
               <div>
                 <DialogTitle className="text-2xl font-black uppercase tracking-tight">Intelligence Audit</DialogTitle>
-                <DialogDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest">Submit Diagnostic Snapshot</DialogDescription>
+                <DialogDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest">Select an issue to transmit snapshot</DialogDescription>
               </div>
             </div>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto px-10 pb-10 space-y-8 custom-scrollbar pt-6">
-            <div className="space-y-4">
-              <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">One-Click Snapshots / Gửi nhanh</Label>
-              <div className="grid grid-cols-2 gap-3">
-                {quickActions.map((action) => (
-                  <button
-                    key={action.id}
-                    onClick={() => handleSubmit(action.id)}
-                    disabled={loading}
-                    className={cn(
-                      "p-4 rounded-2xl border-2 border-transparent transition-all text-left group flex flex-col gap-2",
-                      action.color,
-                      "hover:scale-[1.02] active:scale-95 shadow-sm"
-                    )}
-                  >
-                    <action.icon className="w-5 h-5 mb-1" />
-                    <span className="text-[10px] font-black uppercase tracking-tight">{action.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="h-px bg-slate-100 w-full" />
-
-            <div className="space-y-4">
+          <div className="flex-1 overflow-y-auto px-10 pb-10 space-y-8 custom-scrollbar pt-8">
+            <div className="space-y-6">
               <div className="flex items-center justify-between px-1">
-                <Label className="text-[10px] font-black uppercase text-slate-400">Custom Details (Optional)</Label>
-                <span className="text-[8px] font-black uppercase text-slate-300">Auto-Context included</span>
-              </div>
-              <Textarea 
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Optionally describe the issue... / Hoặc mô tả thêm tại đây..."
-                className={cn(
-                  "min-h-[100px] rounded-2xl bg-slate-50 border-none ring-1 ring-slate-100 p-4 font-medium",
-                  validationError ? "ring-rose-200 bg-rose-50/30" : "focus:ring-primary/20"
+                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">One-Tap Diagnostic / Gửi nhanh</Label>
+                {cooldown > 0 && (
+                  <div className="flex items-center gap-1.5 text-amber-600 animate-pulse">
+                    <Clock className="w-3 h-3" />
+                    <span className="text-[9px] font-black tabular-nums">{cooldown}s</span>
+                  </div>
                 )}
-              />
-              {validationError && (
-                <div className="flex items-start gap-2 text-rose-500 px-1 animate-in fade-in slide-in-from-top-1">
-                  <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                  <p className="text-[10px] font-bold leading-tight">{validationError}</p>
-                </div>
-              )}
+              </div>
+              
+              <div className="grid grid-cols-1 gap-3">
+                {quickActions.map((action) => {
+                  const isSubmitting = loading === action.id;
+                  const isDone = submittedActions.has(action.id);
+                  
+                  return (
+                    <button
+                      key={action.id}
+                      onClick={() => handleSubmit(action.id, action.label)}
+                      disabled={!!loading || cooldown > 0 || isDone}
+                      className={cn(
+                        "p-6 rounded-2xl border-2 transition-all text-left group flex items-center justify-between",
+                        action.color,
+                        (loading || cooldown > 0) && !isSubmitting && !isDone && "opacity-40 grayscale",
+                        isDone ? "bg-emerald-500 border-emerald-500 text-white" : "hover:scale-[1.02] active:scale-95 shadow-sm"
+                      )}
+                    >
+                      <div className="flex items-center gap-4">
+                        <action.icon className={cn("w-6 h-6", isDone ? "text-white" : "")} />
+                        <span className="text-xs font-black uppercase tracking-tight">{action.label}</span>
+                      </div>
+                      
+                      {isSubmitting ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : isDone ? (
+                        <Check className="w-4 h-4 stroke-[3px]" />
+                      ) : (
+                        <Send className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-all translate-x-[-10px] group-hover:translate-x-0" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="rounded-2xl border-2 border-dashed border-slate-100 overflow-hidden">
                <button onClick={() => setShowContext(!showContext)} className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors">
                  <div className="flex items-center gap-3">
                    <Info className="w-4 h-4 text-slate-400" />
-                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">View Registry Data</span>
+                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">View Diagnostic Data</span>
                  </div>
                  <ChevronDown className={cn("w-4 h-4 text-slate-300 transition-transform", showContext && "rotate-180")} />
                </button>
@@ -283,20 +262,28 @@ Extra: ${JSON.stringify(context || {})}
                     <ContextRow label="Page" value={autoContext.page} />
                     <ContextRow label="Context" value={autoContext.question || 'Standard Navigation'} />
                     <ContextRow label="Node ID" value={autoContext.identity} />
+                    <div className="pt-2">
+                      <p className="text-[8px] font-black uppercase text-slate-300 mb-1">Status</p>
+                      <p className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-1">
+                        <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" /> Ready to transmit
+                      </p>
+                    </div>
                  </div>
                )}
+            </div>
+            
+            <div className="p-6 bg-blue-50/50 rounded-2xl border border-blue-100/50 flex items-start gap-4">
+               <AlertCircle className="w-5 h-5 text-blue-400 shrink-0" />
+               <p className="text-[10px] font-medium text-blue-600 leading-relaxed">
+                 Manual descriptions are disabled. The system automatically captures all relevant context for forensic audit.
+                 <br />
+                 <span className="opacity-70">Mô tả thủ công đã bị tắt. Hệ thống tự động ghi lại toàn bộ ngữ cảnh kỹ thuật.</span>
+               </p>
             </div>
           </div>
 
           <DialogFooter className="p-8 pt-0 shrink-0">
-            <Button 
-              onClick={() => handleSubmit()}
-              disabled={loading || !!validationError}
-              className="w-full h-16 rounded-full bg-primary font-black uppercase tracking-widest shadow-xl shadow-primary/20 border-none hover:scale-[1.02]"
-            >
-              {loading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
-              Transmit Registry Snapshot
-            </Button>
+             <Button variant="ghost" onClick={() => setOpen(false)} className="w-full h-12 rounded-full font-black uppercase text-[10px] tracking-widest text-slate-400">Close / Đóng</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
