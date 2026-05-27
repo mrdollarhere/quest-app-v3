@@ -43,7 +43,7 @@ export function QuizHeader({
     <header className="w-full bg-white border-b border-slate-100 sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto h-20 px-4 md:px-8 flex items-center justify-between">
         <div className="flex items-center gap-2 md:gap-6">
-          <Button variant="ghost" onClick={onPrev} disabled={current === 1 || isRaceMode || isAnswerConfirmed} className={cn("rounded-xl h-12 px-2 md:px-4 text-slate-400 font-bold", activeShortcut === 'prev' && "bg-primary/10 scale-95")}>
+          <Button variant="ghost" onClick={onPrev} disabled={current === 1 || isRaceMode} className={cn("rounded-xl h-12 px-2 md:px-4 text-slate-400 font-bold", activeShortcut === 'prev' && "bg-primary/10 scale-95")}>
             <ChevronLeft className="w-5 h-5 mr-1" /> <span className="hidden sm:inline">Trước</span>
           </Button>
           <div className="h-6 w-px bg-slate-100 hidden md:block" />

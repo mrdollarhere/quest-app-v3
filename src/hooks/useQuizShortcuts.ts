@@ -36,7 +36,7 @@ export function useQuizShortcuts({ onNext, onPrev, onToggleSidebar, onSetTextSiz
           if (canNext) { e.preventDefault(); triggerFeedback('next'); onNext(); }
           break;
         case 'ArrowLeft':
-          if (!isRaceMode && !isAnswerConfirmed) { e.preventDefault(); triggerFeedback('prev'); onPrev(); }
+          if (!isRaceMode) { e.preventDefault(); triggerFeedback('prev'); onPrev(); }
           break;
         case 'g':
         case 'G':
