@@ -5,6 +5,7 @@
  * Redesigned v19.5: Information-rich header bands and dynamic accent colors.
  * Design: Visual elements utilize sharp rectangular geometry (rounded-none).
  * Resiliency: Defensive Iteration Protocol v1.1.
+ * Updated v19.6: Fully dynamic category colors.
  */
 
 "use client";
@@ -20,9 +21,10 @@ import { trackEvent } from '@/lib/tracker';
 
 interface CardViewProps {
   tests: any[];
+  uniqueCategories: string[];
 }
 
-const CARD_COLORS = [
+const CARD_GRADIENTS = [
   'from-green-500 to-emerald-600',
   'from-blue-500 to-indigo-600',
   'from-purple-500 to-violet-600',
@@ -33,7 +35,7 @@ const CARD_COLORS = [
   'from-sky-500 to-blue-600',
 ];
 
-export function CardView({ tests }: CardViewProps) {
+export function CardView({ tests, uniqueCategories }: CardViewProps) {
   const [liveTests, setLiveTests] = useState<string[]>([]);
   
   const safeTests = Array.isArray(tests) ? tests : [];
@@ -51,16 +53,11 @@ export function CardView({ tests }: CardViewProps) {
     return () => clearInterval(interval);
   }, []);
 
-  const getCategoryGradient = (category: string, testId: string) => {
-    const cat = String(category || "").toUpperCase();
-    if (cat.includes("LV1")) return "from-green-500 to-emerald-600";
-    if (cat.includes("LV2")) return "from-blue-500 to-indigo-600";
-    if (cat.includes("LV3")) return "from-purple-500 to-violet-600";
-    if (cat.includes("TEST")) return "from-slate-700 to-slate-900";
-    
-    // Hash-based color for others per Redesign Protocol
-    const hash = String(testId).split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-    return CARD_COLORS[hash % CARD_COLORS.length];
+  const getCategoryGradient = (category: string) => {
+    const cat = (category || "General").trim();
+    const idx = uniqueCategories.indexOf(cat);
+    if (idx === -1) return "from-indigo-500 to-indigo-600";
+    return CARD_GRADIENTS[idx % CARD_GRADIENTS.length];
   };
 
   const getDifficultyColor = (diff: string) => {
@@ -100,7 +97,7 @@ export function CardView({ tests }: CardViewProps) {
               {/* HEADER BAND: Information-rich information node */}
               <div className={cn(
                 "relative h-[110px] w-full p-4 flex flex-col justify-between overflow-hidden shrink-0 bg-gradient-to-br", 
-                getCategoryGradient(test.category, test.id)
+                getCategoryGradient(test.category)
               )}>
                 {/* Decorative Identification Number */}
                 {decorativeNum && (
@@ -162,7 +159,7 @@ export function CardView({ tests }: CardViewProps) {
                 <div className="pt-4">
                   <Button className={cn(
                     "w-full h-10 rounded-none font-black text-[12px] uppercase tracking-tighter transition-all border-none shadow-sm",
-                    isLive ? "bg-rose-500 hover:bg-rose-600 text-white" : "bg-emerald-500 hover:bg-emerald-600 text-white"
+                    isLive ? "bg-rose-50 hover:bg-rose-600 text-white" : "bg-emerald-500 hover:bg-emerald-600 text-white"
                   )}>
                     {isLive ? 'Tham gia / Join' : 'Bắt đầu / Start'}
                   </Button>

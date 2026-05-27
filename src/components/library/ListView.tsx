@@ -3,6 +3,7 @@
  * 
  * Purpose: Compact list representation of the assessment library.
  * Design: Visual elements utilize sharp rectangular geometry (rounded-none).
+ * Updated v19.6: Fully dynamic category colors.
  */
 
 "use client";
@@ -18,9 +19,21 @@ import { trackEvent } from '@/lib/tracker';
 
 interface ListViewProps {
   tests: any[];
+  uniqueCategories: string[];
 }
 
-export function ListView({ tests }: ListViewProps) {
+const CARD_GRADIENTS = [
+  'from-green-500 to-emerald-600',
+  'from-blue-500 to-indigo-600',
+  'from-purple-500 to-violet-600',
+  'from-orange-500 to-amber-600',
+  'from-pink-500 to-rose-600',
+  'from-teal-500 to-cyan-600',
+  'from-red-500 to-rose-600',
+  'from-sky-500 to-blue-600',
+];
+
+export function ListView({ tests, uniqueCategories }: ListViewProps) {
   const [liveTests, setLiveTests] = useState<string[]>([]);
 
   useEffect(() => {
@@ -35,11 +48,10 @@ export function ListView({ tests }: ListViewProps) {
   }, []);
 
   const getCategoryGradient = (category: string) => {
-    const cat = String(category || "").toUpperCase();
-    if (cat.includes("LV1")) return "from-[#059669] to-[#34d399]";
-    if (cat.includes("LV2")) return "from-[#1d4ed8] to-[#60a5fa]";
-    if (cat.includes("LV3")) return "from-[#7c3aed] to-[#c084fc]";
-    return "from-[#1a2340] to-[#3B5BDB]";
+    const cat = (category || "General").trim();
+    const idx = uniqueCategories.indexOf(cat);
+    if (idx === -1) return "from-[#1a2340] to-[#3B5BDB]";
+    return CARD_GRADIENTS[idx % CARD_GRADIENTS.length];
   };
 
   const getDifficultyClasses = (diff: string) => {
@@ -128,7 +140,7 @@ export function ListView({ tests }: ListViewProps) {
                     variant="outline" 
                     className={cn(
                       "h-7 px-3 rounded-[6px] font-bold text-[10px] uppercase tracking-tight transition-all group/btn",
-                      isLive ? "bg-rose-500 border-rose-500 text-white hover:bg-rose-600" : "border-slate-200 dark:border-slate-700 bg-transparent text-slate-500 hover:bg-primary hover:text-white hover:border-primary"
+                      isLive ? "bg-rose-50 border-rose-500 text-white hover:bg-rose-600" : "border-slate-200 dark:border-slate-700 bg-transparent text-slate-500 hover:bg-primary hover:text-white hover:border-primary"
                     )}
                   >
                     {isLive ? 'Join Live' : 'Start'} <ChevronRight className="w-3 h-3 ml-1 transition-transform group-hover/btn:translate-x-0.5" aria-hidden="true" />

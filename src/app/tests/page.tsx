@@ -17,6 +17,17 @@ import { BackToTop } from '@/components/BackToTop';
 import { SiteFooter } from '@/components/SiteFooter';
 import { BugReportButton } from '@/components/shared/BugReportButton';
 
+const CHIP_COLORS = [
+  'bg-emerald-600 text-white border-emerald-600 shadow-emerald-600/20',
+  'bg-blue-600 text-white border-blue-600 shadow-blue-600/20',
+  'bg-purple-600 text-white border-purple-600 shadow-purple-600/20',
+  'bg-orange-600 text-white border-orange-600 shadow-orange-600/20',
+  'bg-pink-600 text-white border-pink-600 shadow-pink-600/20',
+  'bg-teal-600 text-white border-teal-600 shadow-teal-600/20',
+  'bg-red-600 text-white border-red-600 shadow-red-600/20',
+  'bg-sky-600 text-white border-sky-600 shadow-sky-600/20',
+];
+
 export default function TestsLibrary() {
   const { t } = useLanguage();
   const router = useRouter();
@@ -56,6 +67,33 @@ export default function TestsLibrary() {
 
   const tests = useMemo(() => Array.isArray(data) ? data : [], [data]);
 
+  const uniqueCategories = useMemo(() => {
+    const cats = new Set<string>();
+    tests.forEach(t_item => {
+      const c = (t_item.category || "General").trim();
+      if (c) cats.add(c);
+    });
+    return Array.from(cats).sort();
+  }, [tests]);
+
+  const categories = useMemo(() => ["All", ...uniqueCategories], [uniqueCategories]);
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { "All": tests.length };
+    tests.forEach(t_item => {
+      const cat = (t_item.category || "General").trim();
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+    return counts;
+  }, [tests]);
+
+  const getCategoryColor = (cat: string) => {
+    if (cat === 'All') return 'bg-slate-900 text-white border-slate-900 shadow-slate-900/20';
+    const idx = uniqueCategories.indexOf(cat);
+    if (idx === -1) return 'bg-indigo-600 text-white border-indigo-600 shadow-indigo-600/20';
+    return CHIP_COLORS[idx % CHIP_COLORS.length];
+  };
+
   useEffect(() => {
     const savedView = localStorage.getItem('dntrng_test_view') as 'card' | 'list';
     if (savedView) setViewMode(savedView);
@@ -69,21 +107,6 @@ export default function TestsLibrary() {
     trackEvent('test_filter_category', { details: { category: cat } });
   };
 
-  const categories = useMemo(() => {
-    const cats = new Set<string>();
-    tests.forEach(t_item => cats.add((t_item.category || "General").trim()));
-    return ["All", ...Array.from(cats).sort()];
-  }, [tests]);
-
-  const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = { "All": tests.length };
-    tests.forEach(t_item => {
-      const cat = (t_item.category || "General").trim();
-      counts[cat] = (counts[cat] || 0) + 1;
-    });
-    return counts;
-  }, [tests]);
-
   const filteredTests = useMemo(() => {
     return tests.filter(t_item => {
       const title = String(t_item.title || "");
@@ -94,16 +117,6 @@ export default function TestsLibrary() {
       return matchesSearch && matchesDifficulty && (selectedCategory === "All" || cat === selectedCategory);
     });
   }, [tests, search, difficultyFilter, selectedCategory]);
-
-  const getCategoryColor = (cat: string) => {
-    const c = cat.toUpperCase();
-    if (c === 'ALL') return 'bg-slate-900 text-white border-slate-900 shadow-slate-900/20';
-    if (c.includes('LV1')) return 'bg-green-600 text-white border-green-600 shadow-green-600/20';
-    if (c.includes('LV2')) return 'bg-blue-600 text-white border-blue-600 shadow-blue-600/20';
-    if (c.includes('LV3')) return 'bg-purple-600 text-white border-purple-600 shadow-purple-600/20';
-    if (c.includes('TEST')) return 'bg-slate-700 text-white border-slate-700 shadow-slate-700/20';
-    return 'bg-indigo-600 text-white border-indigo-600 shadow-indigo-600/20';
-  };
 
   return (
     <div className="min-h-screen bg-slate-50/30 dark:bg-slate-950 flex flex-col transition-colors duration-300">
@@ -173,7 +186,15 @@ export default function TestsLibrary() {
                 </div>
               ) : filteredTests.length > 0 ? (
                 <div className="px-4">
-                  {viewMode === 'card' ? <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4"><CardView tests={filteredTests} /></div> : <div className="flex flex-col gap-[10px]"><ListView tests={filteredTests} /></div>}
+                  {viewMode === 'card' ? (
+                    <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
+                      <CardView tests={filteredTests} uniqueCategories={uniqueCategories} />
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-[10px]">
+                      <ListView tests={filteredTests} uniqueCategories={uniqueCategories} />
+                    </div>
+                  )}
                 </div>
               ) : <EmptyState onClear={() => { setSearch(""); handleCategoryChange("All"); }} />}
             </div>
