@@ -10,7 +10,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Clock, ListChecks, Radio } from "lucide-react";
 import { Card, CardTitle } from "@/components/ui/card";
@@ -21,7 +21,7 @@ import { trackEvent } from '@/lib/tracker';
 
 interface CardViewProps {
   tests: any[];
-  uniqueCategories: string[];
+  uniqueCategories?: string[];
 }
 
 const CARD_GRADIENTS = [
@@ -40,6 +40,17 @@ export function CardView({ tests, uniqueCategories }: CardViewProps) {
   
   const safeTests = Array.isArray(tests) ? tests : [];
 
+  // REGISTRY PROTOCOL: If uniqueCategories is not provided, derive it from current tests
+  const categoryPool = useMemo(() => {
+    if (uniqueCategories && uniqueCategories.length > 0) return uniqueCategories;
+    const cats = new Set<string>();
+    safeTests.forEach(t => {
+      const c = (t.category || "General").trim();
+      if (c) cats.add(c);
+    });
+    return Array.from(cats).sort();
+  }, [safeTests, uniqueCategories]);
+
   useEffect(() => {
     const checkLive = async () => {
       try {
@@ -55,7 +66,7 @@ export function CardView({ tests, uniqueCategories }: CardViewProps) {
 
   const getCategoryGradient = (category: string) => {
     const cat = (category || "General").trim();
-    const idx = uniqueCategories.indexOf(cat);
+    const idx = categoryPool.indexOf(cat);
     if (idx === -1) return "from-indigo-500 to-indigo-600";
     return CARD_GRADIENTS[idx % CARD_GRADIENTS.length];
   };
@@ -119,7 +130,7 @@ export function CardView({ tests, uniqueCategories }: CardViewProps) {
                       </div>
                     )}
                   </div>
-                  <Badge className="bg-black/20 text-white border-none backdrop-blur-md font-bold text-[9px] uppercase tracking-wider px-2 py-1 rounded-none flex items-center gap-1.5">
+                  <Badge className="bg-black/20 text-white border-none backdrop-blur-md font-bold text-[9px] uppercase tracking-wider px-2.5 py-1 rounded-none flex items-center gap-1.5">
                     <ListChecks className="w-3 h-3" />
                     {test.questions_count ?? "0"}
                   </Badge>

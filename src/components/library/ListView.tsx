@@ -8,7 +8,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Clock, ListChecks, FileText, ChevronRight, Radio } from "lucide-react";
@@ -19,7 +19,7 @@ import { trackEvent } from '@/lib/tracker';
 
 interface ListViewProps {
   tests: any[];
-  uniqueCategories: string[];
+  uniqueCategories?: string[];
 }
 
 const CARD_GRADIENTS = [
@@ -36,6 +36,19 @@ const CARD_GRADIENTS = [
 export function ListView({ tests, uniqueCategories }: ListViewProps) {
   const [liveTests, setLiveTests] = useState<string[]>([]);
 
+  const safeTests = Array.isArray(tests) ? tests : [];
+
+  // REGISTRY PROTOCOL: If uniqueCategories is not provided, derive it from current tests
+  const categoryPool = useMemo(() => {
+    if (uniqueCategories && uniqueCategories.length > 0) return uniqueCategories;
+    const cats = new Set<string>();
+    safeTests.forEach(t => {
+      const c = (t.category || "General").trim();
+      if (c) cats.add(c);
+    });
+    return Array.from(cats).sort();
+  }, [safeTests, uniqueCategories]);
+
   useEffect(() => {
     const checkLive = async () => {
       try {
@@ -49,7 +62,7 @@ export function ListView({ tests, uniqueCategories }: ListViewProps) {
 
   const getCategoryGradient = (category: string) => {
     const cat = (category || "General").trim();
-    const idx = uniqueCategories.indexOf(cat);
+    const idx = categoryPool.indexOf(cat);
     if (idx === -1) return "from-[#1a2340] to-[#3B5BDB]";
     return CARD_GRADIENTS[idx % CARD_GRADIENTS.length];
   };
@@ -72,7 +85,7 @@ export function ListView({ tests, uniqueCategories }: ListViewProps) {
 
   return (
     <>
-      {tests.map((test, index) => {
+      {safeTests.map((test, index) => {
         const isLive = liveTests.includes(test.id);
         
         return (
