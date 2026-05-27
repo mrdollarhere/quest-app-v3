@@ -4,6 +4,7 @@
  * Purpose: Primary visual entry point for the landing gateway.
  * Refactored: v19.2.0 - Integrated QuickSignIn card.
  * Updated: v19.7.0 - Integrated real-time global statistics.
+ * Updated: v19.8.0 - Stacked Bilingual Presentation (EN/VI).
  */
 
 "use client";
@@ -13,6 +14,8 @@ import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { ChevronRight, ShieldCheck } from "lucide-react";
 import { QuickSignIn } from './QuickSignIn';
+import { en } from '@/locales/en';
+import { vi } from '@/locales/vi';
 
 interface HeroSectionProps {
   t: (key: string) => string;
@@ -42,28 +45,46 @@ export function HeroSection({ t, stats }: HeroSectionProps) {
         <div className="flex-[1.2] text-center lg:text-left space-y-10">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest shadow-xl">
             <ShieldCheck className="w-3.5 h-3.5 text-primary" />
-            {t('heroBadge')}
+            <div className="flex flex-col items-start leading-none">
+              <span>{en.heroBadge}</span>
+              <span className="opacity-60 text-[8px] mt-0.5">{vi.heroBadge}</span>
+            </div>
           </div>
+
           <h1 className="text-5xl md:text-[5.5rem] font-black tracking-tighter text-slate-900 leading-[0.9] uppercase">
-            {t('heroTitle')}
+            {en.heroTitle}
+            <span className="block text-2xl md:text-[2.8rem] text-slate-400 mt-4 normal-case tracking-tight">
+              {vi.heroTitle}
+            </span>
           </h1>
-          <p className="text-xl md:text-2xl text-slate-500 max-w-2xl font-medium leading-relaxed">
-            {t('heroSubtitle')}
-          </p>
+
+          <div className="space-y-2">
+            <p className="text-xl md:text-2xl text-slate-500 max-w-2xl font-medium leading-relaxed">
+              {en.heroSubtitle}
+            </p>
+            <p className="text-lg md:text-xl text-slate-400 max-w-2xl font-medium leading-relaxed italic opacity-80">
+              {vi.heroSubtitle}
+            </p>
+          </div>
+
           <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-5 pt-6">
             <Link href="/tests">
-              <Button size="lg" className="h-20 px-12 text-xl rounded-full bg-primary hover:bg-primary/90 text-white font-black shadow-2xl shadow-primary/30 border-none group">
-                {t('browseTests')} <ChevronRight className="ml-2 w-6 h-6 group-hover:translate-x-1 transition-transform" />
+              <Button size="lg" className="h-24 px-12 rounded-full bg-primary hover:bg-primary/90 text-white font-black shadow-2xl shadow-primary/30 border-none group flex items-center">
+                <div className="flex flex-col items-start text-left mr-4">
+                  <span className="text-xl uppercase">{en.browseTests}</span>
+                  <span className="text-sm font-normal opacity-80">{vi.browseTests}</span>
+                </div>
+                <ChevronRight className="w-8 h-8 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
           </div>
 
           <div className="flex items-center justify-center lg:justify-start gap-8 pt-10">
-            <HeroStat label="Active Modules" value={String(formattedStats.modules)} />
+            <HeroStat label="Active Modules" labelVi="Bài thi" value={String(formattedStats.modules)} />
             <div className="h-8 w-px bg-slate-200" />
-            <HeroStat label="Identity Nodes" value={String(formattedStats.students)} />
+            <HeroStat label="Identity Nodes" labelVi="Học sinh" value={String(formattedStats.students)} />
             <div className="h-8 w-px bg-slate-200" />
-            <HeroStat label="Registry Uptime" value={formattedStats.uptime} />
+            <HeroStat label="Registry Uptime" labelVi="Trạng thái" value={formattedStats.uptime} />
           </div>
         </div>
 
@@ -80,11 +101,14 @@ export function HeroSection({ t, stats }: HeroSectionProps) {
   );
 }
 
-function HeroStat({ label, value }: { label: string, value: string }) {
+function HeroStat({ label, labelVi, value }: { label: string, labelVi: string, value: string }) {
   return (
     <div className="space-y-1">
       <p className="text-3xl font-black text-slate-900 tracking-tighter tabular-nums">{value}</p>
-      <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">{label}</p>
+      <div className="flex flex-col">
+        <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">{label}</p>
+        <p className="text-[8px] font-bold uppercase text-slate-300 tracking-widest leading-none">{labelVi}</p>
+      </div>
     </div>
   );
 }

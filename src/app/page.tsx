@@ -4,6 +4,7 @@
  * Route: /
  * Purpose: Primary landing gateway redesigned for high-fidelity brand immersion.
  * Refactored: v19.3.0 - Added Quick Access Grid for authenticated student nodes.
+ * Updated: v19.8.0 - Stacked Bilingual Presentation (EN/VI).
  */
 
 "use client";
@@ -71,25 +72,34 @@ export default function LandingPage() {
           <div className="max-w-7xl mx-auto flex items-center justify-center gap-3">
             <div className="flex items-center gap-2 px-2 py-0.5 bg-white/20 rounded-full text-[9px] font-black uppercase tracking-widest">
               <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-              SYSTEM BROADCAST
+              <div className="flex gap-2">
+                <span>SYSTEM BROADCAST</span>
+                <span className="opacity-60">/ THÔNG BÁO HỆ THỐNG</span>
+              </div>
             </div>
             <p className="text-xs md:text-sm font-bold tracking-tight">{settings.announcement_banner}</p>
           </div>
         </div>
       )}
 
-      <header className="py-4 px-6 md:px-12 border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+      <header className="py-4 px-6 md:px-12 border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-40 shadow-sm">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <Link href="/" className="flex items-center">
             <Image src="/brand/logo-horizontal.png" alt={brandName} width={150} height={38} priority />
           </Link>
           
           <nav className="hidden md:flex items-center gap-10 text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">
-            <Link href="/tests" className="hover:text-primary transition-colors">{t('library')}</Link>
+            <Link href="/tests" className="hover:text-primary transition-colors flex flex-col items-center">
+              <span>{t('library')}</span>
+            </Link>
             {user && (
-              <Link href="/profile" className="hover:text-primary transition-colors">{t('profile')}</Link>
+              <Link href="/profile" className="hover:text-primary transition-colors flex flex-col items-center">
+                <span>{t('profile')}</span>
+              </Link>
             )}
-            <Link href="/join" className="hover:text-rose-500 transition-colors">{t('joinLive')}</Link>
+            <Link href="/join" className="hover:text-rose-500 transition-colors flex flex-col items-center">
+              <span>{t('joinLive')}</span>
+            </Link>
           </nav>
           
           <div className="flex items-center gap-4">

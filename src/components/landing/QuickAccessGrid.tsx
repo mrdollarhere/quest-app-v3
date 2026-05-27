@@ -4,6 +4,7 @@
  * Purpose: Renders a compact selection of available assessments for authenticated users.
  * Logic: Selects a subset of the test library for instantaneous reentry.
  * Visual: Adheres to Protocol v18.9.7 - Rectangular Geometry.
+ * Updated: v19.8.0 - Stacked Bilingual Presentation (EN/VI).
  */
 
 "use client";
@@ -29,17 +30,26 @@ export function QuickAccessGrid({ tests }: QuickAccessGridProps) {
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              <span className="text-[10px] font-black uppercase text-primary tracking-[0.4em]">Identity Context Active</span>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black uppercase text-primary tracking-[0.4em]">Identity Context Active</span>
+                <span className="text-[8px] font-bold uppercase text-primary/60 tracking-[0.4em]">Danh tính đã kích hoạt</span>
+              </div>
             </div>
-            <h2 className="text-3xl font-black uppercase tracking-tight text-slate-900 leading-none">Your Next Mission.</h2>
-            <p className="text-slate-500 font-medium">Synchronized modules ready for initialization.</p>
+            <div className="space-y-1">
+              <h2 className="text-3xl font-black uppercase tracking-tight text-slate-900 leading-none">Your Next Mission.</h2>
+              <h3 className="text-xl font-bold uppercase tracking-tight text-slate-400 leading-none">Nhiệm vụ tiếp theo của bạn.</h3>
+            </div>
+            <p className="text-slate-500 font-medium italic opacity-80">Synchronized modules ready for initialization. / Các mô-đun đã sẵn sàng khởi chạy.</p>
           </div>
           
           <Link href="/tests">
-            <Button variant="ghost" className="rounded-full font-black uppercase text-[10px] tracking-widest text-slate-400 hover:text-primary transition-all gap-2">
+            <Button variant="ghost" className="h-16 rounded-full font-black uppercase text-[10px] tracking-widest text-slate-400 hover:text-primary transition-all gap-4">
               <LayoutGrid className="w-4 h-4" />
-              Full Library Registry
-              <ArrowRight className="w-3.5 h-3.5" />
+              <div className="flex flex-col items-end text-right">
+                <span>Full Library Registry</span>
+                <span className="opacity-70 normal-case font-bold">Xem tất cả bài thi</span>
+              </div>
+              <ArrowRight className="w-4 h-4" />
             </Button>
           </Link>
         </div>
