@@ -13,6 +13,7 @@ interface UseAdminDataOptions<T> {
  * useAdminData Hook
  * 
  * Standardizes the data acquisition pulse for administrative terminals.
+ * Updated v19.9: Explicitly including credentials for cross-environment session reliability.
  */
 export function useAdminData<T>({ url, initialData, onSuccess }: UseAdminDataOptions<T>) {
   const [data, setData] = useState<T>(initialData);
@@ -24,22 +25,25 @@ export function useAdminData<T>({ url, initialData, onSuccess }: UseAdminDataOpt
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`Registry error: ${res.status}`);
+      const res = await fetch(url, {
+        credentials: 'include'
+      });
+      
+      if (!res.ok) {
+        throw new Error(`Registry error: ${res.status}`);
+      }
+      
       const result = await res.json();
       setData(result);
       if (onSuccess) onSuccess(result);
     } catch (err: any) {
       setError(err);
-      toast({ 
-        variant: "destructive", 
-        title: "Access Denied", 
-        description: "Registry handshake failed. Check credentials." 
-      });
+      // Quiet toast to allow the internal page error boundary to handle the visual state
+      console.warn(`[Registry Fetch Warning] ${url} -> ${err.message}`);
     } finally {
       setLoading(false);
     }
-  }, [url, toast, onSuccess]);
+  }, [url, onSuccess]);
 
   useEffect(() => {
     fetchData();

@@ -1,20 +1,20 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getAdminSession } from '@/lib/utils/auth-helpers';
 import { gasGet } from '@/lib/server/gas-proxy';
+
+export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/proxy/admin/responses
  * Protected route: Retrieves submission history.
- * Updated v19.9: Added Cache-Control headers to prevent browser caching.
+ * Standardized v19.9: Using getAdminSession and force-dynamic for session reliability.
  */
 export async function GET() {
-  const cookieStore = await cookies();
-  const c = cookieStore.get('auth-session');
+  const session = await getAdminSession();
   
-  if (!c) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  
-  const session = JSON.parse(c.value);
-  if (session.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   try {
     const data = await gasGet('getResponses');
@@ -24,6 +24,7 @@ export async function GET() {
       }
     });
   } catch (error) {
+    console.error('[Proxy Responses Error]', error);
     return NextResponse.json({ error: 'Registry error' }, { status: 500 });
   }
 }

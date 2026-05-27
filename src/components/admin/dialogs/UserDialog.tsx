@@ -44,7 +44,6 @@ export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatc
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<"single" | "batch" | "ai">("single");
   const [showPassword, setShowPassword] = useState(false);
-  const [showBatchPassword, setShowBatchPassword] = useState(false);
   
   // AI State Nodes
   const [aiText, setAiText] = useState('');
@@ -122,7 +121,7 @@ export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatc
         id: `batch_${Date.now()}_${i}`,
         name: String(data.namePrefix || "") + numStr,
         email: String(data.emailPattern || "").replace('{{n}}', numStr).replace('[n]', numStr),
-        password: String(data.password || "admin123"),
+        password: String(data.password || "student123"),
         role: String(data.role || "user")
       });
     }
@@ -183,7 +182,14 @@ export function UserDialog({ open, onOpenChange, editingItem, onSave, onSaveBatc
                   <div className="space-y-2"><Label className="font-black text-[10px] uppercase text-slate-400">Prefix</Label><Input name="namePrefix" placeholder="Student " className="h-12 rounded-xl bg-slate-50 border-none ring-1 ring-slate-100" /></div>
                   <div className="space-y-2"><Label className="font-black text-[10px] uppercase text-slate-400">Range</Label><div className="flex items-center gap-2"><Input name="rangeStart" type="number" defaultValue="1" className="h-12 text-center" /><span>-</span><Input name="rangeEnd" type="number" defaultValue="10" className="h-12 text-center" /></div></div>
                 </div>
-                <div className="space-y-2"><Label className="font-black text-[10px] uppercase text-slate-400">Pattern</Label><Input name="emailPattern" required placeholder="student{{n}}@dntrng.com" className="h-12 rounded-xl bg-slate-50 border-none ring-1 ring-slate-100 font-mono" /></div>
+                <div className="space-y-2">
+                  <Label className="font-black text-[10px] uppercase text-slate-400">Email Pattern</Label>
+                  <Input name="emailPattern" required placeholder="student{{n}}@dntrng.com" className="h-12 rounded-xl bg-slate-50 border-none ring-1 ring-slate-100 font-mono" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-black text-[10px] uppercase text-slate-400">Default Password</Label>
+                  <Input name="password" defaultValue="student123" className="h-12 rounded-xl bg-slate-50 border-none ring-1 ring-slate-100 font-bold" />
+                </div>
                 <Button type="submit" disabled={loading} className="w-full h-16 rounded-full bg-primary font-black uppercase shadow-xl">Initialize Sequence</Button>
               </form>
             </TabsContent>

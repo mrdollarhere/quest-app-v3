@@ -31,13 +31,6 @@ export default function AdminUsersPage() {
     initialData: []
   });
 
-  // TACTICAL DIAGNOSTIC NODE
-  useEffect(() => {
-    if (usersError || responsesError) {
-      console.error(`[Registry Audit] Critical Handshake Failure detected in Admin Terminal: ${usersError?.message || 'Users OK'} | ${responsesError?.message || 'Responses OK'}`);
-    }
-  }, [usersError, responsesError]);
-
   const handleRefreshAll = () => {
     refreshUsers();
     refreshResponses();
@@ -66,6 +59,7 @@ export default function AdminUsersPage() {
 
   // ERROR TERMINAL RENDER
   if (usersError || responsesError) {
+    const errorMsg = usersError?.message || responsesError?.message || "Unknown Exception";
     return (
       <div className="py-20 flex flex-col items-center justify-center text-center space-y-6 animate-in fade-in duration-500">
         <div className="w-20 h-20 bg-rose-50 rounded-[2rem] flex items-center justify-center shadow-xl shadow-rose-500/10">
@@ -74,12 +68,12 @@ export default function AdminUsersPage() {
         <div className="space-y-2">
           <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight">Handshake Failure</h2>
           <p className="text-slate-500 font-medium max-w-md mx-auto">
-            The registry bridge rejected the request. This usually indicates an outdated GAS script or API key mismatch.
+            The registry bridge rejected the request. This usually indicates an outdated session or API key mismatch.
           </p>
         </div>
         <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 font-mono text-xs text-rose-600 max-w-lg w-full overflow-hidden">
           <p className="font-bold mb-2 uppercase tracking-widest text-[10px] text-slate-400">Error Registry Trace:</p>
-          {usersError?.message || responsesError?.message || "Unknown Exception"}
+          {errorMsg}
         </div>
         <div className="flex gap-4">
           <Button onClick={handleRefreshAll} className="rounded-full h-12 px-8 font-black uppercase text-xs tracking-widest bg-slate-900">
