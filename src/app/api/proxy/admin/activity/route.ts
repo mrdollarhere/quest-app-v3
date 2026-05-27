@@ -6,6 +6,7 @@ import { buildErrorResponse } from '@/lib/utils/api-helpers';
 /**
  * GET /api/proxy/admin/activity
  * Refactored: v19.4.0 (Shared Auth Protocol)
+ * Updated v19.9: Added Cache-Control headers to prevent browser caching.
  */
 export async function GET(request: Request) {
   const session = await getAdminSession();
@@ -17,5 +18,9 @@ export async function GET(request: Request) {
   const data = await safeGasGet('getActivity', { limit });
   if (!data) return buildErrorResponse('Registry unreachable', 500);
 
-  return NextResponse.json(data);
+  return NextResponse.json(data, {
+    headers: {
+      'Cache-Control': 'no-store, no-cache, must-revalidate'
+    }
+  });
 }

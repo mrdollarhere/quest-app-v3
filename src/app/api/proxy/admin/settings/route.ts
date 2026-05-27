@@ -7,6 +7,7 @@ import { gasGet, gasPost } from '@/lib/server/gas-proxy';
  * 
  * Provides full access to the platform registry settings for administrators.
  * Supports both retrieval (GET) and calibration (POST).
+ * Updated v19.9: Added Cache-Control headers to GET response.
  */
 
 export async function GET() {
@@ -21,7 +22,11 @@ export async function GET() {
   try {
     // Admin access: Return full settings including sensitive fields (salt, sheet URL)
     const data = await gasGet('getSettings');
-    return NextResponse.json(data);
+    return NextResponse.json(data, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate'
+      }
+    });
   } catch (error) {
     return NextResponse.json({ error: 'Registry error' }, { status: 500 });
   }

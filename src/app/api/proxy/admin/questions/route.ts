@@ -5,6 +5,7 @@ import { gasGet } from '@/lib/server/gas-proxy';
 /**
  * GET /api/proxy/admin/questions
  * Admin Only: Retrieves questions WITH correct answers for editing.
+ * Updated v19.9: Added Cache-Control headers to prevent browser caching.
  */
 export async function GET(request: Request) {
   const cookieStore = await cookies();
@@ -22,7 +23,11 @@ export async function GET(request: Request) {
 
   try {
     const data = await gasGet('getQuestions', { id });
-    return NextResponse.json(data);
+    return NextResponse.json(data, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate'
+      }
+    });
   } catch (error) {
     return NextResponse.json({ error: 'Registry error' }, { status: 500 });
   }

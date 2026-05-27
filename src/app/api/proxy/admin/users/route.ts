@@ -5,6 +5,7 @@ import { gasGet } from '@/lib/server/gas-proxy';
 /**
  * GET /api/proxy/admin/users
  * Protected route: Retrieves student registry.
+ * Updated v19.9: Added Cache-Control headers to prevent browser caching.
  */
 export async function GET() {
   const cookieStore = await cookies();
@@ -17,7 +18,11 @@ export async function GET() {
 
   try {
     const data = await gasGet('getUsers');
-    return NextResponse.json(data);
+    return NextResponse.json(data, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate'
+      }
+    });
   } catch (error) {
     return NextResponse.json({ error: 'Registry error' }, { status: 500 });
   }

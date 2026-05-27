@@ -7,6 +7,7 @@ import { gasGet } from '@/lib/server/gas-proxy';
  * 
  * Retrieves metadata for a single student identity.
  * Admin Only.
+ * Updated v19.9: Added Cache-Control headers to prevent browser caching.
  */
 export async function GET(
   request: Request,
@@ -27,7 +28,11 @@ export async function GET(
 
     // SECURITY PROTOCOL: Never return passwords from this node
     const { password, ...safeUser } = data || {};
-    return NextResponse.json(safeUser);
+    return NextResponse.json(safeUser, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate'
+      }
+    });
   } catch (error: any) {
     console.error('[Proxy Single User Error]', error);
     return NextResponse.json({ error: 'Registry unreachable' }, { status: 500 });
