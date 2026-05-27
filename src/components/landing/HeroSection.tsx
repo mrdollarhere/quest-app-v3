@@ -2,7 +2,8 @@
  * HeroSection.tsx
  * 
  * Purpose: Primary visual entry point for the landing gateway.
- * Refactored: v19.2.0 - Integrated QuickSignIn card into the tactical right column.
+ * Refactored: v19.2.0 - Integrated QuickSignIn card.
+ * Updated: v19.7.0 - Integrated real-time global statistics.
  */
 
 "use client";
@@ -15,9 +16,21 @@ import { QuickSignIn } from './QuickSignIn';
 
 interface HeroSectionProps {
   t: (key: string) => string;
+  stats?: {
+    learningSessions: number;
+    studentsTrained: number;
+    assessmentsDone: number;
+    practiceModules: number;
+  };
 }
 
-export function HeroSection({ t }: HeroSectionProps) {
+export function HeroSection({ t, stats }: HeroSectionProps) {
+  const formattedStats = {
+    modules: stats?.practiceModules || "40+",
+    students: stats?.studentsTrained > 100 ? `${(stats.studentsTrained / 1000).toFixed(1)}k+` : (stats?.studentsTrained || "1.2k+"),
+    uptime: "100%"
+  };
+
   return (
     <section className="relative pt-24 pb-32 md:pt-40 md:pb-52 px-6 overflow-hidden">
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
@@ -46,11 +59,11 @@ export function HeroSection({ t }: HeroSectionProps) {
           </div>
 
           <div className="flex items-center justify-center lg:justify-start gap-8 pt-10">
-            <HeroStat label="Active Modules" value="40+" />
+            <HeroStat label="Active Modules" value={String(formattedStats.modules)} />
             <div className="h-8 w-px bg-slate-200" />
-            <HeroStat label="Identity Nodes" value="1.2k+" />
+            <HeroStat label="Identity Nodes" value={String(formattedStats.students)} />
             <div className="h-8 w-px bg-slate-200" />
-            <HeroStat label="Registry Uptime" value="100%" />
+            <HeroStat label="Registry Uptime" value={formattedStats.uptime} />
           </div>
         </div>
 
@@ -58,7 +71,7 @@ export function HeroSection({ t }: HeroSectionProps) {
           <QuickSignIn />
           <div className="mt-8 text-center">
             <p className="text-[9px] font-bold text-slate-300 uppercase tracking-[0.6em] select-none">
-              Intelligence Interface v19.2
+              Intelligence Interface v19.7
             </p>
           </div>
         </div>
@@ -70,7 +83,7 @@ export function HeroSection({ t }: HeroSectionProps) {
 function HeroStat({ label, value }: { label: string, value: string }) {
   return (
     <div className="space-y-1">
-      <p className="text-3xl font-black text-slate-900 tracking-tighter">{value}</p>
+      <p className="text-3xl font-black text-slate-900 tracking-tighter tabular-nums">{value}</p>
       <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">{label}</p>
     </div>
   );

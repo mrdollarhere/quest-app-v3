@@ -3,6 +3,7 @@
  * 
  * Purpose: Diagnostic detail terminal for assessment modules.
  * Refactored: v19.6.0 - Integrated AI Question Generator node.
+ * Updated: v19.7.0 - Transitioned to singular test retrieval for performance.
  */
 
 "use client";
@@ -39,26 +40,34 @@ export default function AdminTestDetailPage() {
   const [showAIModal, setShowAIModal] = useState(false);
   
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [tests, setTests] = useState<any[]>([]);
+  const [currentTest, setCurrentTest] = useState<any>({});
+  const [tests, setTests] = useState<any[]>([]); // Preserved for selection menu
   const [editingItem, setEditingItem] = useState<any>(null);
   const [dialogs, setDialogs] = useState({ test: false, user: false, question: false, bulk: false });
-
-  const currentTest = tests.find(t => String(t.id) === String(testId)) || {};
 
   const fetchData = useCallback(async () => {
     if (!testId) return;
     setLoading(true);
     try {
-      const [qRes, tRes] = await Promise.all([
+      // REGISTRY PULSE: Singular test retrieval + full question set
+      const [qRes, tRes, listRes] = await Promise.all([
         fetch(`/api/proxy/admin/questions?id=${testId}`),
-        fetch('/api/proxy/tests')
+        fetch(`/api/proxy/tests/${testId}`),
+        fetch('/api/proxy/tests') // Still needed for the "Select Test" dropdown switcher
       ]);
+      
       const qData = await qRes.json();
       const tData = await tRes.json();
+      const listData = await listRes.json();
+      
       setQuestions(Array.isArray(qData) ? qData : []);
-      setTests(Array.isArray(tData) ? tData : []);
-    } catch (err) { toast({ variant: "destructive", title: "Sync Error" }); }
-    finally { setLoading(false); }
+      setCurrentTest(tData || {});
+      setTests(Array.isArray(listData) ? listData : []);
+    } catch (err) { 
+      toast({ variant: "destructive", title: "Sync Error" }); 
+    } finally { 
+      setLoading(false); 
+    }
   }, [testId, toast]);
 
   useEffect(() => { fetchData(); }, [fetchData]);

@@ -40,6 +40,9 @@ export default function LandingPage() {
 
   // REGISTRY UPLINK: Fetch tests for quick access if user is logged in
   const { data: tests } = useSWR(user ? '/api/proxy/tests' : null);
+  
+  // TELEMETRY UPLINK: Fetch global volume statistics
+  const { data: publicStats } = useSWR('/api/proxy/public-stats');
 
   useEffect(() => {
     const key = 'page_view_home' + window.location.pathname + Math.floor(Date.now() / 2000);
@@ -96,7 +99,7 @@ export default function LandingPage() {
       </header>
 
       <main className="flex-1">
-        <HeroSection t={t} />
+        <HeroSection t={t} stats={publicStats} />
         
         {user && tests && tests.length > 0 && (
           <QuickAccessGrid tests={tests} />

@@ -2,7 +2,8 @@
  * detail/page.tsx (Admin)
  * 
  * Purpose: Diagnostic detail terminal for individual student nodes.
- * Refactored: v19.0 (CEP) - Extracted sub-components to reduce file complexity.
+ * Refactored: v19.0 (CEP) - Extracted sub-components.
+ * Updated: v19.7.0 - Switched to singular identity node retrieval for performance.
  */
 
 "use client";
@@ -42,19 +43,21 @@ function UserDetailContent() {
       if (!email) { setLoading(false); return; }
       setLoading(true);
       try {
+        // REGISTRY HANDSHAKE: Fetch singular user node + targeted responses
         const [uRes, rRes] = await Promise.all([
-          fetch('/api/proxy/admin/users'),
-          fetch('/api/proxy/admin/responses')
+          fetch(`/api/proxy/admin/users/${encodeURIComponent(email)}`),
+          fetch(`/api/proxy/admin/responses?email=${encodeURIComponent(email)}`)
         ]);
+        
         const uData = await uRes.json();
         const rData = await rRes.json();
-        const foundUser = uData.find((u: any) => String(u.email || "").toLowerCase() === email.toLowerCase());
-        const userResponses = rData
-          .filter((r: any) => String(r['User Email'] || "").toLowerCase() === email.toLowerCase())
-          .sort((a: any, b: any) => new Date(b.Timestamp).getTime() - new Date(a.Timestamp).getTime());
-        setUser(foundUser);
-        setResponses(userResponses);
-        if (foundUser) trackEvent('admin_student_view', { details: { studentId: email } });
+        
+        setUser(uData);
+        setResponses(Array.isArray(rData) ? rData : []);
+        
+        if (uData && !uData.error) {
+          trackEvent('admin_student_view', { details: { studentId: email } });
+        }
       } catch (err) {
         toast({ variant: "destructive", title: "Sync Error" });
       } finally {
@@ -81,7 +84,7 @@ function UserDetailContent() {
   }, [responses]);
 
   if (loading) return <div className="py-32"><AILoader /></div>;
-  if (!user) return <div className="text-center py-32"><Button onClick={() => router.back()}>Return to Registry</Button></div>;
+  if (!user || user.error) return <div className="text-center py-32"><p className="mb-6 font-bold text-slate-400 uppercase">Student node not found in registry.</p><Button onClick={() => router.push('/admin/users')}>Return to Registry</Button></div>;
 
   return (
     <div className="max-w-7xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-24">
