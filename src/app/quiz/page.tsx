@@ -7,6 +7,7 @@
  * Refactored: v19.2.3 - Implemented Registry Reset Protocol for testId transitions.
  * Updated: v19.8.5 - Added Navigation Protection and Leave Confirmation.
  * Updated: v19.9.0 - Added Anti-Inspection Deterrence Measures (Shortcuts, Context Menu, DevTools).
+ * Updated: v19.9.1 - Enhanced Duration Parsing Logic.
  */
 
 "use client";
@@ -324,6 +325,28 @@ function QuizContent() {
     }
   };
 
+  /**
+   * REGISTRY DURATION PARSER
+   * Standardizes strings like "1m", "15 mins", or "90s" into raw seconds.
+   */
+  const parseDurationSeconds = (input: any): number => {
+    const s = String(input || "").toLowerCase().trim();
+    if (!s) return 900; // Default 15m
+
+    const numMatch = s.match(/\d+/);
+    if (!numMatch) return 900;
+    
+    const num = parseInt(numMatch[0]);
+    
+    // Explicit Seconds Check
+    if (s.includes('s') && !s.includes('m')) {
+      return num;
+    }
+    
+    // Default to Minutes (15, 15m, 15 mins)
+    return num * 60;
+  };
+
   const handleStart = async (mode: QuizMode) => {
     if (isBanned()) { 
       setSpamResult(getSpamRecord()); 
@@ -339,7 +362,13 @@ function QuizContent() {
     }
     if (!q || q.length === 0) return;
     if (mode === 'test') q = [...q].sort(() => Math.random() - 0.5);
-    setTimeLeft(Number(globalData?.globalTimer || 0) > 0 ? Number(globalData?.globalTimer) * 60 : 900);
+
+    // TEMPORAL CALIBRATION: Priority Individual > Global > Default
+    const currentTest = globalData?.tests.find(t => String(t.id) === String(testId));
+    const rawDuration = currentTest?.duration || globalData?.globalTimer || "15";
+    const seconds = parseDurationSeconds(rawDuration);
+
+    setTimeLeft(seconds);
     quizStartTimeRef.current = Date.now();
     setIsStarted(true); 
     setQuiz(prev => ({ ...prev, questions: q, mode, currentQuestionIndex: 0, responses: [] }));
