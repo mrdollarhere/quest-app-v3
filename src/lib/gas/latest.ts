@@ -1,12 +1,12 @@
 export const GAS_CODE = `/**
- * QUESTFLOW BACKEND v19.2.4 - COMPREHENSIVE REGISTRY PROTOCOL
+ * QUESTFLOW BACKEND v19.2.5 - COMPREHENSIVE REGISTRY PROTOCOL
  * 
  * ACTIONS SUPPORTED:
- * - GET: login, getTests, getUsers, getResponses, getQuestions, getSettings, getVersion, getActivity, getBugReports
+ * - GET: login, getTests, getUsers, getResponses, getQuestions, getSettings, getVersion, getActivity, getBugReports, gettestbyid, getuserbyid, getuserstats, getpublicstats
  * - POST: submitResponse, saveTest, deleteTest, saveUser, deleteUser, saveQuestion, saveQuestions, saveUsers, saveSetting, deleteResponse, logEvent, logActivity, saveBugReport, updateBugStatus
  */
 
-const GAS_VERSION = "19.2.4";
+const GAS_VERSION = "19.2.5";
 const ACTIVITY_SHEET_NAME = "System_Activity";
 const BUG_REPORTS_SHEET = "BugReports";
 
@@ -159,6 +159,67 @@ function doGet(e) {
       case 'getquestions':
         const qSheet = ss.getSheetByName(e.parameter.id);
         return createResponse(qSheet ? getRowsAsObjects(qSheet) : []);
+
+      case 'gettestbyid':
+        const targetTestId = e.parameter.id;
+        if (!targetTestId) return createResponse({ error: 'Missing id' }, 400);
+        const singleTestSheet = ss.getSheetByName('Tests');
+        if (!singleTestSheet) return createResponse({ error: 'Tests not found' }, 404);
+        const allTests = getRowsAsObjects(singleTestSheet);
+        const foundTest = allTests.find(t => String(t.id).toLowerCase() === String(targetTestId).toLowerCase());
+        if (!foundTest) return createResponse({ error: 'Test not found' }, 404);
+        const qCountSheet = ss.getSheetByName(foundTest.id);
+        foundTest.questions_count = qCountSheet ? Math.max(0, qCountSheet.getLastRow() - 1) : 0;
+        return createResponse(foundTest);
+
+      case 'getuserbyid':
+        const targetUserId = e.parameter.id || e.parameter.email;
+        if (!targetUserId) return createResponse({ error: 'Missing id' }, 400);
+        const singleUserSheet = ss.getSheetByName('Users');
+        if (!singleUserSheet) return createResponse({ error: 'Not found' }, 404);
+        const allUsers = getRowsAsObjects(singleUserSheet, ['password']);
+        const foundUser = allUsers.find(u => 
+          String(u.id).toLowerCase() === String(targetUserId).toLowerCase() ||
+          String(u.email).toLowerCase() === String(targetUserId).toLowerCase()
+        );
+        if (!foundUser) return createResponse({ error: 'User not found' }, 404);
+        return createResponse(foundUser);
+
+      case 'getuserstats':
+        const statsEmail = e.parameter.email || e.parameter.userId;
+        if (!statsEmail) return createResponse({ error: 'Missing email' }, 400);
+        const statsRespSheet = ss.getSheetByName('Responses');
+        if (!statsRespSheet) return createResponse({ testsTaken: 0, bestScore: 0, perfectScores: 0, scoreHistory: [] });
+        const statsData = getRowsAsObjects(statsRespSheet);
+        const userResponses = statsData.filter(r => String(r['User Email'] || '').toLowerCase().trim() === String(statsEmail).toLowerCase().trim());
+        const scores = userResponses.map(r => {
+          const s = Number(r.Score) || 0;
+          const t = Number(r.Total) || 1;
+          return Math.round((s / t) * 100);
+        });
+        return createResponse({
+          testsTaken: userResponses.length,
+          bestScore: scores.length ? Math.max(...scores) : 0,
+          perfectScores: userResponses.filter(r => Number(r.Score) >= Number(r.Total) && Number(r.Total) > 0).length,
+          scoreHistory: userResponses.slice(-10).map(r => ({
+            testId: r['Test ID'],
+            score: Number(r.Score),
+            total: Number(r.Total),
+            date: r.Timestamp
+          }))
+        });
+
+      case 'getpublicstats':
+        const pEventSheet = ss.getSheetByName(ACTIVITY_SHEET_NAME);
+        const pRespSheet = ss.getSheetByName('Responses');
+        const pTestSheet = ss.getSheetByName('Tests');
+        const pUserSheet = ss.getSheetByName('Users');
+        return createResponse({
+          learningSessions: pEventSheet ? Math.max(0, pEventSheet.getLastRow() - 1) : 0,
+          studentsTrained: pUserSheet ? Math.max(0, pUserSheet.getLastRow() - 1) : 0,
+          assessmentsDone: pRespSheet ? Math.max(0, pRespSheet.getLastRow() - 1) : 0,
+          practiceModules: pTestSheet ? Math.max(0, pTestSheet.getLastRow() - 1) : 0
+        });
 
       default:
         return createResponse({ error: 'Unknown GET action: ' + action }, 400);
