@@ -95,6 +95,16 @@ export default function TestsLibrary() {
     });
   }, [tests, search, difficultyFilter, selectedCategory]);
 
+  const getCategoryColor = (cat: string) => {
+    const c = cat.toUpperCase();
+    if (c === 'ALL') return 'bg-slate-900 text-white border-slate-900 shadow-slate-900/20';
+    if (c.includes('LV1')) return 'bg-green-600 text-white border-green-600 shadow-green-600/20';
+    if (c.includes('LV2')) return 'bg-blue-600 text-white border-blue-600 shadow-blue-600/20';
+    if (c.includes('LV3')) return 'bg-purple-600 text-white border-purple-600 shadow-purple-600/20';
+    if (c.includes('TEST')) return 'bg-slate-700 text-white border-slate-700 shadow-slate-700/20';
+    return 'bg-indigo-600 text-white border-indigo-600 shadow-indigo-600/20';
+  };
+
   return (
     <div className="min-h-screen bg-slate-50/30 dark:bg-slate-950 flex flex-col transition-colors duration-300">
       <LibraryHeader 
@@ -141,11 +151,13 @@ export default function TestsLibrary() {
                       onClick={() => handleCategoryChange(cat)}
                       className={cn(
                         "whitespace-nowrap px-6 py-3 rounded-full text-xs font-black uppercase tracking-widest transition-all duration-300 border flex items-center gap-3",
-                        selectedCategory === cat ? "bg-[#1a2340] text-white shadow-lg scale-105" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400"
+                        selectedCategory === cat 
+                          ? cn("shadow-lg scale-105", getCategoryColor(cat)) 
+                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400"
                       )}
                     >
                       {cat}
-                      <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-bold", selectedCategory === cat ? "bg-white/20" : "bg-slate-100 dark:bg-slate-800")}>
+                      <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-bold", selectedCategory === cat ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800")}>
                         {categoryCounts[cat] || 0}
                       </span>
                     </button>
