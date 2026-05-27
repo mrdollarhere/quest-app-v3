@@ -23,7 +23,7 @@ const LEET_MAP: Record<string, string> = {
   '@': 'a', '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't', '8': 'b', '$': 's'
 };
 
-const VN_SURNAME_REGISTRY = [
+export const VN_SURNAME_REGISTRY = [
   'nguyễn', 'trần', 'lê', 'phạm', 'hoàng', 
   'huỳnh', 'phan', 'vũ', 'võ', 'đặng', 
   'bùi', 'đỗ', 'hồ', 'ngô', 'dương', 'lý', 'lưu'

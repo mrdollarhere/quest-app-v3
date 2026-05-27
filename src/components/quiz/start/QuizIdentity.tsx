@@ -1,14 +1,6 @@
-/**
- * src/components/quiz/start/QuizIdentity.tsx
- * 
- * Purpose: Registration step for student nodes with advanced identity validation.
- * Features: Extreme Lockdown Protocol, progressive lockout, and bot honeypot.
- * Updated: v19.1.0 - Added Bilingual (EN/VI) hints and real-time feedback.
- */
-
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,6 +25,8 @@ import { useSettings } from '@/context/settings-context';
 import { validateStudentName } from '@/lib/name-validator';
 import { useNameLockout } from '@/hooks/use-name-lockout';
 import { ExtremeLockdown } from '../ExtremeLockdown';
+import { useNameAutocomplete } from '@/hooks/use-name-autocomplete';
+import { NameAutocomplete } from '@/components/shared/NameAutocomplete';
 
 interface QuizIdentityProps {
   guestName: string;
@@ -80,6 +74,7 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
   const [error, setError] = useState<string | null>(null);
   const [honeypot, setHoneypot] = useState(''); 
   const [isGracePeriod, setIsGracePeriod] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   
   const router = useRouter();
   const pathname = usePathname();
@@ -110,6 +105,25 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
     return result.valid ? 'valid' : 'invalid';
   }, [guestName, isWhitelistActive, customBlacklist]);
 
+  // AUTOCOMPLETE HANDSHAKE
+  const { 
+    suggestions, 
+    isOpen, 
+    setIsOpen, 
+    highlightedIndex, 
+    setHighlightedIndex, 
+    handleKeyDown 
+  } = useNameAutocomplete({
+    value: guestName,
+    joinMode: (joinMode as any) || 'open',
+    whitelist,
+    customBlacklist,
+    onSelect: (name) => {
+      setGuestName(name);
+      if (error) setError(null);
+    }
+  });
+
   // Grace Period Protocol after unlocking
   useEffect(() => {
     if (!isLocked && lockoutTime === 0) {
@@ -119,8 +133,19 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
     }
   }, [isLocked, lockoutTime]);
 
+  // Click outside detection
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [setIsOpen]);
+
   const handleBegin = () => {
-    if (isLocked || isGracePeriod) return;
+    if (isLocked || isGracePeriod || isOpen) return;
 
     if (honeypot.length > 0) {
       triggerViolation(true);
@@ -169,7 +194,7 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
         <div className="grid grid-cols-3 gap-4">
           <StatNode icon={ListChecks} value={questionsCount} label={language === 'vi' ? 'Câu hỏi' : 'Nodes'} color="blue" />
           <StatNode icon={Clock} value={duration || '15m'} label={language === 'vi' ? 'Thời gian' : 'Limit'} color="indigo" />
-          <StatNode icon={BarChart3} value="v4.0" label="Logic" color="slate" />
+          <StatNode icon={BarChart3} value="v4.2" label="Logic" color="slate" />
         </div>
 
         {isWhitelistActive ? (
@@ -211,7 +236,7 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
           </div>
         )}
 
-        <div className="space-y-4">
+        <div className="space-y-4 relative" ref={containerRef}>
           <div className="flex items-center justify-between">
             <Label className="font-black text-[10px] uppercase text-slate-400 ml-1">Callsign Registry</Label>
             {error && (
@@ -238,16 +263,31 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
               placeholder={isWhitelistActive ? LABELS.en.placeholder_whitelist : LABELS.en.placeholder_open}
               value={guestName}
               disabled={isGracePeriod}
+              autoComplete="off"
+              onFocus={() => guestName.length >= 2 && setIsOpen(true)}
+              onKeyDown={handleKeyDown}
               onChange={(e) => {
                 setGuestName(e.target.value);
                 if (error) setError(null);
+                setIsOpen(e.target.value.length >= 2);
               }}
               className={cn(
                 "h-20 pl-14 rounded-none border-2 text-xl font-black transition-all",
                 error ? "border-rose-200 bg-rose-50/30 focus:ring-rose-500/20" : "border-slate-100 focus:ring-primary/20",
                 isGracePeriod && "opacity-50"
               )}
-              onKeyDown={(e) => e.key === 'Enter' && handleBegin()}
+            />
+
+            <NameAutocomplete 
+              suggestions={suggestions}
+              isOpen={isOpen}
+              highlightedIndex={highlightedIndex}
+              onHover={setHighlightedIndex}
+              onSelect={(name) => {
+                setGuestName(name);
+                setIsOpen(false);
+                if (error) setError(null);
+              }}
             />
           </div>
 

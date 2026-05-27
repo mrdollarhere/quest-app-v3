@@ -3,12 +3,12 @@
  * 
  * Route: /join
  * Purpose: Student entry gateway for live classroom sessions.
- * Updated: v19.1.0 - Added Bilingual (EN/VI) hints and real-time feedback.
+ * Updated: v19.3.0 - Added Identity Autocomplete and Enhanced Name Validation.
  */
 
 "use client";
 
-import React, { useState, useEffect, Suspense, useMemo } from 'react';
+import React, { useState, useEffect, Suspense, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,10 +17,13 @@ import { Zap, ArrowRight, Loader2, User, Key, AlertCircle, Lock, CheckCircle2, X
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
+import { useSettings } from '@/context/settings-context';
 import { SiteFooter } from '@/components/SiteFooter';
 import { validateStudentName } from '@/lib/name-validator';
 import { cn } from '@/lib/utils';
 import { BugReportButton } from '@/components/shared/BugReportButton';
+import { useNameAutocomplete } from '@/hooks/use-name-autocomplete';
+import { NameAutocomplete } from '@/components/shared/NameAutocomplete';
 
 const LABELS = {
   en: {
@@ -53,15 +56,30 @@ const LABELS = {
 
 function JoinContent() {
   const { user } = useAuth();
+  const { settings } = useSettings();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [roomCode, setRoomCode] = useState('');
   const [name, setName] = useState('');
-  const [roomMode, setRoomMode] = useState<'open' | 'whitelist' | null>(null);
+  const [isAutocompleteOpen, setIsAutocompleteOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
   const router = useRouter();
   const { toast } = useToast();
 
   const errorParam = searchParams.get('error');
+
+  // REGISTRY SETTINGS FETCH: Determine validation protocol
+  const joinMode = settings.join_mode || 'open';
+  const whitelist: string[] = useMemo(() => {
+    try { return JSON.parse(settings.name_whitelist || '[]'); }
+    catch { return []; }
+  }, [settings.name_whitelist]);
+
+  const customBlacklist: string[] = useMemo(() => {
+    try { return JSON.parse(settings.custom_blacklist || '[]'); }
+    catch { return []; }
+  }, [settings.custom_blacklist]);
 
   // SESSION AUDIT PROTOCOL
   useEffect(() => {
@@ -84,35 +102,45 @@ function JoinContent() {
     }
   }, [user, name]);
 
-  // Mode detection protocol
+  // Click outside detection for autocomplete
   useEffect(() => {
-    if (roomCode.length === 6) {
-      const fetchRoomDetails = async () => {
-        try {
-          const res = await fetch(`/api/live/room-details?code=${roomCode}`);
-          if (res.ok) {
-            const data = await res.json();
-            // Note: room-details doesn't return join_mode yet in v18.9, 
-            // but we can infer or handle it during join attempt.
-            // For now, we'll rely on server-side errors to show the correct bilingual message.
-          }
-        } catch (e) {}
-      };
-      fetchRoomDetails();
-    }
-  }, [roomCode]);
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsAutocompleteOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const validationStatus = useMemo(() => {
     if (name.length < 4) return null;
     const words = name.trim().split(/\s+/).filter(w => w.length > 0);
-    if (words.length < 2) return 'incomplete';
-    const result = validateStudentName(name);
+    if (words.length < 2 && joinMode !== 'whitelist') return 'incomplete';
+    const result = validateStudentName(name, customBlacklist, joinMode === 'whitelist');
     return result.valid ? 'valid' : 'invalid';
-  }, [name]);
+  }, [name, joinMode, customBlacklist]);
+
+  // AUTOCOMPLETE HANDSHAKE
+  const { 
+    suggestions, 
+    highlightedIndex, 
+    setHighlightedIndex, 
+    handleKeyDown 
+  } = useNameAutocomplete({
+    value: name,
+    joinMode: (joinMode as any) || 'open',
+    whitelist,
+    customBlacklist,
+    onSelect: (selectedName) => {
+      setName(selectedName);
+      setIsAutocompleteOpen(false);
+    }
+  });
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!roomCode || !name) return;
+    if (!roomCode || !name || isAutocompleteOpen) return;
 
     setLoading(true);
     try {
@@ -189,17 +217,34 @@ function JoinContent() {
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-4 relative" ref={containerRef}>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Your Full Name</label>
                   <div className="relative">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
                     <Input 
                       value={name}
-                      onChange={(e) => setName(e.target.value)}
+                      autoComplete="off"
+                      onFocus={() => name.length >= 2 && setIsAutocompleteOpen(true)}
+                      onKeyDown={handleKeyDown}
+                      onChange={(e) => {
+                        setName(e.target.value);
+                        setIsAutocompleteOpen(e.target.value.length >= 2);
+                      }}
                       placeholder={`${LABELS.en.placeholder_open} / ${LABELS.vi.placeholder_open}`}
                       className="h-14 pl-11 font-bold rounded-none bg-slate-50 border-none ring-1 ring-slate-100 focus:ring-primary/20"
                       required
+                    />
+
+                    <NameAutocomplete 
+                      suggestions={suggestions}
+                      isOpen={isAutocompleteOpen}
+                      highlightedIndex={highlightedIndex}
+                      onHover={setHighlightedIndex}
+                      onSelect={(selectedName) => {
+                        setName(selectedName);
+                        setIsAutocompleteOpen(false);
+                      }}
                     />
                   </div>
                 </div>
@@ -246,7 +291,7 @@ function JoinContent() {
 
               <Button 
                 type="submit" 
-                disabled={loading || !roomCode || !name}
+                disabled={loading || !roomCode || !name || isAutocompleteOpen}
                 className="w-full h-16 rounded-none bg-primary font-black text-lg uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.01] transition-all border-none"
               >
                 {loading ? <Loader2 className="w-6 h-6 animate-spin mr-2" /> : <ArrowRight className="w-6 h-6 mr-2" />}
