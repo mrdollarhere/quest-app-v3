@@ -43,21 +43,50 @@ export function QuizModes({ selectedMode, setSelectedMode, onStart, testId, test
   const liveAvailable = !!process.env.NEXT_PUBLIC_PUSHER_KEY;
 
   const modes = [
-    { id: 'training' as const, title: 'Practice', icon: Gamepad2, desc: 'Fixed sequence, take your time', color: 'bg-green-500', text: 'text-green-600' },
-    { id: 'test' as const, title: 'Test', icon: Target, desc: 'Timed, shuffled, results at the end', color: 'bg-primary', text: 'text-primary' },
-    { id: 'race' as const, title: 'Race', icon: Flame, desc: 'Speed & accuracy, one attempt', color: 'bg-orange-500', text: 'text-orange-600' }
+    { 
+      id: 'training' as const, 
+      title: 'Practice', 
+      label_vi: 'Luyện tập',
+      icon: Gamepad2, 
+      desc_en: 'Practice with instant feedback', 
+      desc_vi: 'Luyện tập với phản hồi ngay lập tức',
+      color: 'bg-green-500', 
+      text: 'text-green-600' 
+    },
+    { 
+      id: 'test' as const, 
+      title: 'Test', 
+      label_vi: 'Kiểm tra',
+      icon: Target, 
+      desc_en: 'Timed test — results shown at the end', 
+      desc_vi: 'Bài thi có thời gian — kết quả hiện sau khi nộp',
+      color: 'bg-primary', 
+      text: 'text-primary' 
+    },
+    { 
+      id: 'race' as const, 
+      title: 'Race', 
+      label_vi: 'Đua tốc độ',
+      icon: Flame, 
+      desc_en: 'Answer fast — one wrong ends your streak', 
+      desc_vi: 'Trả lời nhanh — sai một câu là mất chuỗi',
+      color: 'bg-orange-500', 
+      text: 'text-orange-600' 
+    }
   ];
 
   modes.push({ 
     id: 'live' as any, 
     title: 'Live', 
+    label_vi: 'Trực tiếp',
     icon: Radio, 
-    desc: 'Join a teacher-led live session', 
+    desc_en: 'Join a live classroom session', 
+    desc_vi: 'Tham gia phòng học trực tiếp',
     color: 'bg-rose-500', 
     text: 'text-rose-600' 
-  });
+  } as any);
 
-  const current = modes.find(m => m.id === selectedMode);
+  const current = modes.find(m => m.id === selectedMode) as any;
 
   const handleCreateRoom = async () => {
     if (!liveAvailable) {
@@ -120,8 +149,9 @@ export function QuizModes({ selectedMode, setSelectedMode, onStart, testId, test
         <div className="flex items-center gap-3">
           <UserCircle className="w-5 h-5 text-slate-400" />
           <div className="flex flex-col">
-            <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Active Callsign</span>
-            <span className="text-sm font-black text-slate-900 truncate max-w-[200px]">{guestName || 'Anonymous'}</span>
+            <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Playing as</span>
+            <span className="text-[8px] font-bold uppercase text-slate-300 tracking-widest mt-0.5">Đang chơi với tên</span>
+            <span className="text-sm font-black text-slate-900 truncate max-w-[200px] mt-1">{guestName || 'Anonymous'}</span>
           </div>
         </div>
         {onSwitchIdentity && (
@@ -135,17 +165,20 @@ export function QuizModes({ selectedMode, setSelectedMode, onStart, testId, test
       </div>
 
       <div className="bg-slate-100/50 p-2 rounded-full flex flex-wrap items-center justify-between border gap-1">
-        {modes.map((m) => (
+        {modes.map((m: any) => (
           <button
             key={m.id}
             onClick={() => setSelectedMode(m.id)}
             className={cn(
-              "flex-1 flex items-center justify-center gap-2 py-3.5 px-4 rounded-full transition-all min-w-[100px] relative",
+              "flex-1 flex flex-col items-center justify-center py-3.5 px-4 rounded-full transition-all min-w-[100px] relative",
               selectedMode === m.id ? `${m.color} text-white shadow-xl` : "text-slate-400 hover:bg-slate-200"
             )}
           >
-            <m.icon className="w-4 h-4 shrink-0" />
-            <span className="text-[10px] font-black uppercase tracking-widest">{m.title}</span>
+            <m.icon className="w-4 h-4 mb-1" />
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] font-black uppercase tracking-widest">{m.title}</span>
+              <span className="text-[8px] font-bold uppercase tracking-widest opacity-70">{m.label_vi}</span>
+            </div>
             {m.id === 'live' && !liveAvailable && (
               <span className="absolute -top-1 -right-1 flex h-3 w-3">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
@@ -159,8 +192,9 @@ export function QuizModes({ selectedMode, setSelectedMode, onStart, testId, test
       {selectedMode === 'live' ? (
         <div className="space-y-6 animate-in slide-in-from-bottom-2">
           <div className="text-center">
-            <p className="text-lg font-bold italic text-rose-600">Teacher-hosted real-time protocol</p>
-            {!liveAvailable && <p className="text-[10px] font-black uppercase text-amber-500 tracking-widest mt-1">Infrastructure Setup Required</p>}
+            <p className="text-lg font-bold italic text-rose-600">{current.desc_en}</p>
+            <p className="text-sm font-medium opacity-75 mt-0.5 text-rose-400">{current.desc_vi}</p>
+            {!liveAvailable && <p className="text-[10px] font-black uppercase text-amber-500 tracking-widest mt-2">Infrastructure Setup Required</p>}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Button 
@@ -182,9 +216,15 @@ export function QuizModes({ selectedMode, setSelectedMode, onStart, testId, test
         </div>
       ) : (
         <>
-          <div className="text-center min-h-[30px]"><p className={cn("text-lg font-bold italic", current?.text)}>{current?.desc}</p></div>
-          <Button onClick={() => onStart(selectedMode as QuizMode)} className={cn("w-full h-20 rounded-full font-black text-2xl text-white uppercase tracking-tighter shadow-2xl transition-all hover:scale-[1.02]", current?.color)}>
-            Start Mission <Play className="w-6 h-6 ml-3 fill-current" />
+          <div className="text-center min-h-[60px] flex flex-col justify-center">
+            <p className={cn("text-lg font-bold italic", current.text)}>{current.desc_en}</p>
+            <p className={cn("text-sm font-medium opacity-75 mt-0.5", current.text)}>{current.desc_vi}</p>
+          </div>
+          <Button onClick={() => onStart(selectedMode as QuizMode)} className={cn("w-full h-24 rounded-full font-black text-2xl text-white uppercase tracking-tighter shadow-2xl transition-all hover:scale-[1.02]", current.color)}>
+            <div className="flex flex-col items-center">
+              <span className="block font-bold">Start / Bắt đầu</span>
+            </div>
+            <Play className="w-6 h-6 ml-3 fill-current" />
           </Button>
         </>
       )}

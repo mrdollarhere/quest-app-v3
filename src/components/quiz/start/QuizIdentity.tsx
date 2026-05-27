@@ -238,7 +238,10 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
 
         <div className="space-y-4 relative" ref={containerRef}>
           <div className="flex items-center justify-between">
-            <Label className="font-black text-[10px] uppercase text-slate-400 ml-1">Callsign Registry</Label>
+            <div className="flex flex-col gap-0.5 ml-1">
+              <span className="block text-[10px] font-black uppercase tracking-widest text-slate-400">Your full name</span>
+              <span className="block text-[9px] font-bold uppercase tracking-widest text-slate-400 opacity-70">Họ và tên của bạn</span>
+            </div>
             {error && (
               <span className="text-[9px] font-bold uppercase flex items-center gap-1.5 animate-in slide-in-from-right-2 text-rose-500 text-right leading-tight">
                 <AlertCircle className="w-3.5 h-3.5 shrink-0" />
@@ -260,7 +263,7 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
             />
 
             <Input 
-              placeholder={isWhitelistActive ? LABELS.en.placeholder_whitelist : LABELS.en.placeholder_open}
+              placeholder={isWhitelistActive ? "Enter your registered name... / Nhập tên đã đăng ký..." : "Your full name... / Họ và tên..."}
               value={guestName}
               disabled={isGracePeriod}
               autoComplete="off"
@@ -339,12 +342,19 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
             disabled={!guestName.trim() || isLocked || isGracePeriod}
             className="w-full h-20 rounded-none text-2xl font-black uppercase tracking-tighter shadow-2xl transition-all border-none bg-primary text-white hover:scale-[1.01]"
           >
-            {isGracePeriod ? 'INITIALIZING...' : (language === 'vi' ? 'Bắt Đầu Mission' : 'Initialize Mission')} <ArrowRight className="w-6 h-6 ml-3" />
+            <div className="flex flex-col items-center">
+              <span className="block font-bold">Begin Test</span>
+              <span className="block text-sm opacity-80 font-normal">Bắt đầu bài thi</span>
+            </div>
+            <ArrowRight className="w-6 h-6 ml-3" />
           </Button>
 
           <div className="flex items-center gap-4 py-2">
             <div className="h-px flex-1 bg-slate-100" />
-            <span className="text-[9px] font-black uppercase text-slate-300 tracking-widest">Authorized Access</span>
+            <div className="flex flex-col items-center">
+              <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest leading-none">Already registered?</span>
+              <span className="text-[8px] font-bold uppercase text-slate-300 tracking-widest leading-none mt-1">Đã có tài khoản?</span>
+            </div>
             <div className="h-px flex-1 bg-slate-100" />
           </div>
 
@@ -352,9 +362,13 @@ export function QuizIdentity({ guestName, setGuestName, onContinue, questionsCou
             variant="outline"
             disabled={isGracePeriod}
             onClick={() => router.push(`/login?returnTo=${encodeURIComponent(returnToUrl)}`)}
-            className="w-full h-16 rounded-none border-2 border-slate-200 font-black text-sm uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all"
+            className="w-full h-20 rounded-none border-2 border-slate-200 font-black text-sm uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all"
           >
-            <LogIn className="w-4 h-4 mr-3" /> {language === 'vi' ? 'Xác thực định danh học sinh' : 'Verify via Identity Registry'}
+            <LogIn className="w-4 h-4 mr-3" />
+            <div className="flex flex-col items-start text-left">
+              <span className="block font-bold">Log in to your account</span>
+              <span className="block text-xs opacity-80 font-normal">Đăng nhập tài khoản</span>
+            </div>
           </Button>
         </div>
       </div>

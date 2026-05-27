@@ -101,6 +101,15 @@ export function QuizStart({ title, questionsCount, duration, user, guestName, se
 
   const returnToUrl = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '');
 
+  const getSubtitle = () => {
+    if (step === 'gate') return { en: 'Security Gate', vi: 'Cổng bảo mật' };
+    if (step === 'identity') return { en: 'Registration', vi: 'Đăng ký thông tin' };
+    if (step === 'mode') return { en: 'Choose your mode', vi: 'Chọn chế độ làm bài' };
+    return { en: 'Configuration', vi: 'Cấu hình' };
+  };
+
+  const subtitle = getSubtitle();
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
       <Card className="w-full max-w-2xl border-none shadow-2xl rounded-[3rem] overflow-hidden bg-white">
@@ -109,9 +118,14 @@ export function QuizStart({ title, questionsCount, duration, user, guestName, se
             <Zap className="w-10 h-10 text-white fill-white/20" />
           </div>
           <CardTitle className="text-4xl md:text-5xl font-black uppercase text-white leading-none mb-4">{title}</CardTitle>
-          <p className="text-white/60 font-black uppercase tracking-[0.4em] text-[10px]">
-            {step === 'gate' ? 'Security Gate' : step === 'identity' ? 'Registration' : 'Configuration'}
-          </p>
+          <div className="flex flex-col items-center gap-1">
+            <p className="text-white/80 font-black uppercase tracking-[0.4em] text-[10px]">
+              {subtitle.en}
+            </p>
+            <p className="text-white/40 font-bold uppercase tracking-[0.4em] text-[9px]">
+              {subtitle.vi}
+            </p>
+          </div>
         </div>
 
         <CardContent className="px-10 md:px-16 pt-12 pb-16">
