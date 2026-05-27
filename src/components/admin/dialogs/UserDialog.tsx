@@ -14,7 +14,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users as UsersIcon, UserPlus, Mail, Lock, Eye, EyeOff, User, Loader2, Sparkles, Brain, CheckCircle2 } from "lucide-react";
+import { 
+  Users as UsersIcon, 
+  UserPlus, 
+  Mail, 
+  Lock, 
+  Eye, 
+  EyeOff, 
+  User, 
+  Loader2, 
+  Sparkles, 
+  Brain, 
+  CheckCircle2,
+  Save 
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from '@/hooks/use-toast';
 

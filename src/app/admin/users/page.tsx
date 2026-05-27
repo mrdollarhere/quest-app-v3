@@ -34,10 +34,7 @@ export default function AdminUsersPage() {
   // TACTICAL DIAGNOSTIC NODE
   useEffect(() => {
     if (usersError || responsesError) {
-      console.error('[Registry Audit] Critical Handshake Failure detected in Admin Terminal:', {
-        usersError: usersError?.message,
-        responsesError: responsesError?.message
-      });
+      console.error(`[Registry Audit] Critical Handshake Failure detected in Admin Terminal: ${usersError?.message || 'Users OK'} | ${responsesError?.message || 'Responses OK'}`);
     }
   }, [usersError, responsesError]);
 
