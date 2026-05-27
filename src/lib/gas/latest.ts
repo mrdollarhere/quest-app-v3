@@ -1,5 +1,5 @@
 export const GAS_CODE = `/**
- * QUESTFLOW BACKEND v19.2.4 - RESILIENT REGISTRY PROTOCOL
+ * QUESTFLOW BACKEND v19.2.4 - COMPREHENSIVE REGISTRY PROTOCOL
  * 
  * ACTIONS SUPPORTED:
  * - GET: login, getTests, getUsers, getResponses, getQuestions, getSettings, getVersion, getActivity, getBugReports
@@ -77,11 +77,10 @@ function doGet(e) {
   if (!validateAuth(e)) return createResponse({ error: 'Unauthorized: API Key Mismatch' }, 401);
   
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const action = (e.parameter.action || "").trim();
+  const action = (e.parameter.action || "").trim().toLowerCase();
 
   try {
-    // ROBUST LOGIC SWITCH
-    switch (action.toLowerCase()) {
+    switch (action) {
       case 'getversion':
         return createResponse({ version: GAS_VERSION });
 
@@ -162,7 +161,7 @@ function doGet(e) {
         return createResponse(qSheet ? getRowsAsObjects(qSheet) : []);
 
       default:
-        return createResponse({ error: 'Unknown action: ' + action }, 400);
+        return createResponse({ error: 'Unknown GET action: ' + action }, 400);
     }
   } catch (err) {
     return createResponse({ error: err.toString() }, 500);
@@ -176,9 +175,9 @@ function doPost(e) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const payload = JSON.parse(e.postData.contents);
-    const action = (payload.action || "").trim();
+    const action = (payload.action || "").trim().toLowerCase();
 
-    switch (action.toLowerCase()) {
+    switch (action) {
       case 'savebugreport':
         const bugHeaders = ['id', 'timestamp', 'user_name', 'user_email', 'category', 'description', 'page_url', 'test_id', 'browser', 'device', 'status', 'admin_note'];
         const bSheet = ensureSheetHeaders(ss, BUG_REPORTS_SHEET, bugHeaders);
@@ -189,6 +188,11 @@ function doPost(e) {
           return sanitize(payload[h]);
         });
         bSheet.appendRow(bRow);
+        return createResponse({ status: 'success' });
+
+      case 'updatebugstatus':
+        const buSheet = ss.getSheetByName(BUG_REPORTS_SHEET);
+        if (buSheet) upsertRow(buSheet, 'id', payload.id, { status: payload.status, admin_note: payload.note });
         return createResponse({ status: 'success' });
 
       case 'logevent':
@@ -207,7 +211,7 @@ function doPost(e) {
         return createResponse({ status: 'success' });
 
       case 'submitresponse':
-        const rHeaders = ['Timestamp', 'User Name', 'User Email', 'Test ID', 'Score', 'Total', 'Duration (ms)', 'Raw Responses', 'Certificate ID'];
+        const rHeaders = ['Timestamp', 'User Name', 'User Email', 'Test ID', 'Score', 'Total', 'Duration (ms)', 'Raw Responses', 'Certificate ID', 'flagged', 'violationCount', 'flagReason'];
         const rSheet = ensureSheetHeaders(ss, 'Responses', rHeaders);
         const rRow = rHeaders.map(h => {
           if (h === 'Timestamp') return new Date();
@@ -219,9 +223,28 @@ function doPost(e) {
           if (h === 'Duration (ms)') return payload.duration || 0;
           if (h === 'Raw Responses') return JSON.stringify(payload.responses || []);
           if (h === 'Certificate ID') return sanitize(payload.certificateId);
+          if (h === 'flagged') return sanitize(payload.flagged);
+          if (h === 'violationCount') return payload.violationCount || 0;
+          if (h === 'flagReason') return sanitize(payload.flagReason);
           return "";
         });
         rSheet.appendRow(rRow);
+        return createResponse({ status: 'success' });
+
+      case 'deleteresponse':
+        const resSheet = ss.getSheetByName('Responses');
+        if (resSheet) {
+          const rData = resSheet.getDataRange().getValues();
+          const rHeaders = rData[0];
+          const tsIdx = rHeaders.indexOf('Timestamp');
+          const emailIdx = rHeaders.indexOf('User Email');
+          for (let i = rData.length - 1; i >= 1; i--) {
+            if (new Date(rData[i][tsIdx]).getTime() === new Date(payload.timestamp).getTime() && String(rData[i][emailIdx]).toLowerCase() === String(payload.email).toLowerCase()) {
+              resSheet.deleteRow(i + 1);
+              break;
+            }
+          }
+        }
         return createResponse({ status: 'success' });
 
       case 'savetest':
@@ -233,9 +256,45 @@ function doPost(e) {
         }
         return createResponse({ status: 'success' });
 
+      case 'deletetest':
+        const detSheet = ss.getSheetByName('Tests');
+        if (detSheet) deleteRow(detSheet, 'id', payload.id);
+        const qTab = ss.getSheetByName(payload.id);
+        if (qTab) ss.deleteSheet(qTab);
+        return createResponse({ status: 'success' });
+
       case 'saveuser':
         const uSheet = ensureSheetHeaders(ss, 'Users', ['id', 'name', 'email', 'role', 'password', 'image_url']);
         upsertRow(uSheet, 'email', payload.data.email, payload.data);
+        return createResponse({ status: 'success' });
+
+      case 'saveusers':
+        const usSheet = ensureSheetHeaders(ss, 'Users', ['id', 'name', 'email', 'role', 'password', 'image_url']);
+        if (Array.isArray(payload.data)) payload.data.forEach(u => upsertRow(usSheet, 'email', u.email, u));
+        return createResponse({ status: 'success' });
+
+      case 'deleteuser':
+        const duSheet = ss.getSheetByName('Users');
+        if (duSheet) deleteRow(duSheet, 'email', payload.email);
+        return createResponse({ status: 'success' });
+
+      case 'savequestion':
+        const sqSheet = ss.getSheetByName(payload.testId) || ss.insertSheet(payload.testId);
+        if (sqSheet.getLastRow() === 0) sqSheet.appendRow(['id', 'question_text', 'question_type', 'options', 'correct_answer', 'order_group', 'image_url', 'metadata', 'required']);
+        upsertRow(sqSheet, 'id', payload.question.id, payload.question);
+        return createResponse({ status: 'success' });
+
+      case 'savequestions':
+        const squSheet = ss.getSheetByName(payload.testId) || ss.insertSheet(payload.testId);
+        squSheet.clear();
+        const qHeaders = ['id', 'question_text', 'question_type', 'options', 'correct_answer', 'order_group', 'image_url', 'metadata', 'required'];
+        squSheet.appendRow(qHeaders);
+        if (Array.isArray(payload.questions)) payload.questions.forEach(q => squSheet.appendRow(qHeaders.map(h => q[h] ?? "")));
+        return createResponse({ status: 'success' });
+
+      case 'savesetting':
+        const seSheet = ensureSheetHeaders(ss, 'Settings', ['key', 'value']);
+        upsertRow(seSheet, 'key', payload.key, { key: payload.key, value: payload.value });
         return createResponse({ status: 'success' });
 
       default:
@@ -282,6 +341,17 @@ function upsertRow(sheet, idKey, idValue, data) {
 
   if (rowIndex > -1) sheet.getRange(rowIndex, 1, 1, headers.length).setValues([rowData]);
   else sheet.appendRow(rowData);
+}
+
+function deleteRow(sheet, idKey, idValue) {
+  const values = sheet.getDataRange().getValues();
+  if (values.length < 2) return;
+  const headers = values[0];
+  const idIdx = headers.indexOf(idKey);
+  if (idIdx === -1) return;
+  for (let i = values.length - 1; i >= 1; i--) {
+    if (String(values[i][idIdx]).trim().toLowerCase() === String(idValue).trim().toLowerCase()) sheet.deleteRow(i + 1);
+  }
 }
 
 function createResponse(data, code = 200) {
