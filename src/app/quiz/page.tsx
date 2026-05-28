@@ -8,6 +8,7 @@
  * Updated: v19.8.5 - Added Navigation Protection and Leave Confirmation.
  * Updated: v19.9.0 - Added Anti-Inspection Deterrence Measures (Shortcuts, Context Menu, DevTools).
  * Updated: v19.9.1 - Enhanced Duration Parsing Logic.
+ * Updated: v19.9.2 - Recalibrated Timeout Protocol to bypass Spam Ban.
  */
 
 "use client";
@@ -24,7 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { trackEvent } from '@/lib/tracker';
-import { AlertCircle, XCircle } from 'lucide-react';
+import { AlertCircle, XCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QuizLoadingManager } from '@/components/quiz/lifecycle/QuizLoadingManager';
 import { BugReportButton } from '@/components/shared/BugReportButton';
@@ -218,7 +219,7 @@ function QuizContent() {
       setTimeLeft(prev => {
         if (prev <= 0) {
           clearInterval(timer);
-          submit();
+          submit(true); // Trigger auto-submission on timeout
           return 0;
         }
         return prev - 1;
@@ -270,9 +271,18 @@ function QuizContent() {
     setIsSubmittingVisually(false); setIsSubmissionDataReady(false); setPendingSubmissionResult(null);
   };
 
-  const submit = async () => {
+  const submit = async (isTimeout = false) => {
     if (isSubmittingVisually) return;
     
+    // TIMEOUT ALERT PROTOCOL
+    if (isTimeout) {
+      toast({
+        variant: "destructive",
+        title: "Time Expired / Hết giờ",
+        description: "Your session has timed out. Transmitting registry snapshot...",
+      });
+    }
+
     const answeredCount = quiz.responses.filter(r => {
       const a = r.answer;
       if (a === null || a === undefined) return false;
@@ -282,8 +292,8 @@ function QuizContent() {
       return false;
     }).length;
 
-    // SPAM GUARD ENFORCEMENT
-    if (answeredCount === 0) {
+    // SPAM GUARD ENFORCEMENT - Bypassed for timeouts
+    if (answeredCount === 0 && !isTimeout) {
       const result = recordOffense();
       setSpamResult(result);
       
@@ -419,7 +429,7 @@ function QuizContent() {
       ) : (
         // MEASURE 2: Disable text selection during active quiz
         <div className={cn(isStarted && !quiz.isSubmitted && "select-none")}>
-          <QuizActive quiz={quiz} quizTitle={currentTestMetadata?.title || 'Assessment'} timeLeft={timeLeft} isWrongInRace={isWrongInRace} onResponseChange={(val) => { const q = quiz.questions[quiz.currentQuestionIndex]; const updated = [...quiz.responses]; const idx = updated.findIndex(r => r.questionId === q.id); if (idx > -1) updated[idx].answer = val; else updated.push({ questionId: q.id, answer: val }); setQuiz({ ...quiz, responses: updated }); }} onConfirmResponse={() => { const q = quiz.questions[quiz.currentQuestionIndex]; const updated = [...quiz.responses]; const idx = updated.findIndex(r => r.questionId === q.id); if (idx > -1) { updated[idx].isConfirmed = true; setQuiz({ ...quiz, responses: updated }); } }} onNext={() => { if (quiz.currentQuestionIndex < quiz.questions.length - 1) setQuiz(prev => ({ ...prev, currentQuestionIndex: prev.currentQuestionIndex + 1 })); }} onPrev={() => setQuiz({ ...quiz, currentQuestionIndex: Math.max(0, quiz.currentQuestionIndex - 1) })} onSubmit={submit} onJump={(idx) => setQuiz(prev => ({ ...prev, currentQuestionIndex: idx }))} onToggleFlag={(id) => { setQuiz(prev => ({ ...prev, flaggedQuestionIds: prev.flaggedQuestionIds?.includes(id) ? prev.flaggedQuestionIds.filter(f => f !== id) : [...(prev.flaggedQuestionIds || []), id] })); }} />
+          <QuizActive quiz={quiz} quizTitle={currentTestMetadata?.title || 'Assessment'} timeLeft={timeLeft} isWrongInRace={isWrongInRace} onResponseChange={(val) => { const q = quiz.questions[quiz.currentQuestionIndex]; const updated = [...quiz.responses]; const idx = updated.findIndex(r => r.questionId === q.id); if (idx > -1) updated[idx].answer = val; else updated.push({ questionId: q.id, answer: val }); setQuiz({ ...quiz, responses: updated }); }} onConfirmResponse={() => { const q = quiz.questions[quiz.currentQuestionIndex]; const updated = [...quiz.responses]; const idx = updated.findIndex(r => r.questionId === q.id); if (idx > -1) { updated[idx].isConfirmed = true; setQuiz({ ...quiz, responses: updated }); } }} onNext={() => { if (quiz.currentQuestionIndex < quiz.questions.length - 1) setQuiz(prev => ({ ...prev, currentQuestionIndex: prev.currentQuestionIndex + 1 })); }} onPrev={() => setQuiz({ ...quiz, currentQuestionIndex: Math.max(0, quiz.currentQuestionIndex - 1) })} onSubmit={() => submit(false)} onJump={(idx) => setQuiz(prev => ({ ...prev, currentQuestionIndex: idx }))} onToggleFlag={(id) => { setQuiz(prev => ({ ...prev, flaggedQuestionIds: prev.flaggedQuestionIds?.includes(id) ? prev.flaggedQuestionIds.filter(f => f !== id) : [...(prev.flaggedQuestionIds || []), id] })); }} />
         </div>
       )}
       
