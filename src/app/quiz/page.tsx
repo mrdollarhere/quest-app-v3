@@ -9,11 +9,12 @@
  * Updated: v19.9.0 - Added Anti-Inspection Deterrence Measures (Shortcuts, Context Menu, DevTools).
  * Updated: v19.9.1 - Enhanced Duration Parsing Logic.
  * Updated: v19.9.2 - Recalibrated Timeout Protocol to bypass Spam Ban.
+ * Updated: v19.9.3 - Fixed "Cannot update a component while rendering" by decoupling expiry logic.
  */
 
 "use client";
 
-import React, { useState, useEffect, Suspense, useRef } from 'react';
+import React, { useState, useEffect, Suspense, useRef, useCallback } from 'react';
 import useSWR, { mutate as globalMutate } from 'swr';
 import { QuizState, QuizMode } from '@/types/quiz';
 import { QuizStart } from '@/components/quiz/QuizStart';
@@ -212,66 +213,8 @@ function QuizContent() {
     }
   }, [user]);
 
-  // TIMER PROTOCOL: Pauses during Anti-Cheat or Leave confirmation
-  useEffect(() => {
-    if (!isStarted || quiz.isSubmitted || isCheatWarningOpen || isLeaveModalOpen) return;
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 0) {
-          clearInterval(timer);
-          submit(true); // Trigger auto-submission on timeout
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [isStarted, quiz.isSubmitted, isCheatWarningOpen, isLeaveModalOpen]);
-
-  const { data: questionsData, isLoading: qLoading } = useSWR(
-    testId ? `/api/proxy/questions?id=${testId}` : null
-  );
-
-  const { data: globalData, isLoading: configLoading } = useSWR(
-    '/api/proxy/settings',
-    async () => {
-      const [sRes, tRes] = await Promise.all([fetch('/api/proxy/settings'), fetch('/api/proxy/tests')]);
-      const [sData, tData] = await Promise.all([sRes.json(), tRes.json()]);
-      return {
-        tests: Array.isArray(tData) ? tData : [],
-        salt: sData.daily_key_salt || "",
-        protection: String(sData.access_key_protection_enabled ?? "true") !== "false",
-        guest: String(sData.guest_access_allowed ?? "true") !== "false",
-        maintenance: String(sData.maintenance_mode ?? "false") === "true",
-        eta: sData.maintenance_eta || "",
-        supportEmail: sData.support_email || "",
-        platformName: sData.platform_name || "DNTRNG",
-        logoUrl: sData.logo_url || "",
-        globalTimer: sData.global_timer_limit || "15",
-        defaultThreshold: sData.default_pass_threshold || "70"
-      };
-    }
-  );
-
-  useEffect(() => {
-    if (!qLoading && !configLoading && !!questionsData && !!globalData) setIsInitialDataReady(true);
-  }, [qLoading, configLoading, questionsData, globalData]);
-
-  const finalizeSubmission = () => {
-    if (!pendingSubmissionResult) return;
-    const data = pendingSubmissionResult;
-    const testMetadata = globalData?.tests.find(t => String(t.id) === String(testId));
-    const passingThreshold = Number(testMetadata?.passing_threshold || globalData?.defaultThreshold || 70);
-    const isPassed = Math.round((data.score / (data.total || 1)) * 100) >= passingThreshold;
-    
-    if (isPassed && testMetadata?.certificate_enabled !== 'FALSE') setGeneratedCertificateId(data.certificateId);
-    setServerReviewData(data.reviewData || []);
-    setQuiz(prev => ({ ...prev, isSubmitted: true, score: data.score, endTime: Date.now() }));
-    if (user?.email) globalMutate(`results-${user.email}`);
-    setIsSubmittingVisually(false); setIsSubmissionDataReady(false); setPendingSubmissionResult(null);
-  };
-
-  const submit = async (isTimeout = false) => {
+  // SUBMISSION REGISTRY PROTOCOL
+  const submit = useCallback(async (isTimeout = false) => {
     if (isSubmittingVisually) return;
     
     // TIMEOUT ALERT PROTOCOL
@@ -333,6 +276,68 @@ function QuizContent() {
     } catch (e: any) {
       setIsSubmittingVisually(false); toast({ variant: "destructive", title: "Submission Failure" });
     }
+  }, [isSubmittingVisually, quiz.responses, quiz.mode, testId, user, guestName, antiCheatViolation, toast]);
+
+  // TIMER TICK PROTOCOL
+  useEffect(() => {
+    if (!isStarted || quiz.isSubmitted || isCheatWarningOpen || isLeaveModalOpen || timeLeft <= 0) return;
+    
+    const timer = setInterval(() => {
+      setTimeLeft(prev => Math.max(0, prev - 1));
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [isStarted, quiz.isSubmitted, isCheatWarningOpen, isLeaveModalOpen, timeLeft]);
+
+  // TEMPORAL EXPIRY LISTENER: Triggers auto-submission when time hits zero
+  // This decoupling prevents the "Cannot update a component while rendering" error
+  useEffect(() => {
+    if (isStarted && !quiz.isSubmitted && timeLeft === 0) {
+      submit(true);
+    }
+  }, [timeLeft, isStarted, quiz.isSubmitted, submit]);
+
+  const { data: questionsData, isLoading: qLoading } = useSWR(
+    testId ? `/api/proxy/questions?id=${testId}` : null
+  );
+
+  const { data: globalData, isLoading: configLoading } = useSWR(
+    '/api/proxy/settings',
+    async () => {
+      const [sRes, tRes] = await Promise.all([fetch('/api/proxy/settings'), fetch('/api/proxy/tests')]);
+      const [sData, tData] = await Promise.all([sRes.json(), tRes.json()]);
+      return {
+        tests: Array.isArray(tData) ? tData : [],
+        salt: sData.daily_key_salt || "",
+        protection: String(sData.access_key_protection_enabled ?? "true") !== "false",
+        guest: String(sData.guest_access_allowed ?? "true") !== "false",
+        maintenance: String(sData.maintenance_mode ?? "false") === "true",
+        eta: sData.maintenance_eta || "",
+        supportEmail: sData.support_email || "",
+        platformName: sData.platform_name || "DNTRNG",
+        logoUrl: sData.logo_url || "",
+        globalTimer: sData.global_timer_limit || "15",
+        defaultThreshold: sData.default_pass_threshold || "70"
+      };
+    }
+  );
+
+  useEffect(() => {
+    if (!qLoading && !configLoading && !!questionsData && !!globalData) setIsInitialDataReady(true);
+  }, [qLoading, configLoading, questionsData, globalData]);
+
+  const finalizeSubmission = () => {
+    if (!pendingSubmissionResult) return;
+    const data = pendingSubmissionResult;
+    const testMetadata = globalData?.tests.find(t => String(t.id) === String(testId));
+    const passingThreshold = Number(testMetadata?.passing_threshold || globalData?.defaultThreshold || 70);
+    const isPassed = Math.round((data.score / (data.total || 1)) * 100) >= passingThreshold;
+    
+    if (isPassed && testMetadata?.certificate_enabled !== 'FALSE') setGeneratedCertificateId(data.certificateId);
+    setServerReviewData(data.reviewData || []);
+    setQuiz(prev => ({ ...prev, isSubmitted: true, score: data.score, endTime: Date.now() }));
+    if (user?.email) globalMutate(`results-${user.email}`);
+    setIsSubmittingVisually(false); setIsSubmissionDataReady(false); setPendingSubmissionResult(null);
   };
 
   /**
