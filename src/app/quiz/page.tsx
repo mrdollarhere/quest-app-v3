@@ -1,4 +1,3 @@
-
 /**
  * page.tsx (Quiz)
  * 
@@ -10,6 +9,7 @@
  * Updated: v19.9.1 - Enhanced Duration Parsing Logic.
  * Updated: v19.9.2 - Recalibrated Timeout Protocol to bypass Spam Ban.
  * Updated: v19.9.3 - Fixed "Cannot update a component while rendering" by decoupling expiry logic.
+ * Updated: v19.9.4 - Removed Progress Persistence Protocol (Stateless Reversion).
  */
 
 "use client";
@@ -290,7 +290,6 @@ function QuizContent() {
   }, [isStarted, quiz.isSubmitted, isCheatWarningOpen, isLeaveModalOpen, timeLeft]);
 
   // TEMPORAL EXPIRY LISTENER: Triggers auto-submission when time hits zero
-  // This decoupling prevents the "Cannot update a component while rendering" error
   useEffect(() => {
     if (isStarted && !quiz.isSubmitted && timeLeft === 0) {
       submit(true);
@@ -352,13 +351,7 @@ function QuizContent() {
     if (!numMatch) return 900;
     
     const num = parseInt(numMatch[0]);
-    
-    // Explicit Seconds Check
-    if (s.includes('s') && !s.includes('m')) {
-      return num;
-    }
-    
-    // Default to Minutes (15, 15m, 15 mins)
+    if (s.includes('s') && !s.includes('m')) return num;
     return num * 60;
   };
 
@@ -378,7 +371,6 @@ function QuizContent() {
     if (!q || q.length === 0) return;
     if (mode === 'test') q = [...q].sort(() => Math.random() - 0.5);
 
-    // TEMPORAL CALIBRATION: Priority Individual > Global > Default
     const currentTest = globalData?.tests.find(t => String(t.id) === String(testId));
     const rawDuration = currentTest?.duration || globalData?.globalTimer || "15";
     const seconds = parseDurationSeconds(rawDuration);
@@ -389,7 +381,6 @@ function QuizContent() {
     setQuiz(prev => ({ ...prev, questions: q, mode, currentQuestionIndex: 0, responses: [] }));
   };
 
-  // BAN TERMINAL RENDER NODE
   if (spamResult && (spamResult.status === 'softban' || spamResult.status === 'banned') && isBanned()) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
@@ -432,7 +423,6 @@ function QuizContent() {
       ) : quiz.isSubmitted ? (
         <QuizResults title={currentTestMetadata?.title || 'Assessment'} testId={testId} score={quiz.score} totalQuestions={quiz.questions.length} questions={quiz.questions} responses={quiz.responses} serverReviewData={serverReviewData} userName={user?.displayName || guestName || 'Guest User'} onRestart={() => { setIsStarted(false); setQuiz(prev => ({...prev, isSubmitted: false, responses: []})); }} certificateId={generatedCertificateId || undefined} duration={finalDuration} allTests={globalData?.tests} testMetadata={currentTestMetadata} />
       ) : (
-        // MEASURE 2: Disable text selection during active quiz
         <div className={cn(isStarted && !quiz.isSubmitted && "select-none")}>
           <QuizActive quiz={quiz} quizTitle={currentTestMetadata?.title || 'Assessment'} timeLeft={timeLeft} isWrongInRace={isWrongInRace} onResponseChange={(val) => { const q = quiz.questions[quiz.currentQuestionIndex]; const updated = [...quiz.responses]; const idx = updated.findIndex(r => r.questionId === q.id); if (idx > -1) updated[idx].answer = val; else updated.push({ questionId: q.id, answer: val }); setQuiz({ ...quiz, responses: updated }); }} onConfirmResponse={() => { const q = quiz.questions[quiz.currentQuestionIndex]; const updated = [...quiz.responses]; const idx = updated.findIndex(r => r.questionId === q.id); if (idx > -1) { updated[idx].isConfirmed = true; setQuiz({ ...quiz, responses: updated }); } }} onNext={() => { if (quiz.currentQuestionIndex < quiz.questions.length - 1) setQuiz(prev => ({ ...prev, currentQuestionIndex: prev.currentQuestionIndex + 1 })); }} onPrev={() => setQuiz({ ...quiz, currentQuestionIndex: Math.max(0, quiz.currentQuestionIndex - 1) })} onSubmit={() => submit(false)} onJump={(idx) => setQuiz(prev => ({ ...prev, currentQuestionIndex: idx }))} onToggleFlag={(id) => { setQuiz(prev => ({ ...prev, flaggedQuestionIds: prev.flaggedQuestionIds?.includes(id) ? prev.flaggedQuestionIds.filter(f => f !== id) : [...(prev.flaggedQuestionIds || []), id] })); }} />
         </div>
